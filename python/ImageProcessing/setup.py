@@ -26,4 +26,3 @@ def connect_to_mongodb(attempts=5, delay=3):
             else:
                 print("Failed to connect to MongoDB server: ", err)
                 return None, None
-

@@ -1,6 +1,7 @@
 from io import BytesIO
 from PIL import Image
 from PIL.ExifTags import TAGS
+import asyncio
 
 
 def resize_image(image, max_size=1200):
@@ -17,8 +18,7 @@ def image_to_byte_array(image: Image):
     return img_byte_arr
 
 
-def get_exif_data(image_path):
-    image = Image.open(image_path)
+def get_exif_data(image):
     exif_data = image._getexif()
 
     if exif_data:
@@ -33,7 +33,8 @@ def get_exif_data(image_path):
     return {}
 
 
-def process_image(resized_image, device, mtcnn, resnet):
+def process_image(image, device, mtcnn, resnet):
+    resized_image = resize_image(image)
     try:
         faces = mtcnn(resized_image)
         if faces is None:
@@ -46,3 +47,13 @@ def process_image(resized_image, device, mtcnn, resnet):
     except Exception as e:
         print(f"Error processing image: {e}")
         return None
+
+
+async def process_image_async(image, device, mtcnn, resnet):
+    loop = asyncio.get_event_loop()
+
+    def sync_process():
+        return process_image(image, device, mtcnn, resnet)
+
+    embeddings = await loop.run_in_executor(None, sync_process)
+    return embeddings
