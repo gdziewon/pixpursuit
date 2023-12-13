@@ -4,21 +4,33 @@ from PIL import Image, UnidentifiedImageError
 from PIL.ExifTags import TAGS
 from pymongo import MongoClient, errors
 from io import BytesIO
+import time
 import numpy as np
 import os
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-mtcnn = MTCNN(keep_all=True, device=device)
-resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
+def setup():
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    mtcnn = MTCNN(keep_all=True, device=device)
+    resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
+    return device, mtcnn, resnet
 
-try:
-    client = MongoClient('localhost', 27017, serverSelectionTimeoutMS=5000)
-    db = client.pixpursuit_db
-    images_collection = db.images
-    client.server_info()
-except errors.ServerSelectionTimeoutError as err:
-    print("Failed to connect to server: ", err)
+
+def connect_to_mongodb(attempts=5, delay=3):
+    for attempt in range(attempts):
+        try:
+            client = MongoClient('localhost', 27017, serverSelectionTimeoutMS=5000)
+            db = client.pixpursuit_db
+            collection = db.images
+            client.server_info()
+            return client, collection
+        except errors.ServerSelectionTimeoutError as err:
+            if attempt < attempts - 1:
+                print(f"Attempt {attempt + 1} failed, retrying in {delay} seconds...")
+                time.sleep(delay)
+            else:
+                print("Failed to connect to MongoDB server: ", err)
+                return None, None
 
 
 def resize_image(image, max_size=1200):
@@ -51,35 +63,46 @@ def get_exif_data(image_path):
     return {}
 
 
-def process_image(image_path):
-    try:
-        image = Image.open(image_path)
-        original_image = image_to_byte_array(image)
-        resized_image = resize_image(image)
-    except UnidentifiedImageError:
-        print(f"Invalid image file: {image_path}")
-        return None
-
+def process_image(resized_image, device, mtcnn, resnet):
     try:
         faces = mtcnn(resized_image)
         if faces is None:
-            print(f"No faces detected in the image: {image_path}")
+            print(f"No faces detected in the image")
             return None
 
         embeddings = resnet(faces.to(device))
         embeddings = embeddings.detach().cpu().numpy()
+        return embeddings
+
+    except Exception as e:
+        print(f"Error processing image: {e}")
+        return None
+
+
+def save_to_database(collection, image_path, device, mtcnn, resnet):
+    try:
+        image = Image.open(image_path)
+        resized_image = resize_image(image)
+        image_byte_arr = image_to_byte_array(image)
+
+        embeddings = process_image(resized_image, device, mtcnn, resnet)
+        embeddings_list = [emb.tolist() for emb in embeddings] if embeddings is not None else []
 
         exif_data = get_exif_data(image_path)
 
         image_record = {
             'path': image_path,
-            'image_data': original_image,
-            'embeddings': [emb.tolist() for emb in embeddings],
+            'image_data': image_byte_arr,
+            'embeddings': embeddings_list,
             'metadata': exif_data
         }
-        return images_collection.insert_one(image_record).inserted_id
+
+        return collection.insert_one(image_record).inserted_id
     except Exception as e:
-        print(f"Error processing image {image_path}: {e}")
+        print(f"Error saving to database: {e}")
         return None
 
+
+database_client, images_collection = connect_to_mongodb()
+g_device, g_mtcnn, g_resnet = setup()
 
