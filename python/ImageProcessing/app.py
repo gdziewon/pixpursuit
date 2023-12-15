@@ -1,14 +1,10 @@
 from flask import Flask, request, jsonify
-import setup
 from PIL import Image
 import asyncio
 from image_processing import process_image_async
 from save_to_db import save_to_database
 
 app = Flask(__name__)
-
-database_client, images_collection = setup.connect_to_mongodb()
-device, mtcnn, resnet = setup.activate_models()
 
 
 @app.route('/process-images', methods=['POST'])
@@ -27,15 +23,15 @@ def process_images_api():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        embeddings_list = loop.run_until_complete(asyncio.gather(
-            *(process_image_async(image, device, mtcnn, resnet) for image in processed_images)
+        results = loop.run_until_complete(asyncio.gather(
+            *(process_image_async(image) for image in processed_images)
         ))
     finally:
         loop.close()
 
     inserted_ids = []
-    for image, embeddings in zip(processed_images, embeddings_list):
-        inserted_id = save_to_database(images_collection, image, embeddings)
+    for (face_embeddings, detected_objects, image_byte_arr, exif_data) in results:
+        inserted_id = save_to_database(face_embeddings, detected_objects, image_byte_arr, exif_data)
         inserted_ids.append(str(inserted_id))
 
     return jsonify({'inserted_ids': inserted_ids})

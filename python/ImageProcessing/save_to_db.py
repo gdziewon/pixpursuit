@@ -1,20 +1,20 @@
-from image_processing import image_to_byte_array, get_exif_data
+from setup import connect_to_mongodb
+
+database_client, images_collection = connect_to_mongodb()
 
 
-def save_to_database(collection, image, embeddings):
+def save_to_database(face_embeddings, detected_objects, image_byte_arr, exif_data):
     try:
-        image_byte_arr = image_to_byte_array(image)
-        embeddings_list = [emb.tolist() for emb in embeddings] if embeddings is not None else []
-
-        exif_data = get_exif_data(image)
+        embeddings_list = [emb.tolist() for emb in face_embeddings] if face_embeddings is not None else []
 
         image_record = {
             'image_data': image_byte_arr,
             'embeddings': embeddings_list,
+            'detected_objects': detected_objects,
             'metadata': exif_data
         }
 
-        return collection.insert_one(image_record).inserted_id
+        return images_collection.insert_one(image_record).inserted_id
     except Exception as e:
         print(f"Error saving to database: {e}")
         return None

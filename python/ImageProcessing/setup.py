@@ -1,10 +1,16 @@
 import torch
 from facenet_pytorch import MTCNN, InceptionResnetV1
+from ultralytics import YOLO
 from pymongo import MongoClient, errors
 import time
 
 
-def activate_models():
+def activate_object_models():
+    model = YOLO('yolov8n.pt')
+    return model
+
+
+def activate_face_models():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     mtcnn = MTCNN(keep_all=True, device=device)
     resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
