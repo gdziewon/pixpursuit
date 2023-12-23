@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from PIL import Image
 import asyncio
 from image_processing import process_image_async
-from database_tools import save_to_database, add_tags, add_feedback, predict_and_update_tags
+from database_tools import save_to_database, add_tags, add_feedback, predict_and_update_tags, add_description
 from tag_prediction_model import TagPredictor
 from tag_prediction_tools import update_model_tags, added_tag_training_init, feedback_training_init, save_model_state
 from celery_config import celery
@@ -44,8 +44,8 @@ def process_images_api():
         results = loop.run_until_complete(asyncio.gather(
             *(process_image_async(image) for image in processed_images)
         ))
-        for (face_embeddings, detected_objects, image_byte_arr, exif_data, features) in results:
-            inserted_id = save_to_database(face_embeddings, detected_objects, image_byte_arr, exif_data, features)
+        for (face_embeddings, detected_objects, image_byte_arr, content_type, filename, exif_data, features) in results:
+            inserted_id = save_to_database(face_embeddings, detected_objects, image_byte_arr, content_type, filename, exif_data, features)
             inserted_id_str = str(inserted_id)
             features_list = features.tolist() if isinstance(features, np.ndarray) else features
             predict_and_update_tags.delay(inserted_id_str, features_list)
@@ -102,6 +102,28 @@ def feedback_on_tags_api():
     else:
         app.logger.error(f"Failed to add feedback {feedback} for ID {inserted_id}.")
         return jsonify({'error': 'Failed to add feedback'}), 500
+
+
+@app.route('/add-description', methods=['POST'])
+def add_description_api():
+    app.logger.info("add-description accessed")
+
+    data = request.get_json()
+    inserted_id = data.get('inserted_id')
+    description = data.get('description')
+
+    if not inserted_id or description is None:
+        app.logger.warning("Missing inserted_id or description in request data.")
+        return jsonify({'error': 'Missing inserted_id or description'}), 400
+
+    success = add_description(description, inserted_id)
+    if success:
+        feedback_training_init(inserted_id)
+        app.logger.info(f"Description {description} added successfully for ID {inserted_id}.")
+        return jsonify({'message': 'Description added successfully'}), 200
+    else:
+        app.logger.error(f"Failed to add description {description} for ID {inserted_id}.")
+        return jsonify({'error': 'Failed to add description'}), 500
 
 
 if __name__ == '__main__':

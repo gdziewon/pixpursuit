@@ -7,6 +7,7 @@ from pymongo import MongoClient, errors
 from pymongo.server_api import ServerApi
 import time
 import logging
+from gridfs import GridFS
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +49,9 @@ def connect_to_mongodb(attempts=5, delay=3):
             db = client.pixpursuit_db
             images_collection = db.images
             tags_collection = db.tags
+            fs = GridFS(db)
             client.server_info()
-            return client, images_collection, tags_collection
+            return client, images_collection, tags_collection, fs
         except errors.ServerSelectionTimeoutError as err:
             if attempt < attempts - 1:
                 logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay} seconds...")

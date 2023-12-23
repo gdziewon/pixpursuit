@@ -8,23 +8,25 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-database_client, images_collection, tags_collection = connect_to_mongodb()
+database_client, images_collection, tags_collection, fs = connect_to_mongodb()
 
 
-def save_to_database(face_embeddings, detected_objects, image_byte_arr, exif_data, features):
+def save_to_database(face_embeddings, detected_objects, image_byte_arr, content_type, filename, exif_data, features):
     try:
         embeddings_list = [emb.tolist() for emb in face_embeddings] if face_embeddings is not None else []
         features_list = features.tolist() if features is not None else []
+        image_id = fs.put(image_byte_arr, content_type=content_type, filename=filename)
 
         image_record = {
-            'image_data': image_byte_arr,
+            'image_data': image_id,
             'embeddings': embeddings_list,
             'detected_objects': detected_objects,
             'metadata': exif_data,
             'features': features_list,
             'user_tags': [],
             'auto_tags': [],
-            'feedback': {}
+            'feedback': {},
+            'description': ""
         }
 
         return images_collection.insert_one(image_record).inserted_id
@@ -53,16 +55,46 @@ def add_tags(tags, inserted_id):
 def add_feedback(feedback, inserted_id):
     try:
         inserted_id = ObjectId(inserted_id)
-        image_document = images_collection.find_one({'_id': inserted_id})
+        update_result = images_collection.update_one(
+            {'_id': inserted_id},
+            {'$set': {'feedback': feedback}}
+        )
 
-        if image_document:
-            images_collection.update_one({'_id': inserted_id}, {'$set': {'feedback': feedback}})
+        if update_result.matched_count == 0:
+            logger.warning(f"No document found with ID: {inserted_id}")
+            return False
+        elif update_result.modified_count == 0:
+            logger.info(f"Document with ID: {inserted_id} was not modified (feedback might be the same)")
             return True
         else:
-            return False
+            logger.info(f"Updated feedback for document with ID: {inserted_id}")
+            return True
     except Exception as e:
         logger.error(f"Error updating feedback: {e}")
         return False
+
+
+def add_description(description, inserted_id):
+    try:
+        inserted_id = ObjectId(inserted_id)
+        update_result = images_collection.update_one(
+            {'_id': inserted_id},
+            {'$set': {'description': description}}
+        )
+
+        if update_result.matched_count == 0:
+            logger.warning(f"No document found with ID: {inserted_id}")
+            return False
+        elif update_result.modified_count == 0:
+            logger.info(f"Document with ID: {inserted_id} was not modified (description might be the same)")
+            return True
+        else:
+            logger.info(f"Updated description for document with ID: {inserted_id}")
+            return True
+    except Exception as e:
+        logger.error(f"Error updating description: {e}")
+        return False
+
 
 
 def get_unique_tags():

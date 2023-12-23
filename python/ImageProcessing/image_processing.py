@@ -9,11 +9,11 @@ async def process_image_async(image):
     try:
         face_embeddings = await get_embeddings_async(image)
         detected_objects = await detect_objects_async(image)
-        image_byte_arr = await image_to_byte_array_async(image)
+        image_byte_arr, content_type, filename = await image_to_byte_array_async(image)
         exif_data = await get_exif_data_async(image)
         features = await extract_features_async(image)
     except RuntimeError as e:
         print(f"Runtime error occurred: {e}")
         return
 
-    return face_embeddings, detected_objects, image_byte_arr, exif_data, features
+    return face_embeddings, detected_objects, image_byte_arr, content_type, filename, exif_data, features

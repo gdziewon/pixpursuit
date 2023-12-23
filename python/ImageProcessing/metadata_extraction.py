@@ -4,17 +4,21 @@ from PIL.ExifTags import TAGS
 
 def get_exif_data(image):
     exif_data = image._getexif()
+    formatted_exif_data = {}
 
     if exif_data:
-        formatted_exif_data = {}
-        for key, value in exif_data.items():
-            if isinstance(value, bytes):
-                value = value.decode(errors='ignore')
-            elif not isinstance(value, (int, float, str, list, dict, tuple)):
-                value = str(value)
-            formatted_exif_data[TAGS.get(key, key)] = value
-        return formatted_exif_data
-    return {}
+        for key in ['ImageWidth', 'ImageLength', 'DateTime']:
+            tag = next((t for t, v in TAGS.items() if v == key), None)
+            if tag and tag in exif_data:
+                value = exif_data[tag]
+                if key == 'DateTime':
+                    date_part = value.split(' ')[0]
+                    formatted_date = date_part.replace(':', '-')
+                    formatted_exif_data[key] = formatted_date
+                else:
+                    formatted_exif_data[key] = value
+
+    return formatted_exif_data
 
 
 async def get_exif_data_async(image):
