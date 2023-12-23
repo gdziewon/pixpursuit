@@ -3,6 +3,9 @@ from flask import current_app
 import torch
 from celery_config import celery
 from bson import ObjectId
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 database_client, images_collection, tags_collection = connect_to_mongodb()
@@ -26,7 +29,7 @@ def save_to_database(face_embeddings, detected_objects, image_byte_arr, exif_dat
 
         return images_collection.insert_one(image_record).inserted_id
     except Exception as e:
-        print(f"Error saving to database: {e}")
+        logger.error(f"Error saving to database: {e}")
         return None
 
 
@@ -58,7 +61,7 @@ def add_feedback(feedback, inserted_id):
         else:
             return False
     except Exception as e:
-        print(f"Error updating feedback: {e}")
+        logger.error(f"Error updating feedback: {e}")
         return False
 
 

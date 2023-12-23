@@ -4,7 +4,11 @@ from torchvision.models import ResNet50_Weights
 from facenet_pytorch import MTCNN, InceptionResnetV1
 from ultralytics import YOLO
 from pymongo import MongoClient, errors
+from pymongo.server_api import ServerApi
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def activate_feature_models():
@@ -18,11 +22,13 @@ def activate_feature_models():
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
+    logger.info("Activated pretrained ResNet50 model")
     return resnet, transform
 
 
 def activate_object_models():
     model = YOLO('yolov8n.pt')
+    logger.info("Activated pretrained YOLOv8 model")
     return model
 
 
@@ -30,13 +36,15 @@ def activate_face_models():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     mtcnn = MTCNN(keep_all=True, device=device)
     resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
+    logger.info("Activated pretrained FaceNet model")
     return device, mtcnn, resnet
 
 
 def connect_to_mongodb(attempts=5, delay=3):
     for attempt in range(attempts):
         try:
-            client = MongoClient('localhost', 27017, serverSelectionTimeoutMS=5000)
+            uri = "mongodb+srv://Minister:<password>@serverlessinstance0.wwjfsv6.mongodb.net/?retryWrites=true&w=majority"
+            client = MongoClient(uri, server_api=ServerApi('1'))
             db = client.pixpursuit_db
             images_collection = db.images
             tags_collection = db.tags
@@ -44,8 +52,8 @@ def connect_to_mongodb(attempts=5, delay=3):
             return client, images_collection, tags_collection
         except errors.ServerSelectionTimeoutError as err:
             if attempt < attempts - 1:
-                print(f"Attempt {attempt + 1} failed, retrying in {delay} seconds...")
+                logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay} seconds...")
                 time.sleep(delay)
             else:
-                print("Failed to connect to MongoDB server: ", err)
-                return None, None
+                logger.error("Failed to connect to MongoDB server: ", err)
+                return None, None, None
