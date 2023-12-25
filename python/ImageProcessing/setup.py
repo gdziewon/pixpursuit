@@ -3,8 +3,7 @@ from torchvision import models, transforms
 from torchvision.models import ResNet50_Weights
 from facenet_pytorch import MTCNN, InceptionResnetV1
 from ultralytics import YOLO
-from pymongo import MongoClient, errors
-from pymongo.server_api import ServerApi
+import motor.motor_asyncio
 import time
 import logging
 import boto3
@@ -44,14 +43,13 @@ def activate_face_models():
 def connect_to_mongodb(attempts=5, delay=3):
     for attempt in range(attempts):
         try:
-            uri = "mongodb+srv://Minister:...@serverlessinstance0.wwjfsv6.mongodb.net/?retryWrites=true&w=majority"
-            client = MongoClient(uri, server_api=ServerApi('1'))
-            db = client.pixpursuit_db
+            uri = "mongodb+srv://Minister:-@serverlessinstance0.wwjfsv6.mongodb.net/?retryWrites=true&w=majority"
+            async_client = motor.motor_asyncio.AsyncIOMotorClient(uri)
+            db = async_client.pixpursuit_db
             images_collection = db.images
             tags_collection = db.tags
-            client.server_info()
-            return client, images_collection, tags_collection
-        except errors.ServerSelectionTimeoutError as err:
+            return async_client, images_collection, tags_collection
+        except Exception as err:
             if attempt < attempts - 1:
                 logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay} seconds...")
                 time.sleep(delay)
@@ -65,6 +63,6 @@ def connect_to_space():
     client = session.client('s3',
                             region_name='ams3',
                             endpoint_url='https://pixpursuit.ams3.digitaloceanspaces.com',
-                            aws_access_key_id='...',
-                            aws_secret_access_key='...')
+                            aws_access_key_id='-',
+                            aws_secret_access_key='-')
     return client

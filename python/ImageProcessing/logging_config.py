@@ -3,10 +3,12 @@ from logging.handlers import RotatingFileHandler
 
 
 def setup_logging():
-    formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]')
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
 
-    handler = RotatingFileHandler('app.log', maxBytes=10000000, backupCount=1)
-    handler.setLevel(logging.INFO)
+    handler = RotatingFileHandler('app.log', maxBytes=10000000, backupCount=5)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
 
-    logging.basicConfig(level=logging.INFO, handlers=[handler])
+    logger.addHandler(handler)
+    return logger
