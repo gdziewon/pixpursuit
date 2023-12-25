@@ -1,4 +1,4 @@
-from setup import connect_to_mongodb
+from setup import connect_to_mongodb, connect_to_space
 from flask import current_app
 import torch
 from celery_config import celery
@@ -8,17 +8,20 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-database_client, images_collection, tags_collection, fs = connect_to_mongodb()
+database_client, images_collection, tags_collection = connect_to_mongodb()
+space_client = connect_to_space()
+space_name = 'pixpursuit'
 
 
 def save_to_database(face_embeddings, detected_objects, image_byte_arr, content_type, filename, exif_data, features):
     try:
         embeddings_list = [emb.tolist() for emb in face_embeddings] if face_embeddings is not None else []
         features_list = features.tolist() if features is not None else []
-        image_id = fs.put(image_byte_arr, content_type=content_type, filename=filename)
+        space_client.put_object(Bucket=space_name, Key=filename, Body=image_byte_arr, ContentType=content_type)
+        image_url = f'https://{space_name}.ams3.digitaloceanspaces.com/{filename}'
 
         image_record = {
-            'image_data': image_id,
+            'image_url': image_url,
             'embeddings': embeddings_list,
             'detected_objects': detected_objects,
             'metadata': exif_data,
@@ -94,7 +97,6 @@ def add_description(description, inserted_id):
     except Exception as e:
         logger.error(f"Error updating description: {e}")
         return False
-
 
 
 def get_unique_tags():

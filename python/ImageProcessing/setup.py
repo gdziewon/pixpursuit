@@ -7,7 +7,7 @@ from pymongo import MongoClient, errors
 from pymongo.server_api import ServerApi
 import time
 import logging
-from gridfs import GridFS
+import boto3
 
 logger = logging.getLogger(__name__)
 
@@ -44,14 +44,13 @@ def activate_face_models():
 def connect_to_mongodb(attempts=5, delay=3):
     for attempt in range(attempts):
         try:
-            uri = "mongodb+srv://Minister:<password>@serverlessinstance0.wwjfsv6.mongodb.net/?retryWrites=true&w=majority"
+            uri = "mongodb+srv://Minister:...@serverlessinstance0.wwjfsv6.mongodb.net/?retryWrites=true&w=majority"
             client = MongoClient(uri, server_api=ServerApi('1'))
             db = client.pixpursuit_db
             images_collection = db.images
             tags_collection = db.tags
-            fs = GridFS(db)
             client.server_info()
-            return client, images_collection, tags_collection, fs
+            return client, images_collection, tags_collection
         except errors.ServerSelectionTimeoutError as err:
             if attempt < attempts - 1:
                 logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay} seconds...")
@@ -59,3 +58,13 @@ def connect_to_mongodb(attempts=5, delay=3):
             else:
                 logger.error("Failed to connect to MongoDB server: ", err)
                 return None, None, None
+
+
+def connect_to_space():
+    session = boto3.session.Session()
+    client = session.client('s3',
+                            region_name='ams3',
+                            endpoint_url='https://pixpursuit.ams3.digitaloceanspaces.com',
+                            aws_access_key_id='...',
+                            aws_secret_access_key='...')
+    return client
