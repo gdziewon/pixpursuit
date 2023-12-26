@@ -22,14 +22,14 @@ def save_model_state(model, file_path=MODEL_FILE_PATH):
 
 
 def load_model_state(file_path=MODEL_FILE_PATH, input_size=1000, hidden_size=512, num_tags=1):
+    model = TagPredictor(input_size, hidden_size, num_tags)
     try:
-        model = TagPredictor(input_size, hidden_size, num_tags)
         model.load_state_dict(torch.load(file_path))
         logger.info("Model state loaded")
-        return model
     except Exception as e:
         logger.error(f"Error loading model state: {e}", exc_info=True)
-        return None
+        logger.info("Loading model with default parameters")
+    return model
 
 
 async def update_model_tags():

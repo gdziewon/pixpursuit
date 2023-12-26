@@ -5,15 +5,11 @@ from typing import List, Dict
 import asyncio
 from image_processing import process_image_async
 from database_tools import save_to_database, add_tags, add_feedback, add_description
-from tag_prediction_model import TagPredictor
-from tag_prediction_tools import save_model_state, training_init
+from tag_prediction_tools import training_init
 from logging_config import setup_logging
 from celery_config import celery
 from pydantic import BaseModel
 from auth import authenticate_user, create_access_token, User, Token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
-
-tag_predictor = TagPredictor(input_size=1000, hidden_size=512, num_tags=1)
-save_model_state(tag_predictor)
 
 app = FastAPI()
 celery.autodiscover_tasks(['tag_prediction_tools'])
