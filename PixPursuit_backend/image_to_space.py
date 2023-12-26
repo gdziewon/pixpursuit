@@ -18,10 +18,8 @@ def generate_filename(extension):
 def get_content_type(image):
     if image.format == 'JPEG':
         return 'image/jpeg'
-    elif image.format == 'PNG':
-        return 'image/png'
     else:
-        return 'application/octet-stream'
+        return 'image/png'
 
 
 def put_into_space(image_byte_arr, filename, content_type):

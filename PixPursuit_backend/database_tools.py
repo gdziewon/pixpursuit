@@ -57,10 +57,16 @@ async def add_tags(tags, inserted_id):
 async def add_feedback(feedback, inserted_id):
     try:
         inserted_id = ObjectId(inserted_id)
+
+        update_operations = {'$set': {f'feedback.{tag}': value for tag, value in feedback.items() if value is not False},
+                             '$setOnInsert': {f'feedback.{tag}': False for tag, value in feedback.items() if value is False}}
+
         update_result = await images_collection.update_one(
             {'_id': inserted_id},
-            {'$set': {'feedback': feedback}}
+            update_operations,
+            upsert=True
         )
+
         logger.info(f"Successfully added feedback")
         return update_result.matched_count > 0 and update_result.modified_count > 0
     except Exception as e:
@@ -82,6 +88,22 @@ async def add_description(description, inserted_id):
         return False
 
 
+async def add_auto_tags(inserted_id, predicted_tags):
+    try:
+        image_document = await get_image_document(inserted_id)
+        user_tags = image_document.get('user_tags', [])
+        feedback = image_document.get('feedback', {})
+        filtered_predicted_tags = [tag for tag in predicted_tags if tag not in user_tags]
+        await images_collection.update_one(
+            {'_id': inserted_id},
+            {'$set': {'auto_tags': predicted_tags}}
+            )
+        feedback_update = {tag: feedback.get(tag, False) for tag in filtered_predicted_tags}
+        await add_feedback(feedback_update, inserted_id)
+    except Exception as e:
+        logger.error(f"Error while adding auto tags: {e}")
+
+
 async def get_unique_tags():
     return await tags_collection.distinct('name')
 
@@ -89,6 +111,12 @@ async def get_unique_tags():
 async def get_user(username: str):
     user = await user_collection.find_one({"username": username})
     return user
+
+
+async def get_image_ids_paginated(page_number, page_size):
+    skip_count = (page_number - 1) * page_size
+    cursor = images_collection.find({}, {'_id': 1}).skip(skip_count).limit(page_size)
+    return [document['_id'] async for document in cursor]
 
 
 async def get_image_document(inserted_id):
@@ -99,12 +127,3 @@ async def get_image_document(inserted_id):
         logger.error(f"Error retrieving image document: {e}")
         return None
 
-
-async def add_auto_tags(inserted_id, predicted_tags):
-    try:
-        await images_collection.update_one(
-            {'_id': inserted_id},
-            {'$set': {'auto_tags': predicted_tags}}
-            )
-    except Exception as e:
-        logger.error(f"Error while adding auto tags: {e}")
