@@ -1,5 +1,5 @@
 from datetime import timedelta
-from fastapi import FastAPI, UploadFile, HTTPException, Form, Depends
+from fastapi import FastAPI, UploadFile, HTTPException, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import List, Dict
 import asyncio

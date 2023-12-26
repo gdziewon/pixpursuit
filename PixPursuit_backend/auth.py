@@ -1,12 +1,17 @@
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from typing import Optional
 from database_tools import get_user
 import os
+from argon2 import PasswordHasher
+import argon2.exceptions
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 SECRET_KEY = os.environ['AUTH_SECRET_KEY']
 ALGORITHM = "HS256"
@@ -27,21 +32,28 @@ class TokenData(BaseModel):
     username: Optional[str] = None
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+ph = PasswordHasher()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 async def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        ph.verify(hashed_password, plain_password)
+        return True
+    except argon2.exceptions.VerifyMismatchError:
+        return False
 
 
 async def authenticate_user(username: str, password: str):
     user = await get_user(username)
     if not user:
         return False
-    if not await verify_password(password, user['password']):
-        return False
-    return user
+    try:
+        valid_password = await verify_password(password, user['password'])
+    except argon2.exceptions.InvalidHashError:
+        logger.error(f"Invalid hash for user {username}")
+        valid_password = False
+    return user if valid_password else False
 
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
