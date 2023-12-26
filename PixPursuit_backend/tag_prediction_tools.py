@@ -4,6 +4,10 @@ from bson import ObjectId
 from celery_config import celery
 import logging
 import os
+import asyncio
+from tag_prediction_model import TagPredictor
+from database_tools import get_image_document, get_unique_tags
+
 logger = logging.getLogger(__name__)
 
 MODEL_FILE_PATH = os.getenv('MODEL_FILE_PATH', 'tag_predictor_state.pth')
@@ -20,7 +24,6 @@ def save_model_state(model, file_path=MODEL_FILE_PATH):
 
 def load_model_state(file_path=MODEL_FILE_PATH, input_size=1000, hidden_size=512, num_tags=1):
     try:
-        from tag_prediction_model import TagPredictor
         model = TagPredictor(input_size, hidden_size, num_tags)
         model.load_state_dict(torch.load(file_path))
         logger.info("Model state loaded")
@@ -32,7 +35,6 @@ def load_model_state(file_path=MODEL_FILE_PATH, input_size=1000, hidden_size=512
 
 async def added_tag_training_init(inserted_id):
     try:
-        from database_tools import get_image_document
         inserted_id = ObjectId(inserted_id)
         image_document = await get_image_document(inserted_id)
         if image_document:
@@ -47,7 +49,6 @@ async def added_tag_training_init(inserted_id):
 
 async def feedback_training_init(inserted_id):
     try:
-        from database_tools import get_image_document
         inserted_id = ObjectId(inserted_id)
         image_document = await get_image_document(inserted_id)
         if image_document:
@@ -64,7 +65,6 @@ async def feedback_training_init(inserted_id):
 async def update_model_tags():
     try:
         tag_predictor = load_model_state()
-        from database_tools import get_unique_tags
         unique_tags = await get_unique_tags()
         num_tags = len(unique_tags)
         if num_tags != tag_predictor.fc3.out_features:
@@ -76,7 +76,6 @@ async def update_model_tags():
 
 async def tags_to_vector(tags, feedback):
     try:
-        from database_tools import get_unique_tags
         unique_tags = await get_unique_tags()
         tag_vector = [0] * len(unique_tags)
         tag_dict = {tag: i for i, tag in enumerate(unique_tags)}
@@ -93,6 +92,13 @@ async def tags_to_vector(tags, feedback):
     except Exception as e:
         logger.error(f"Error converting tags to vector: {e}", exc_info=True)
         return []
+
+
+async def predictions_to_tag_names(predictions):
+    from database_tools import tags_collection
+    all_tags = await tags_collection.find({}).to_list(None)
+    index_to_tag = {i: tag['name'] for i, tag in enumerate(all_tags)}
+    return [index_to_tag[idx] for idx in predictions if idx in index_to_tag]
 
 
 @celery.task(name='tag_prediction_tools.train_model')
@@ -116,3 +122,19 @@ def train_model(features, tag_vector):
 
     save_model_state(model)
     logger.info("Model trained and state saved")
+
+
+@celery.task(name='tag_prediction_tools.predict_and_update_tags')
+def predict_and_update_tags(image_id, features):
+    logger.info(f"Predicting and updating tags")
+    from database_tools import add_auto_tags
+
+    async def async_task():
+        tag_predictor = load_model_state()
+        features_tensor = torch.tensor(features, dtype=torch.float32).unsqueeze(0)
+        predicted_indices = tag_predictor.predict_tags(features_tensor)
+        predicted_tags = await predictions_to_tag_names(predicted_indices)
+        await add_auto_tags(image_id, predicted_tags)
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(async_task())

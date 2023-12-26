@@ -8,6 +8,4 @@ def make_celery(app_name=__name__):
 
 
 celery = make_celery()
-import database_tools
-import tag_prediction_tools
-celery.autodiscover_tasks(['database_tools', 'tag_prediction_tools'])
+celery.autodiscover_tasks(['tag_prediction_tools'])

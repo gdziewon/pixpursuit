@@ -1,25 +1,21 @@
 from setup import connect_to_mongodb
-from flask import current_app
 import logging
 from bson import ObjectId
-from celery_config import celery
-import torch
-from tag_prediction_tools import load_model_state
-import asyncio
 
 logger = logging.getLogger(__name__)
 
-database_client, images_collection, tags_collection = connect_to_mongodb()
+database_client, images_collection, tags_collection, user_collection = connect_to_mongodb()
 
 
 async def save_to_database(data):
     try:
-        face_embeddings, detected_objects, image_url, exif_data, features = data
+        face_embeddings, detected_objects, image_url, thumbnail_url, exif_data, features = data
         embeddings_list = [emb.tolist() for emb in face_embeddings] if face_embeddings is not None else []
         features_list = features.tolist() if features is not None else []
 
         image_record = {
             'image_url': image_url,
+            'thumbnail_url': thumbnail_url,
             'embeddings': embeddings_list,
             'detected_objects': detected_objects,
             'metadata': exif_data,
@@ -89,6 +85,11 @@ async def get_unique_tags():
     return await tags_collection.distinct('name')
 
 
+async def get_user(username: str):
+    user = await user_collection.find_one({"username": username})
+    return user
+
+
 async def get_image_document(inserted_id):
     try:
         inserted_id = ObjectId(inserted_id)
@@ -98,26 +99,11 @@ async def get_image_document(inserted_id):
         return None
 
 
-async def predictions_to_tag_names(predictions):
-    all_tags = await tags_collection.find({}).to_list(None)
-    index_to_tag = {i: tag['name'] for i, tag in enumerate(all_tags)}
-    return [index_to_tag[idx] for idx in predictions if idx in index_to_tag]
-
-
-@celery.task(name='database_tools.predict_and_update_tags')
-def predict_and_update_tags(image_id, features):
-    logger.info(f"Predicting and updating tags")
-
-    async def async_task():
-        with current_app.app_context():
-            tag_predictor = load_model_state()
-            features_tensor = torch.tensor(features, dtype=torch.float32).unsqueeze(0)
-            predicted_indices = tag_predictor.predict_tags(features_tensor)
-            predicted_tag_names = await predictions_to_tag_names(predicted_indices)
-            await images_collection.update_one(
-                {'_id': image_id},
-                {'$set': {'auto_tags': predicted_tag_names}}
-                )
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(async_task())
+async def add_auto_tags(inserted_id, predicted_tags):
+    try:
+        await images_collection.update_one(
+            {'_id': inserted_id},
+            {'$set': {'auto_tags': predicted_tags}}
+            )
+    except Exception as e:
+        logger.error(f"Error while adding auto tags: {e}")

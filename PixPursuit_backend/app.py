@@ -14,7 +14,7 @@ save_model_state(tag_predictor)
 
 app = FastAPI()
 celery = Celery(__name__, broker='redis://localhost:6379/0', backend='redis://localhost:6379/0')
-celery.autodiscover_tasks(['database_tools', 'tag_prediction_tools'])
+celery.autodiscover_tasks(['tag_prediction_tools'])
 
 logger = setup_logging()
 

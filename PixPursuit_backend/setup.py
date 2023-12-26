@@ -7,6 +7,7 @@ import motor.motor_asyncio
 import time
 import logging
 import boto3
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -43,12 +44,13 @@ def activate_face_models():
 def connect_to_mongodb(attempts=5, delay=3):
     for attempt in range(attempts):
         try:
-            uri = "mongodb+srv://Minister:-@serverlessinstance0.wwjfsv6.mongodb.net/?retryWrites=true&w=majority"
+            uri = f"mongodb+srv://Minister:{os.environ['SERVERLESS_INSTANCE_PASSWORD']}@serverlessinstance0.wwjfsv6.mongodb.net/?retryWrites=true&w=majority"
             async_client = motor.motor_asyncio.AsyncIOMotorClient(uri)
             db = async_client.pixpursuit_db
             images_collection = db.images
             tags_collection = db.tags
-            return async_client, images_collection, tags_collection
+            user_collection = db.users
+            return async_client, images_collection, tags_collection, user_collection
         except Exception as err:
             if attempt < attempts - 1:
                 logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay} seconds...")
@@ -63,6 +65,6 @@ def connect_to_space():
     client = session.client('s3',
                             region_name='ams3',
                             endpoint_url='https://pixpursuit.ams3.digitaloceanspaces.com',
-                            aws_access_key_id='-',
-                            aws_secret_access_key='-')
+                            aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+                            aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
     return client

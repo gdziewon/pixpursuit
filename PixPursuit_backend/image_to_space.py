@@ -25,8 +25,8 @@ def get_content_type(image):
 
 
 def put_into_space(image_byte_arr, filename, content_type):
-    space_client.put_object(Bucket=space_name, Key=filename, Body=image_byte_arr, ContentType=content_type)
-    image_url = f'https://{space_name}.ams3.digitaloceanspaces.com/{filename}'
+    space_client.put_object(Bucket=space_name, Key=filename, Body=image_byte_arr, ContentType=content_type, ACL='public-read')
+    image_url = f'https://{space_name}.ams3.digitaloceanspaces.com/pixpursuit/{filename}'
     return image_url
 
 
@@ -39,13 +39,16 @@ def image_to_byte_array(image: Image):
     img_byte_arr = BytesIO()
     image.save(img_byte_arr, format=image.format)
     img_byte_arr = img_byte_arr.getvalue()
-    content_type = get_content_type(image)
-    extension = content_type.split('/')[-1]
-    filename = generate_filename(extension)
-    return img_byte_arr, filename, content_type
+    return img_byte_arr
 
 
 async def image_to_space_async(image: Image):
-    img_byte_arr, filename, content_type = image_to_byte_array(image)
+    img_byte_arr = image_to_byte_array(image)
+    content_type = get_content_type(image)
+    extension = content_type.split('/')[-1]
+    filename = generate_filename(extension)
+    image.thumbnail((450, 450))
+    thumbnail_byte_arr = image_to_byte_array(image)
     image_url = await put_into_space_async(img_byte_arr, filename, content_type)
-    return image_url
+    thumbnail_url = await put_into_space_async(thumbnail_byte_arr, f'thumbnail{filename}', content_type)
+    return image_url, thumbnail_url
