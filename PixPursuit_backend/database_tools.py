@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 database_client, images_collection, tags_collection, user_collection = connect_to_mongodb()
 
 
-async def save_to_database(data):
+async def save_to_database(data, username):
     try:
         face_embeddings, detected_objects, image_url, thumbnail_url, exif_data, features = data
         embeddings_list = [emb.tolist() for emb in face_embeddings] if face_embeddings is not None else []
@@ -23,7 +23,8 @@ async def save_to_database(data):
             'user_tags': [],
             'auto_tags': [],
             'feedback': {},
-            'description': ""
+            'description': "",
+            'added_by': username
         }
         logger.info(f"Successfully saved data for image: {image_url}")
         result = await images_collection.insert_one(image_record)
