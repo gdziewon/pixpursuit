@@ -6,7 +6,7 @@ import asyncio
 from image_processing import process_image_async
 from database_tools import save_to_database, add_tags, add_feedback, add_description
 from tag_prediction_model import TagPredictor
-from tag_prediction_tools import update_model_tags, added_tag_training_init, feedback_training_init, save_model_state
+from tag_prediction_tools import update_model_tags, save_model_state, training_init
 from logging_config import setup_logging
 from celery import Celery
 from pydantic import BaseModel
@@ -67,7 +67,7 @@ async def add_user_tag_api(data: TagData, current_user: User = Depends(get_curre
     success = await add_tags(data.tags, data.inserted_id)
     if success:
         await update_model_tags()
-        await added_tag_training_init(data.inserted_id)
+        await training_init(data.inserted_id)
         return {"message": "Tags added successfully"}
     else:
         raise HTTPException(status_code=500, detail="Failed to add tags")
@@ -83,7 +83,7 @@ async def feedback_on_tags_api(data: FeedbackData, current_user: User = Depends(
     logger.info(f"/feedback-on-tags endpoint accessed by {current_user['username']}")
     success = await add_feedback(data.feedback, data.inserted_id)
     if success:
-        await feedback_training_init(data.inserted_id)
+        await training_init(data.inserted_id)
         return {"message": "Feedback added successfully"}
     else:
         raise HTTPException(status_code=500, detail="Failed to add feedback")

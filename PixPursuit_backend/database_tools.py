@@ -4,7 +4,7 @@ from bson import ObjectId
 
 logger = logging.getLogger(__name__)
 
-database_client, images_collection, tags_collection, user_collection = connect_to_mongodb()
+images_collection, tags_collection, user_collection = connect_to_mongodb()
 
 
 async def save_to_database(data, username):

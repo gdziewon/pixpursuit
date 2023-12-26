@@ -1,6 +1,5 @@
 import torch
 import torch.optim as optim
-from bson import ObjectId
 from celery_config import celery
 import logging
 import os
@@ -33,35 +32,6 @@ def load_model_state(file_path=MODEL_FILE_PATH, input_size=1000, hidden_size=512
         return None
 
 
-async def added_tag_training_init(inserted_id):
-    try:
-        inserted_id = ObjectId(inserted_id)
-        image_document = await get_image_document(inserted_id)
-        if image_document:
-            features = image_document['features']
-            user_tags = image_document.get('user_tags', [])
-            tag_vector = await tags_to_vector(user_tags, {})
-            train_model.delay(features, tag_vector)
-            logger.info(f"Training initialized for added tags {user_tags} for ID {inserted_id}")
-    except Exception as e:
-        logger.error(f"Error during added tag training initialization: {e}", exc_info=True)
-
-
-async def feedback_training_init(inserted_id):
-    try:
-        inserted_id = ObjectId(inserted_id)
-        image_document = await get_image_document(inserted_id)
-        if image_document:
-            features = image_document['features']
-            feedback_tags = image_document.get('feedback', {})
-            tags = image_document['user_tags']
-            feedback_vector = await tags_to_vector(tags, feedback=feedback_tags)
-            train_model.delay(features, feedback_vector)
-            logger.info(f"Training initialized for feedback {feedback_tags} on tags for ID {inserted_id}")
-    except Exception as e:
-        logger.error(f"Error during feedback training initialization: {e}", exc_info=True)
-
-
 async def update_model_tags():
     try:
         tag_predictor = load_model_state()
@@ -85,7 +55,7 @@ async def tags_to_vector(tags, feedback):
                 tag_vector[tag_dict[tag]] = 1
 
         for tag, value in feedback.items():
-            if tag in tag_dict:
+            if tag in tag_dict and tag not in tags:
                 tag_vector[tag_dict[tag]] = 1 if value else 0
 
         return tag_vector
@@ -94,9 +64,22 @@ async def tags_to_vector(tags, feedback):
         return []
 
 
+async def training_init(inserted_id):
+    try:
+        image_document = await get_image_document(inserted_id)
+        if image_document:
+            features = image_document['features']
+            feedback_tags = image_document.get('feedback', {})
+            tags = image_document['user_tags']
+            tag_vector = await tags_to_vector(tags, feedback_tags)
+            train_model.delay(features, tag_vector)
+            logger.info(f"Training initialized for image: {inserted_id}")
+    except Exception as e:
+        logger.error(f"Error during training initialization: {e}", exc_info=True)
+
+
 async def predictions_to_tag_names(predictions):
-    from database_tools import tags_collection
-    all_tags = await tags_collection.find({}).to_list(None)
+    all_tags = await get_unique_tags()
     index_to_tag = {i: tag['name'] for i, tag in enumerate(all_tags)}
     return [index_to_tag[idx] for idx in predictions if idx in index_to_tag]
 

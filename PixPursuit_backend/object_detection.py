@@ -15,7 +15,8 @@ def detect_objects(image):
             label_index = int(box.cls)
             label = result.names[label_index]
             confidence = float(box.conf)
-            detected_objects.append({'name': label, 'confidence': confidence})
+            if confidence > 0.7:
+                detected_objects.append({'name': label, 'confidence': confidence})
 
     return detected_objects
 
