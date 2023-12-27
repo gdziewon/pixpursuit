@@ -1,10 +1,10 @@
 from datetime import timedelta
 from fastapi import FastAPI, UploadFile, HTTPException, Depends
 from fastapi.security import OAuth2PasswordRequestForm
-from typing import List, Dict
+from typing import List, Dict, Optional
 import asyncio
 from image_processing import process_image_async
-from database_tools import save_to_database, add_tags, add_feedback, add_description
+from database_tools import save_to_database, add_tags, add_feedback, add_description, create_album, add_photos_to_album, get_album
 from tag_prediction_tools import training_init
 from logging_config import setup_logging
 from celery_config import celery
@@ -34,7 +34,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 
 @app.post("/process-images")
-async def process_images_api(images: List[UploadFile] = [], current_user: User = Depends(get_current_user)):
+async def process_images_api(images: List[UploadFile] = [], album_id: str = None, current_user: User = Depends(get_current_user)):
     logger.info(f"/process-images endpoint accessed by {current_user['username']}")
     if not images:
         raise HTTPException(status_code=400, detail="No images provided")
@@ -44,7 +44,7 @@ async def process_images_api(images: List[UploadFile] = [], current_user: User =
 
     inserted_ids = []
     for result in results:
-        inserted_id = await save_to_database(result, current_user['username'])
+        inserted_id = await save_to_database(result, current_user['username'], album_id)
         if inserted_id:
             inserted_ids.append(str(inserted_id))
 
@@ -96,6 +96,56 @@ async def add_description_api(data: DescriptionData, current_user: User = Depend
         return {"message": "Description added successfully"}
     else:
         raise HTTPException(status_code=500, detail="Failed to add description")
+
+
+class CreateAlbumData(BaseModel):
+    album_name: str
+    parent_id: Optional[str] = None
+    image_ids: List[str] = []
+
+
+@app.post("/create-album")
+async def create_album_api(data: CreateAlbumData, current_user: User = Depends(get_current_user)):
+    logger.info(f"/create-album endpoint accessed by {current_user['username']}")
+
+    album_name = data.album_name
+    parent_id = data.parent_id
+    image_ids = data.image_ids
+
+    new_album_id = await create_album(album_name, parent_id)
+
+    if image_ids:
+        success = await add_photos_to_album(image_ids, new_album_id)
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to add photos to the new album")
+
+    return {"message": "Album created successfully", "album_id": str(new_album_id)}
+
+
+class AddPhotosToAlbumData(BaseModel):
+    album_id: str
+    image_ids: List[str]
+
+
+@app.post("/add-photos-to-album")
+async def add_photos_to_album_api(data: AddPhotosToAlbumData, current_user: User = Depends(get_current_user)):
+    logger.info(f"/add-photos-to-album endpoint accessed by {current_user['username']}")
+
+    album_id = data.album_id
+    image_ids = data.image_ids
+
+    if not image_ids:
+        raise HTTPException(status_code=400, detail="No image IDs provided")
+
+    album = await get_album(album_id)
+    if not album:
+        raise HTTPException(status_code=404, detail="Album not found")
+
+    success = await add_photos_to_album(image_ids, album_id)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to add photos to the album")
+
+    return {"message": "Photos added to album successfully"}
 
 
 if __name__ == "__main__":

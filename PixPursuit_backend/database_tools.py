@@ -4,11 +4,14 @@ from bson import ObjectId
 
 logger = logging.getLogger(__name__)
 
-images_collection, tags_collection, user_collection = connect_to_mongodb()
+images_collection, tags_collection, user_collection, album_collection = connect_to_mongodb()
 
 
-async def save_to_database(data, username):
+async def save_to_database(data, username, album_id):
     try:
+        if not album_id:
+            album_id = await get_root_id()
+
         face_embeddings, detected_objects, image_url, thumbnail_url, exif_data, features = data
         embeddings_list = [emb.tolist() for emb in face_embeddings] if face_embeddings is not None else []
         features_list = features.tolist() if features is not None else []
@@ -24,14 +27,42 @@ async def save_to_database(data, username):
             'auto_tags': [],
             'feedback': {},
             'description': "",
-            'added_by': username
+            'added_by': username,
+            'album_id': album_id
         }
-        logger.info(f"Successfully saved data for image: {image_url}")
         result = await images_collection.insert_one(image_record)
-        return result.inserted_id
+        inserted_id = result.inserted_id
+
+        await add_photos_to_album(inserted_id, album_id)
+
+        logger.info(f"Successfully saved data for image: {image_url}")
+        return inserted_id
     except Exception as e:
         logger.error(f"Error saving to database: {e}")
         return None
+
+
+async def create_album(album_name, parent_id):
+    if not parent_id:
+        parent_id = await get_root_id()
+
+    new_album = {
+        "name": album_name,
+        "parent": parent_id,
+        "sons": [],
+        "images": []
+    }
+    result = await album_collection.insert_one(new_album)
+    new_album_id = result.inserted_id
+
+    parent_id = ObjectId(parent_id)
+    if parent_id is not None:
+        await album_collection.update_one(
+            {"_id": parent_id},
+            {"$push": {"sons": new_album_id}}
+        )
+
+    return new_album_id
 
 
 async def add_tags(tags, inserted_id):
@@ -104,6 +135,34 @@ async def add_auto_tags(inserted_id, predicted_tags):
         logger.error(f"Error while adding auto tags: {e}")
 
 
+async def add_photos_to_album(photo_ids, album_id):
+    album_id = ObjectId(album_id)
+    if not isinstance(photo_ids, list):
+        photo_ids = [photo_ids]
+    update_result = await album_collection.update_one(
+        {"_id": album_id},
+        {"$push": {"images": {"$each": photo_ids}}}
+    )
+    return update_result.modified_count > 0
+
+
+async def get_root_id():
+    root_album = await album_collection.find_one({"name": "root"})
+    if not root_album:
+        root_album = {
+            "name": "root",
+            "parent": None,
+            "sons": [],
+            "images": []
+        }
+        result = (await album_collection.insert_one(root_album))
+        root_album_id = result.inserted_id
+    else:
+        root_album_id = root_album['_id']
+
+    return root_album_id
+
+
 async def get_unique_tags():
     return await tags_collection.distinct('name')
 
@@ -127,3 +186,11 @@ async def get_image_document(inserted_id):
         logger.error(f"Error retrieving image document: {e}")
         return None
 
+
+async def get_album(album_id):
+    try:
+        album_id = ObjectId(album_id)
+        return await album_collection.find_one({'_id': album_id})
+    except Exception as e:
+        logger.error(f"Error retrieving album: {e}")
+        return None

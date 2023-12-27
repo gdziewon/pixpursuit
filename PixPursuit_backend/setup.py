@@ -50,7 +50,8 @@ def connect_to_mongodb(attempts=5, delay=3):
             images_collection = db.images
             tags_collection = db.tags
             user_collection = db.users
-            return images_collection, tags_collection, user_collection
+            directories_collection = db.albums
+            return images_collection, tags_collection, user_collection, directories_collection
         except Exception as err:
             if attempt < attempts - 1:
                 logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay} seconds...")
