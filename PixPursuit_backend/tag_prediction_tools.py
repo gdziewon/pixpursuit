@@ -15,20 +15,30 @@ LEARNING_RATE = float(os.getenv('LEARNING_RATE', '0.001'))
 
 def save_model_state(model, file_path=MODEL_FILE_PATH):
     try:
-        torch.save(model.state_dict(), file_path)
+        torch.save({
+            'state_dict': model.state_dict(),
+            'num_tags': model.num_tags
+        }, file_path)
         logger.info("Model state saved")
     except Exception as e:
         logger.error(f"Error saving model state: {e}", exc_info=True)
 
 
-def load_model_state(file_path=MODEL_FILE_PATH, input_size=1000, hidden_size=512, num_tags=1):
-    model = TagPredictor(input_size, hidden_size, num_tags)
+def load_model_state(file_path=MODEL_FILE_PATH, input_size=1000, hidden_size=512):
+    if not os.path.exists(file_path):
+        logger.warning(f"Model file {file_path} not found. Initializing a new model.")
+        return TagPredictor(input_size, hidden_size, num_tags=1)
+
     try:
-        model.load_state_dict(torch.load(file_path))
+        checkpoint = torch.load(file_path)
+        num_tags = checkpoint['num_tags']
+        model = TagPredictor(input_size, hidden_size, num_tags)
+        model.load_state_dict(checkpoint['state_dict'])
         logger.info("Model state loaded")
     except Exception as e:
         logger.error(f"Error loading model state: {e}", exc_info=True)
-        logger.info("Loading model with default parameters")
+        return None
+
     return model
 
 
