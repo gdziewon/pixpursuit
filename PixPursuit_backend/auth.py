@@ -8,10 +8,9 @@ from database_tools import get_user
 import os
 from argon2 import PasswordHasher
 import argon2.exceptions
-import logging
+from logging_config import setup_logging
 
-logger = logging.getLogger(__name__)
-
+logger = setup_logging(__name__)
 
 SECRET_KEY = os.environ['AUTH_SECRET_KEY']
 ALGORITHM = "HS256"

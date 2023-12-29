@@ -1,13 +1,13 @@
 import torch
 import torch.optim as optim
 from celery_config import celery
-import logging
+from logging_config import setup_logging
 import os
 import asyncio
 from tag_prediction_model import TagPredictor
 from database_tools import get_image_document, get_unique_tags, add_auto_tags, get_image_ids_paginated
 
-logger = logging.getLogger(__name__)
+logger = setup_logging(__name__)
 
 MODEL_FILE_PATH = os.getenv('MODEL_FILE_PATH', 'tag_predictor_state.pth')
 LEARNING_RATE = float(os.getenv('LEARNING_RATE', '0.001'))

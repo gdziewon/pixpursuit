@@ -1,13 +1,14 @@
 from setup import connect_to_mongodb
-import logging
+from logging_config import setup_logging
 from bson import ObjectId
+from image_to_space import delete_image_from_space
 
-logger = logging.getLogger(__name__)
+logger = setup_logging(__name__)
 
 images_collection, tags_collection, user_collection, album_collection = connect_to_mongodb()
 
 
-async def save_to_database(data, username, album_id):
+async def save_image_to_database(data, username, album_id):
     try:
         if not album_id:
             album_id = await get_root_id()
@@ -77,7 +78,9 @@ async def add_tags(tags, inserted_id):
 
         for tag in tags:
             if not await tags_collection.find_one({'name': tag}):
-                await tags_collection.insert_one({'name': tag})
+                await tags_collection.insert_one({"name": tag, "count": 1})
+            else:
+                await tags_collection.update_one({"name": tag}, {"$inc": {"count": 1}}, upsert=True)
 
         return True
     except Exception as e:
@@ -125,6 +128,7 @@ async def add_auto_tags(inserted_id, predicted_tags):
         user_tags = image_document.get('user_tags', [])
         feedback = image_document.get('feedback', {})
         filtered_predicted_tags = [tag for tag in predicted_tags if tag not in user_tags]
+        inserted_id = ObjectId(inserted_id)
         await images_collection.update_one(
             {'_id': inserted_id},
             {'$set': {'auto_tags': predicted_tags}}
@@ -144,6 +148,65 @@ async def add_photos_to_album(photo_ids, album_id):
         {"$push": {"images": {"$each": photo_ids}}}
     )
     return update_result.modified_count > 0
+
+
+async def delete_images(image_ids):
+    for image_id in image_ids:
+        image = await get_image_document(image_id)
+        if not image:
+            logger.warning(f"Could not find image {image_id}")
+            return False
+
+        try:
+            image_id = ObjectId(image_id)
+            await images_collection.delete_one({"_id": image_id})
+
+            await album_collection.update_many({}, {"$pull": {"images": image_id}})
+
+            await decrement_tags_count(image['user_tags'])
+
+            logger.info(f"Removing image: {image['image_url']}")
+            await delete_image_from_space(image['image_url'])
+
+            logger.info(f"Removing thumbnail: {image['thumbnail_url']}")
+            await delete_image_from_space(image['thumbnail_url'])
+
+        except Exception as e:
+            logger.error(f"Error while deleting image {image_id}: {e}")
+            return False
+    return True
+
+
+async def remove_tags_from_image(image_id, tags_to_remove):
+    try:
+        image = await get_image_document(image_id)
+        if not image:
+            return False
+
+        image_id = ObjectId(image_id)
+        await images_collection.update_one(
+            {"_id": image_id},
+            {"$pull": {"user_tags": {"$in": tags_to_remove}}}
+        )
+        await decrement_tags_count(tags_to_remove)
+        return True
+    except Exception as e:
+        logger.error(f"Error while removing tags: {e}")
+        return False
+
+
+async def decrement_tags_count(tags):
+    for tag in tags:
+        await tags_collection.update_one(
+            {"name": tag},
+            {"$inc": {"count": -1}}
+        )
+        tag_doc = await tags_collection.find_one({"name": tag})
+        if tag_doc and tag_doc['count'] <= 0:
+            await tags_collection.delete_one({"name": tag})
+
+    from tag_prediction_tools import update_model_tags
+    await update_model_tags()
 
 
 async def get_root_id():

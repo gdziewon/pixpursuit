@@ -5,11 +5,11 @@ from facenet_pytorch import MTCNN, InceptionResnetV1
 from ultralytics import YOLO
 import motor.motor_asyncio
 import time
-import logging
+from logging_config import setup_logging
 import boto3
 import os
 
-logger = logging.getLogger(__name__)
+logger = setup_logging(__name__)
 
 
 def activate_feature_models():

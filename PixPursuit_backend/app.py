@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from typing import List, Dict, Optional
 import asyncio
 from image_processing import process_image_async
-from database_tools import save_to_database, add_tags, add_feedback, add_description, create_album, add_photos_to_album, get_album
+from database_tools import save_image_to_database, add_tags, add_feedback, add_description, create_album, add_photos_to_album, get_album, remove_tags_from_image, delete_images
 from tag_prediction_tools import training_init
 from logging_config import setup_logging
 from celery_config import celery
@@ -14,13 +14,15 @@ from auth import authenticate_user, create_access_token, User, Token, ACCESS_TOK
 app = FastAPI()
 celery.autodiscover_tasks(['tag_prediction_tools'])
 
-logger = setup_logging()
+logger = setup_logging(__name__)
 
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = await authenticate_user(form_data.username, form_data.password)
+    logger.info(f"/token - Endpoint accessed by user: {user['username']}")
     if not user:
+        logger.warning("/token - Incorrect username or password")
         raise HTTPException(
             status_code=401,
             detail="Incorrect username or password",
@@ -30,13 +32,16 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     access_token = create_access_token(
         data={"sub": user["username"]}, expires_delta=access_token_expires
     )
+    logger.info(f"/token - Successfully provided token to user: {user['username']}")
     return {"access_token": access_token, "token_type": "bearer"}
 
 
 @app.post("/process-images")
 async def process_images_api(images: List[UploadFile] = [], album_id: str = None, current_user: User = Depends(get_current_user)):
-    logger.info(f"/process-images endpoint accessed by {current_user['username']}")
+    logger.info(f"/process-images - Endpoint accessed by user: {current_user['username']}")
+
     if not images:
+        logger.warning(f"/process-images - No images provided")
         raise HTTPException(status_code=400, detail="No images provided")
 
     processed_images = [asyncio.create_task(process_image_async(image)) for image in images]
@@ -44,10 +49,11 @@ async def process_images_api(images: List[UploadFile] = [], album_id: str = None
 
     inserted_ids = []
     for result in results:
-        inserted_id = await save_to_database(result, current_user['username'], album_id)
+        inserted_id = await save_image_to_database(result, current_user['username'], album_id)
         if inserted_id:
             inserted_ids.append(str(inserted_id))
 
+    logger.info(f"/process-images - Successfully processed and saved images: {inserted_ids}")
     return {"inserted_ids": inserted_ids}
 
 
@@ -58,13 +64,18 @@ class TagData(BaseModel):
 
 @app.post("/add-user-tag")
 async def add_user_tag_api(data: TagData, current_user: User = Depends(get_current_user)):
-    logger.info(f"/add-user-tags endpoint accessed by {current_user['username']}")
-    success = await add_tags(data.tags, data.inserted_id)
-    if success:
-        await training_init(data.inserted_id)
-        return {"message": "Tags added successfully"}
-    else:
+    logger.info(f"/add-user-tags - Endpoint accessed by user: {current_user['username']}")
+
+    inserted_id = data.inserted_id
+    tags = data.tags
+    success = await add_tags(tags, inserted_id)
+    if not success:
+        logger.error("/add-user-tag - Failed to add tags")
         raise HTTPException(status_code=500, detail="Failed to add tags")
+
+    await training_init(inserted_id)
+    logger.info(f"/add-user-tags - Successfully added tags to image: {inserted_id}")
+    return {"message": "Tags added successfully"}
 
 
 class FeedbackData(BaseModel):
@@ -74,13 +85,18 @@ class FeedbackData(BaseModel):
 
 @app.post("/feedback-on-tags")
 async def feedback_on_tags_api(data: FeedbackData, current_user: User = Depends(get_current_user)):
-    logger.info(f"/feedback-on-tags endpoint accessed by {current_user['username']}")
-    success = await add_feedback(data.feedback, data.inserted_id)
-    if success:
-        await training_init(data.inserted_id)
-        return {"message": "Feedback added successfully"}
-    else:
+    logger.info(f"/feedback-on-tags - Endpoint accessed by user: {current_user['username']}")
+
+    inserted_id = data.inserted_id
+    feedback = data.feedback
+    success = await add_feedback(feedback, inserted_id)
+    if not success:
+        logger.error("/feedback-on-tags - Failed to add feedback")
         raise HTTPException(status_code=500, detail="Failed to add feedback")
+
+    await training_init(inserted_id)
+    logger.info(f"/feedback-on-tags - Successfully added feedback to image: {inserted_id}")
+    return {"message": "Feedback added successfully"}
 
 
 class DescriptionData(BaseModel):
@@ -90,12 +106,17 @@ class DescriptionData(BaseModel):
 
 @app.post("/add-description")
 async def add_description_api(data: DescriptionData, current_user: User = Depends(get_current_user)):
-    logger.info(f"/add-description endpoint accessed by {current_user['username']}")
-    success = await add_description(data.description, data.inserted_id)
-    if success:
-        return {"message": "Description added successfully"}
-    else:
+    logger.info(f"/add-description - Endpoint accessed by user: {current_user['username']}")
+
+    inserted_id = data.inserted_id
+    description = data.description
+    success = await add_description(description, inserted_id)
+    if not success:
+        logger.error("/add-description - Failed to add description")
         raise HTTPException(status_code=500, detail="Failed to add description")
+
+    logger.info(f"/add-description - Successfully added description to image: {inserted_id}")
+    return {"message": "Description added successfully"}
 
 
 class CreateAlbumData(BaseModel):
@@ -106,18 +127,25 @@ class CreateAlbumData(BaseModel):
 
 @app.post("/create-album")
 async def create_album_api(data: CreateAlbumData, current_user: User = Depends(get_current_user)):
-    logger.info(f"/create-album endpoint accessed by {current_user['username']}")
+    logger.info(f"/create-album - Endpoint accessed by user: {current_user['username']}")
 
     album_name = data.album_name
     parent_id = data.parent_id
     image_ids = data.image_ids
 
     new_album_id = await create_album(album_name, parent_id)
+    if not new_album_id:
+        logger.error("/create-album - Failed to create new album")
+        raise HTTPException(status_code=500, detail="Failed to create new album")
+
+    logger.info(f"/create-album - Successfully created album: {str(new_album_id)}")
 
     if image_ids:
         success = await add_photos_to_album(image_ids, new_album_id)
         if not success:
-            raise HTTPException(status_code=500, detail="Failed to add photos to the new album")
+            raise HTTPException(status_code=500, detail="Failed to add images to the new album")
+
+        logger.info(f"/create-album - Successfully added images to new album: {str(new_album_id)}")
 
     return {"message": "Album created successfully", "album_id": str(new_album_id)}
 
@@ -127,25 +155,75 @@ class AddPhotosToAlbumData(BaseModel):
     image_ids: List[str]
 
 
-@app.post("/add-photos-to-album")
-async def add_photos_to_album_api(data: AddPhotosToAlbumData, current_user: User = Depends(get_current_user)):
-    logger.info(f"/add-photos-to-album endpoint accessed by {current_user['username']}")
+@app.post("/add-images-to-album")
+async def add_images_to_album_api(data: AddPhotosToAlbumData, current_user: User = Depends(get_current_user)):
+    logger.info(f"/add-images-to-album - Endpoint accessed by user: {current_user['username']}")
 
     album_id = data.album_id
     image_ids = data.image_ids
 
     if not image_ids:
+        logger.warning("/add-images-to-album - No image IDs provided")
         raise HTTPException(status_code=400, detail="No image IDs provided")
 
     album = await get_album(album_id)
     if not album:
+        logger.warning("/add-images-to-album - Album not found")
         raise HTTPException(status_code=404, detail="Album not found")
 
     success = await add_photos_to_album(image_ids, album_id)
     if not success:
+        logger.error("/add-images-to-album - Failed to add photos to the album")
         raise HTTPException(status_code=500, detail="Failed to add photos to the album")
 
-    return {"message": "Photos added to album successfully"}
+    logger.info(f"/add-images-to-album - Successfully added images to album: {str(album_id)}")
+    return {"message": "Images added to album successfully"}
+
+
+class RemovingTagsData(BaseModel):
+    image_id: str
+    tags: List[str]
+
+
+@app.post("/remove-tags")
+async def remove_tags_api(data: RemovingTagsData, current_user: User = Depends(get_current_user)):
+    logger.info(f"/remove-tags -  Endpoint accessed by user: {current_user['username']}")
+
+    image_id = data.image_id
+    tags_to_remove = data.tags
+    if not image_id:
+        logger.warning("/remove-tags - No image IDs provided")
+        raise HTTPException(status_code=400, detail="No image IDs provided")
+
+    success = await remove_tags_from_image(image_id, tags_to_remove)
+    if not success:
+        logger.error("/remove-tags - Failed to add photos to the album")
+        raise HTTPException(status_code=500, detail="Failed to add photos to the album")
+
+    logger.info(f"remove-tags - Successfully removed tags from image: {image_id}")
+    return {"message": "Tags removed successfully"}
+
+
+class DeleteImagesData(BaseModel):
+    image_ids: List[str]
+
+
+@app.delete("/delete-images")
+async def delete_images_api(data: DeleteImagesData, current_user: User = Depends(get_current_user)):
+    logger.info(f"/delete-images - Endpoint accessed by user: {current_user['username']}")
+
+    image_ids = data.image_ids
+    if not image_ids:
+        logger.warning("/delete-images - No image IDs provided")
+        raise HTTPException(status_code=400, detail="No image IDs provided")
+
+    success = await delete_images(image_ids)
+    if not success:
+        logger.error("/delete-images - Failed to delete images")
+        raise HTTPException(status_code=500, detail="Failed to delete images")
+
+    logger.info(f"/delete-images - Successfully deleted images: {image_ids}")
+    return {"message": "Images deleted successfully"}
 
 
 if __name__ == "__main__":

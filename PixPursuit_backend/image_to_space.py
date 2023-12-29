@@ -4,6 +4,9 @@ from PIL import Image
 from datetime import datetime
 import uuid
 from setup import connect_to_space
+from logging_config import setup_logging
+
+logger = setup_logging(__name__)
 
 space_client = connect_to_space()
 space_name = 'pixpursuit'
@@ -40,7 +43,7 @@ def image_to_byte_array(image: Image):
     return img_byte_arr
 
 
-async def image_to_space_async(image: Image):
+async def save_image_to_space(image: Image):
     img_byte_arr = image_to_byte_array(image)
     content_type = get_content_type(image)
     extension = content_type.split('/')[-1]
@@ -50,3 +53,12 @@ async def image_to_space_async(image: Image):
     image_url = await put_into_space_async(img_byte_arr, filename, content_type)
     thumbnail_url = await put_into_space_async(thumbnail_byte_arr, f'thumbnail{filename}', content_type)
     return image_url, thumbnail_url
+
+
+async def delete_image_from_space(file_url: str):
+    try:
+        filename = file_url.split('/')[-1]
+        space_client.delete_object(Bucket=space_name, Key=filename)
+        logger.info(f"Deleted {file_url} from DigitalOcean space")
+    except Exception as e:
+        logger.error(f"Error deleting from DigitalOcean space: {e}")

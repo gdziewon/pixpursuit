@@ -2,8 +2,8 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 
-def setup_logging():
-    logger = logging.getLogger(__name__)
+def setup_logging(name):
+    logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
 
     handler = RotatingFileHandler('app.log', maxBytes=10000000, backupCount=5)
