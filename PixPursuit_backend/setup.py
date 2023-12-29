@@ -51,6 +51,7 @@ def connect_to_mongodb(attempts=5, delay=3):
             tags_collection = db.tags
             user_collection = db.users
             directories_collection = db.albums
+            logger.info("Successfully connected to MongoDB server")
             return images_collection, tags_collection, user_collection, directories_collection
         except Exception as err:
             if attempt < attempts - 1:
@@ -62,10 +63,14 @@ def connect_to_mongodb(attempts=5, delay=3):
 
 
 def connect_to_space():
-    session = boto3.session.Session()
-    client = session.client('s3',
-                            region_name='ams3',
-                            endpoint_url='https://pixpursuit.ams3.digitaloceanspaces.com',
-                            aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
-                            aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
+    try:
+        session = boto3.session.Session()
+        client = session.client('s3',
+                                region_name='ams3',
+                                endpoint_url='https://pixpursuit.ams3.digitaloceanspaces.com',
+                                aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+                                aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
+    except Exception as e:
+        logger.error(f"Failed to connect to Digital Ocean Space: {e}")
+        return None
     return client

@@ -56,7 +56,12 @@ async def create_album(album_name, parent_id):
     result = await album_collection.insert_one(new_album)
     new_album_id = result.inserted_id
 
-    parent_id = ObjectId(parent_id)
+    try:
+        parent_id = ObjectId(parent_id)
+    except Exception as e:
+        logger.error(f"Invalid parent_id: {e}")
+        return None
+
     if parent_id is not None:
         await album_collection.update_one(
             {"_id": parent_id},
@@ -67,8 +72,14 @@ async def create_album(album_name, parent_id):
 
 
 async def add_tags(tags, inserted_id):
+
     try:
         inserted_id = ObjectId(inserted_id)
+    except Exception as e:
+        logger.error(f"Invalid inserted_id: {e}")
+        return False
+
+    try:
         update_result = await images_collection.update_one(
             {'_id': inserted_id},
             {'$addToSet': {'user_tags': {'$each': tags}}}
@@ -84,14 +95,18 @@ async def add_tags(tags, inserted_id):
 
         return True
     except Exception as e:
-        logger.error(f"Error in add_tags: {e}")
+        logger.error(f"Error adding tags: {e}")
         return False
 
 
 async def add_feedback(feedback, inserted_id):
     try:
         inserted_id = ObjectId(inserted_id)
+    except Exception as e:
+        logger.error(f"Invalid inserted_id: {e}")
+        return False
 
+    try:
         update_operations = {'$set': {f'feedback.{tag}': value for tag, value in feedback.items() if value is not False},
                              '$setOnInsert': {f'feedback.{tag}': False for tag, value in feedback.items() if value is False}}
 
@@ -109,8 +124,14 @@ async def add_feedback(feedback, inserted_id):
 
 
 async def add_description(description, inserted_id):
+
     try:
         inserted_id = ObjectId(inserted_id)
+    except Exception as e:
+        logger.error(f"Invalid inserted_id: {e}")
+        return False
+
+    try:
         update_result = await images_collection.update_one(
             {'_id': inserted_id},
             {'$set': {'description': description}}
@@ -140,14 +161,79 @@ async def add_auto_tags(inserted_id, predicted_tags):
 
 
 async def add_photos_to_album(photo_ids, album_id):
-    album_id = ObjectId(album_id)
-    if not isinstance(photo_ids, list):
-        photo_ids = [photo_ids]
-    update_result = await album_collection.update_one(
-        {"_id": album_id},
-        {"$push": {"images": {"$each": photo_ids}}}
-    )
-    return update_result.modified_count > 0
+    try:
+        album_id = ObjectId(album_id)
+        if not isinstance(photo_ids, list):
+            photo_ids = [photo_ids]
+        update_result = await album_collection.update_one(
+            {"_id": album_id},
+            {"$push": {"images": {"$each": photo_ids}}}
+        )
+        return update_result.modified_count > 0
+    except Exception as e:
+        logger.error(f"Error adding photos to album: {e}")
+        return False
+
+
+async def relocate_to_album(prev_album_id, new_album_id=None, image_ids=None):
+    try:
+        if not new_album_id:
+            new_album_id = await get_root_id()
+        else:
+            new_album_id = ObjectId(new_album_id)
+
+        # If image_ids are not provided, get all images from the prev_album
+        if not image_ids:
+            cursor = images_collection.find({'album_id': prev_album_id}, {'_id': 1})
+            image_ids = []
+            async for image in cursor:
+                image_ids.append(image['_id'])
+
+        # Update each image's album_id to the new_album_id
+        for image_id in image_ids:
+            await images_collection.update_one(
+                {'_id': image_id},
+                {'$set': {'album_id': new_album_id}}
+            )
+
+        # Use add_photos_to_album to update new album
+        await add_photos_to_album(image_ids, new_album_id)
+
+        # Remove images from the previous album
+        await album_collection.update_one(
+            {'_id': prev_album_id},
+            {'$pullAll': {'images': image_ids}}
+        )
+        return True
+
+    except Exception as e:
+        logger.error(f"Error relocating images: {e}")
+        return False
+
+
+async def delete_album(album_id):
+    try:
+        album = await get_album(album_id)
+        if not album:
+            return False
+
+        # Relocate album's contents (images) to the root album
+        album_id = ObjectId(album_id)
+        await relocate_to_album(prev_album_id=album_id)
+
+        # Remove album from parent's 'sons'
+        if album['parent']:
+            await album_collection.update_one(
+                {'_id': album['parent']},
+                {'$pull': {'sons': album_id}}
+            )
+
+        # Delete the album
+        await album_collection.delete_one({'_id': album_id})
+        return True
+    except Exception as e:
+        logger.error(f"Error deleting album: {e}")
+        return False
 
 
 async def delete_images(image_ids):
@@ -196,34 +282,42 @@ async def remove_tags_from_image(image_id, tags_to_remove):
 
 
 async def decrement_tags_count(tags):
-    for tag in tags:
-        await tags_collection.update_one(
-            {"name": tag},
-            {"$inc": {"count": -1}}
-        )
-        tag_doc = await tags_collection.find_one({"name": tag})
-        if tag_doc and tag_doc['count'] <= 0:
-            await tags_collection.delete_one({"name": tag})
+    try:
+        for tag in tags:
+            await tags_collection.update_one(
+                {"name": tag},
+                {"$inc": {"count": -1}}
+            )
+            tag_doc = await tags_collection.find_one({"name": tag})
+            if tag_doc and tag_doc['count'] <= 0:
+                await tags_collection.delete_one({"name": tag})
 
-    from tag_prediction_tools import update_model_tags
-    await update_model_tags()
+        from tag_prediction_tools import update_model_tags
+        await update_model_tags()
+    except Exception as e:
+        logger.error(f"Error while decrementing tags count: {e}")
+        return False
 
 
 async def get_root_id():
-    root_album = await album_collection.find_one({"name": "root"})
-    if not root_album:
-        root_album = {
-            "name": "root",
-            "parent": None,
-            "sons": [],
-            "images": []
-        }
-        result = (await album_collection.insert_one(root_album))
-        root_album_id = result.inserted_id
-    else:
-        root_album_id = root_album['_id']
+    try:
+        root_album = await album_collection.find_one({"name": "root"})
+        if not root_album:
+            root_album = {
+                "name": "root",
+                "parent": None,
+                "sons": [],
+                "images": []
+            }
+            result = (await album_collection.insert_one(root_album))
+            root_album_id = result.inserted_id
+        else:
+            root_album_id = root_album['_id']
 
-    return root_album_id
+        return root_album_id
+    except Exception as e:
+        logger.error(f"Error retrieving root album: {e}")
+        return None
 
 
 async def get_unique_tags():

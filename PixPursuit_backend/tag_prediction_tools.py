@@ -1,8 +1,8 @@
 import torch
 import torch.optim as optim
-from celery_config import celery
 from logging_config import setup_logging
 import os
+from celery import shared_task
 import asyncio
 from tag_prediction_model import TagPredictor
 from database_tools import get_image_document, get_unique_tags, add_auto_tags, get_image_ids_paginated
@@ -96,13 +96,13 @@ async def predictions_to_tag_names(predictions):
     return [index_to_tag[idx] for idx in predictions if idx in index_to_tag]
 
 
-@celery.task(name='tag_prediction_tools.train_model')
+@shared_task(name='tag_prediction_tools.train_model')
 def train_model(features, tag_vector):
     tag_predictor = load_model_state()
     if not tag_predictor:
         logger.error("Model loading failed, training aborted.")
         return
-
+    logger.info("Model training started")
     features_tensor = torch.tensor(features, dtype=torch.float32).unsqueeze(0)
     target = torch.tensor([tag_vector], dtype=torch.float32)
 
@@ -119,7 +119,7 @@ def train_model(features, tag_vector):
     logger.info("Model trained and state saved")
 
 
-@celery.task(name='tag_prediction_tools.predict_and_update_tags')
+@shared_task(name='tag_prediction_tools.predict_and_update_tags')
 def predict_and_update_tags(image_id, features):
     logger.info(f"Predicting and updating tags")
     tag_predictor = load_model_state()
@@ -137,9 +137,10 @@ def predict_and_update_tags(image_id, features):
     loop.run_until_complete(async_task())
 
 
-@celery.task(name='tag_prediction_tools.update_all_auto_tags')
+@shared_task(name='tag_prediction_tools.update_all_auto_tags')
 def update_all_auto_tags():
     try:
+        logger.info(f"Updating all auto tags")
         loop = asyncio.get_event_loop()
         page_number = 1
         page_size = 100

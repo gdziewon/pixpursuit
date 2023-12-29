@@ -4,15 +4,14 @@ from fastapi.security import OAuth2PasswordRequestForm
 from typing import List, Dict, Optional
 import asyncio
 from image_processing import process_image_async
-from database_tools import save_image_to_database, add_tags, add_feedback, add_description, create_album, add_photos_to_album, get_album, remove_tags_from_image, delete_images
+from database_tools import save_image_to_database, add_tags, add_feedback, add_description, create_album, add_photos_to_album, get_album,\
+                                                        remove_tags_from_image, delete_images, delete_album, relocate_to_album
 from tag_prediction_tools import training_init
 from logging_config import setup_logging
-from celery_config import celery
 from pydantic import BaseModel
 from auth import authenticate_user, create_access_token, User, Token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
 
 app = FastAPI()
-celery.autodiscover_tasks(['tag_prediction_tools'])
 
 logger = setup_logging(__name__)
 
@@ -54,7 +53,7 @@ async def process_images_api(images: List[UploadFile] = [], album_id: str = None
             inserted_ids.append(str(inserted_id))
 
     logger.info(f"/process-images - Successfully processed and saved images: {inserted_ids}")
-    return {"inserted_ids": inserted_ids}
+    return {"message": "Images saved successfully", "inserted_ids": inserted_ids}
 
 
 class TagData(BaseModel):
@@ -73,8 +72,8 @@ async def add_user_tag_api(data: TagData, current_user: User = Depends(get_curre
         logger.error("/add-user-tag - Failed to add tags")
         raise HTTPException(status_code=500, detail="Failed to add tags")
 
-    await training_init(inserted_id)
     logger.info(f"/add-user-tags - Successfully added tags to image: {inserted_id}")
+    await training_init(inserted_id)
     return {"message": "Tags added successfully"}
 
 
@@ -224,6 +223,58 @@ async def delete_images_api(data: DeleteImagesData, current_user: User = Depends
 
     logger.info(f"/delete-images - Successfully deleted images: {image_ids}")
     return {"message": "Images deleted successfully"}
+
+
+class DeleteAlbumData(BaseModel):
+    album_id: str
+
+
+@app.delete("/delete-album")
+async def delete_album_api(data: DeleteAlbumData, current_user: User = Depends(get_current_user)):
+    logger.info(f"/delete-album  - Endpoint accessed by user: {current_user['username']}")
+
+    album_id = data.album_id
+
+    album = await get_album(album_id)
+    if not album:
+        logger.warning("/delete-album - Album not found")
+        raise HTTPException(status_code=404, detail="Album not found")
+
+    success = await delete_album(album_id)
+    if not success:
+        logger.error(f"/delete-album - Failed to delete album")
+        raise HTTPException(status_code=500, detail="Failed to delete album")
+
+    logger.info(f"/delete-album - Successfully deleted album: {album_id}")
+    return {"message": "Album deleted successfully"}
+
+
+class RelocateImagesData(BaseModel):
+    image_ids: Optional[List[str]] = None
+    prev_album_id: str
+    new_album_id: Optional[str] = None
+
+
+@app.post("/relocate-images")
+async def relocate_images_api(data: RelocateImagesData, current_user: User = Depends(get_current_user)):
+    logger.info(f"/relocate-images  - Endpoint accessed by user: {current_user['username']}")
+
+    image_ids = data.image_ids
+    prev_album_id = data.prev_album_id
+    new_album_id = data.new_album_id
+
+    album = await get_album(prev_album_id)
+    if not album:
+        logger.warning("/relocate-images - Album not found")
+        raise HTTPException(status_code=404, detail="Album not found")
+
+    success = await relocate_to_album(prev_album_id, new_album_id, image_ids,)
+    if not success:
+        logger.error("/relocate-images - Failed to relocate images")
+        raise HTTPException(status_code=500, detail="Failed to relocate images")
+
+    logger.info(f"Successfully relocated images from album: {prev_album_id}")
+    return {"message": "Images relocated successfully"}
 
 
 if __name__ == "__main__":
