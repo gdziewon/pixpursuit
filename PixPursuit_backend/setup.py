@@ -8,6 +8,7 @@ import time
 from logging_config import setup_logging
 import boto3
 import os
+from pymongo.mongo_client import MongoClient
 
 logger = setup_logging(__name__)
 
@@ -44,22 +45,26 @@ def activate_face_models():
 def connect_to_mongodb(attempts=5, delay=3):
     for attempt in range(attempts):
         try:
-            uri = f"mongodb+srv://Minister:{os.environ['SERVERLESS_INSTANCE_PASSWORD']}@serverlessinstance0.wwjfsv6.mongodb.net/?retryWrites=true&w=majority"
+            uri = f"mongodb+srv://Minister:{os.environ['SERVERLESS_INSTANCE_PASSWORD']}@cluster0.zt7ht.mongodb.net/?retryWrites=true&w=majority"
             async_client = motor.motor_asyncio.AsyncIOMotorClient(uri)
-            db = async_client.pixpursuit_db
-            images_collection = db.images
-            tags_collection = db.tags
-            user_collection = db.users
-            directories_collection = db.albums
+            sync_client = MongoClient(uri)
+            async_db = async_client.pixpursuit_db
+            sync_db = sync_client.pixpursuit_db
+            sync_images_collection = sync_db.images
+            async_images_collection = async_db.images
+            sync_tags_collection = sync_db.tags
+            async_tags_collection = async_db.tags
+            user_collection = async_db.users
+            directories_collection = async_db.albums
             logger.info("Successfully connected to MongoDB server")
-            return images_collection, tags_collection, user_collection, directories_collection
+            return async_images_collection, sync_images_collection, async_tags_collection, sync_tags_collection, user_collection, directories_collection
         except Exception as err:
             if attempt < attempts - 1:
                 logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay} seconds...")
                 time.sleep(delay)
             else:
                 logger.error("Failed to connect to MongoDB server: ", err)
-                return None, None, None
+                return None, None, None, None, None
 
 
 def connect_to_space():

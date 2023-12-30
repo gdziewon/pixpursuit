@@ -6,20 +6,20 @@ import asyncio
 from image_processing import process_image_async
 from database_tools import save_image_to_database, add_tags, add_feedback, add_description, create_album, add_photos_to_album, get_album,\
                                                         remove_tags_from_image, delete_images, delete_album, relocate_to_album
-from tag_prediction_tools import training_init
+from tag_prediction_tools import training_init, predict_and_update_tags
 from logging_config import setup_logging
 from pydantic import BaseModel
+from celery_config import celery
 from auth import authenticate_user, create_access_token, User, Token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
 
 app = FastAPI()
-
+celery.autodiscover_tasks(['tag_prediction_tools'])
 logger = setup_logging(__name__)
 
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = await authenticate_user(form_data.username, form_data.password)
-    logger.info(f"/token - Endpoint accessed by user: {user['username']}")
     if not user:
         logger.warning("/token - Incorrect username or password")
         raise HTTPException(
@@ -50,8 +50,9 @@ async def process_images_api(images: List[UploadFile] = [], album_id: str = None
     for result in results:
         inserted_id = await save_image_to_database(result, current_user['username'], album_id)
         if inserted_id:
-            inserted_ids.append(str(inserted_id))
+            inserted_ids.append(inserted_id)
 
+    predict_and_update_tags.delay(inserted_ids)
     logger.info(f"/process-images - Successfully processed and saved images: {inserted_ids}")
     return {"message": "Images saved successfully", "inserted_ids": inserted_ids}
 

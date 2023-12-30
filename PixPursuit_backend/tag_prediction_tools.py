@@ -1,11 +1,11 @@
 import torch
 import torch.optim as optim
+from bson import ObjectId
 from logging_config import setup_logging
 import os
 from celery import shared_task
-import asyncio
 from tag_prediction_model import TagPredictor
-from database_tools import get_image_document, get_unique_tags, add_auto_tags, get_image_ids_paginated
+from database_tools import get_image_document, get_image_document_sync, get_unique_tags, add_auto_tags, get_image_ids_paginated
 
 logger = setup_logging(__name__)
 
@@ -45,7 +45,7 @@ def load_model_state(file_path=MODEL_FILE_PATH, input_size=1000, hidden_size=512
 async def update_model_tags():
     try:
         tag_predictor = load_model_state()
-        unique_tags = await get_unique_tags()
+        unique_tags = get_unique_tags()
         num_tags = len(unique_tags)
         if num_tags != tag_predictor.fc3.out_features:
             tag_predictor.update_output_layer(num_tags)
@@ -57,7 +57,7 @@ async def update_model_tags():
 
 async def tags_to_vector(tags, feedback):
     try:
-        unique_tags = await get_unique_tags()
+        unique_tags = get_unique_tags()
         tag_vector = [0] * len(unique_tags)
         tag_dict = {tag: i for i, tag in enumerate(unique_tags)}
 
@@ -90,9 +90,9 @@ async def training_init(inserted_id):
         logger.error(f"Error during training initialization: {e}", exc_info=True)
 
 
-async def predictions_to_tag_names(predictions):
-    all_tags = await get_unique_tags()
-    index_to_tag = {i: tag['name'] for i, tag in enumerate(all_tags)}
+def predictions_to_tag_names(predictions):
+    all_tags = get_unique_tags()
+    index_to_tag = {i: tag for i, tag in enumerate(all_tags)}
     return [index_to_tag[idx] for idx in predictions if idx in index_to_tag]
 
 
@@ -102,9 +102,17 @@ def train_model(features, tag_vector):
     if not tag_predictor:
         logger.error("Model loading failed, training aborted.")
         return
+
     logger.info("Model training started")
-    features_tensor = torch.tensor(features, dtype=torch.float32).unsqueeze(0)
-    target = torch.tensor([tag_vector], dtype=torch.float32)
+
+    features_tensor = torch.tensor(features, dtype=torch.float32)
+    if features_tensor.ndim == 1:
+        features_tensor = features_tensor.unsqueeze(0)
+
+    target = torch.tensor([tag_vector] if features_tensor.ndim == 1 else tag_vector, dtype=torch.float32)
+
+    if features_tensor.size(0) != target.size(0):
+        target = target.unsqueeze(0)
 
     criterion = torch.nn.BCELoss()
     optimizer = optim.Adam(tag_predictor.parameters(), lr=LEARNING_RATE)
@@ -120,40 +128,50 @@ def train_model(features, tag_vector):
 
 
 @shared_task(name='tag_prediction_tools.predict_and_update_tags')
-def predict_and_update_tags(image_id, features):
-    logger.info(f"Predicting and updating tags")
+def predict_and_update_tags(image_ids):
+    logger.info("Predicting and updating tags")
     tag_predictor = load_model_state()
     if not tag_predictor:
         logger.error("Model loading failed, prediction aborted.")
         return
 
-    async def async_task():
-        features_tensor = torch.tensor(features, dtype=torch.float32).unsqueeze(0)
-        predicted_indices = tag_predictor.predict_tags(features_tensor)
-        predicted_tags = await predictions_to_tag_names(predicted_indices)
-        await add_auto_tags(image_id, predicted_tags)
+    for image_id in image_ids:
+        image_id_obj = ObjectId(image_id)
+        image_document = get_image_document_sync(image_id)
+        if not image_document:
+            logger.error(f"Couldn't retrieve image document: {image_id}")
+            continue
 
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(async_task())
+        features = image_document['features']
+        if not features:
+            logger.warning(f"No features in image: {image_id}")
+            continue
+
+        features_tensor = torch.tensor(features, dtype=torch.float32)
+        if features_tensor.ndim == 1:
+            features_tensor = features_tensor.unsqueeze(0)
+
+        predicted_indices = tag_predictor.predict_tags(features_tensor)
+        predicted_tags = predictions_to_tag_names(predicted_indices)
+
+        if not predicted_tags:
+            logger.info(f"No tags predicted for image {image_id}")
+
+        add_auto_tags(image_id_obj, predicted_tags)
 
 
 @shared_task(name='tag_prediction_tools.update_all_auto_tags')
 def update_all_auto_tags():
     try:
-        logger.info(f"Updating all auto tags")
-        loop = asyncio.get_event_loop()
+        logger.info("Updating all auto tags")
         page_number = 1
         page_size = 100
         while True:
-            image_ids = loop.run_until_complete(get_image_ids_paginated(page_number, page_size))
+            image_ids = get_image_ids_paginated(page_number, page_size)
             if not image_ids:
                 break
 
-            for image_id in image_ids:
-                image_document = loop.run_until_complete(get_image_document(image_id))
-                if image_document:
-                    features = image_document['features']
-                    predict_and_update_tags.delay(image_id, features)
+            predict_and_update_tags.delay(image_ids)
 
             page_number += 1
     except Exception as e:

@@ -48,7 +48,7 @@ async def save_image_to_space(image: Image):
     content_type = get_content_type(image)
     extension = content_type.split('/')[-1]
     filename = generate_filename(extension)
-    image.thumbnail((450, 450))
+    image.thumbnail((300, 300))
     thumbnail_byte_arr = image_to_byte_array(image)
     image_url = await put_into_space_async(img_byte_arr, filename, content_type)
     thumbnail_url = await put_into_space_async(thumbnail_byte_arr, f'thumbnail{filename}', content_type)

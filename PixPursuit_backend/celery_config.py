@@ -9,7 +9,7 @@ def make_celery(app_name=__name__):
     celery_app.conf.beat_schedule = {
         'update-auto-tags-daily': {
             'task': 'tag_prediction_tools.update_all_auto_tags',
-            'schedule': crontab(minute='*')
+            'schedule': crontab(hour='1')
         },
     }
     celery_app.conf.timezone = 'CET'
@@ -23,3 +23,4 @@ def make_celery(app_name=__name__):
 
 celery = make_celery()
 import tag_prediction_tools
+import app
