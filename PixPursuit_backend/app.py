@@ -13,7 +13,7 @@ from celery_config import celery
 from auth import authenticate_user, create_access_token, User, Token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
 
 app = FastAPI()
-celery.autodiscover_tasks(['tag_prediction_tools'])
+celery.autodiscover_tasks(['tag_prediction_tools', 'database_tools'])
 logger = setup_logging(__name__)
 
 

@@ -1,11 +1,14 @@
 from setup import connect_to_mongodb
 from logging_config import setup_logging
+import numpy as np
+from sklearn.cluster import DBSCAN
 from bson import ObjectId
 from image_to_space import delete_image_from_space
+from celery import shared_task
+import asyncio
 
 logger = setup_logging(__name__)
-
-async_images_collection, sync_images_collection, async_tags_collection, sync_tags_collection, user_collection, album_collection = connect_to_mongodb()
+async_images_collection, sync_images_collection, async_tags_collection, sync_tags_collection, faces_collection, user_collection, album_collection = connect_to_mongodb()
 
 
 async def save_image_to_database(data, username, album_id):
@@ -16,15 +19,20 @@ async def save_image_to_database(data, username, album_id):
         face_embeddings, detected_objects, image_url, thumbnail_url, exif_data, features = data
         embeddings_list = [emb.tolist() for emb in face_embeddings] if face_embeddings is not None else []
         features_list = features.tolist() if features is not None else []
+
+        faces_records = [{"face_emb": emb, "added_by_person": username, 'group': ""} for emb in embeddings_list]
+
         image_record = {
             'image_url': image_url,
             'thumbnail_url': thumbnail_url,
             'embeddings': embeddings_list,
+            'embeddings_box': [],
             'detected_objects': detected_objects,
             'metadata': exif_data,
             'features': features_list,
             'user_tags': [],
             'auto_tags': [],
+            'auto_faces': [],
             'feedback': {},
             'description': "",
             'added_by': username,
@@ -33,7 +41,9 @@ async def save_image_to_database(data, username, album_id):
         result = await async_images_collection.insert_one(image_record)
         inserted_id = str(result.inserted_id)
         logger.info(f"Inserted_id in save_to_database: {str(inserted_id)}")
+
         await add_photos_to_album(inserted_id, album_id)
+        await faces_collection.insert_many(faces_records)
 
         logger.info(f"Successfully saved data for image: {image_url}")
         return inserted_id
@@ -384,3 +394,48 @@ async def get_album(album_id):
     except Exception as e:
         logger.error(f"Error retrieving album: {e}")
         return None
+
+
+async def fetch_all_embeddings():
+    try:
+        cursor = faces_collection.find({})
+        embeddings = []
+        ids = []
+        async for doc in cursor:
+            embeddings.append(np.array(doc['face_emb']))
+            ids.append(doc['_id'])
+        return embeddings, ids
+    except Exception as e:
+        logger.error(f"Error saving to database: {e}")
+        return None
+
+
+def cluster_embeddings(embeddings):
+    try:
+        embeddings_array = np.array(embeddings)
+        dbscan = DBSCAN(eps=0.8, min_samples=3)
+        clusters = dbscan.fit_predict(embeddings_array)
+        return clusters
+    except Exception as e:
+        logger.exception("Clustering failed.")
+        raise
+
+
+@shared_task(name='database_tools.group_faces')
+def group_faces():
+    async def async_task():
+        embeddings, ids = await fetch_all_embeddings()
+        if embeddings:  # Proceed only if there are embeddings
+            clusters = cluster_embeddings(embeddings)
+            for idx, cluster_id in enumerate(clusters):
+                group_id = f"face{cluster_id}"
+                await faces_collection.update_one(
+                    {'_id': ObjectId(ids[idx])},
+                    {'$set': {'group': group_id}}
+                )
+            logger.info("Faces have been successfully grouped.")
+        else:
+            logger.info("No embeddings found to cluster.")
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(async_task())
