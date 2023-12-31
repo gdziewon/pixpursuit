@@ -11,11 +11,15 @@ def make_celery(app_name=__name__):
             'task': 'tag_prediction_tools.update_all_auto_tags',
             'schedule': crontab(hour='1')
         },
+        'cluster-faces-daily': {
+            'task': 'database_tools.group_faces',
+            'schedule': crontab(minute='*'),
+        },
     }
     celery_app.conf.timezone = 'CET'
     celery_app.conf.task_default_queue = 'default'
     celery_app.conf.task_routes = {
-        'tag_prediction_tools.*': {'queue': 'tag_prediction_tools'},
+        '*.*': {'queue': 'tag_prediction_tools'},
     }
 
     return celery_app
@@ -24,3 +28,4 @@ def make_celery(app_name=__name__):
 celery = make_celery()
 import tag_prediction_tools
 import app
+import database_tools

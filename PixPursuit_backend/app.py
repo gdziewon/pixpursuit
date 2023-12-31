@@ -14,7 +14,7 @@ from auth import authenticate_user, create_access_token, User, Token, ACCESS_TOK
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
-celery.autodiscover_tasks(['tag_prediction_tools'])
+celery.autodiscover_tasks(['tag_prediction_tools', 'database_tools'])
 logger = setup_logging(__name__)
 
 app.add_middleware(

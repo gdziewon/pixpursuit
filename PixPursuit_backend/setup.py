@@ -54,10 +54,12 @@ def connect_to_mongodb(attempts=5, delay=3):
             async_images_collection = async_db.images
             sync_tags_collection = sync_db.tags
             async_tags_collection = async_db.tags
+            faces_collection = async_db.faces
             user_collection = async_db.users
             directories_collection = async_db.albums
             logger.info("Successfully connected to MongoDB server")
-            return async_images_collection, sync_images_collection, async_tags_collection, sync_tags_collection, user_collection, directories_collection
+            return async_images_collection, sync_images_collection, async_tags_collection, sync_tags_collection, faces_collection, user_collection, directories_collection
+
         except Exception as err:
             if attempt < attempts - 1:
                 logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay} seconds...")
