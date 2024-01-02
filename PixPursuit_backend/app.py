@@ -11,10 +11,19 @@ from logging_config import setup_logging
 from pydantic import BaseModel
 from celery_config import celery
 from auth import authenticate_user, create_access_token, User, Token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 celery.autodiscover_tasks(['tag_prediction_tools', 'database_tools'])
 logger = setup_logging(__name__)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.post("/token", response_model=Token)
@@ -32,11 +41,11 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         data={"sub": user["username"]}, expires_delta=access_token_expires
     )
     logger.info(f"/token - Successfully provided token to user: {user['username']}")
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "name": user['username']}
 
 
 @app.post("/process-images")
-async def process_images_api(images: List[UploadFile] = [], album_id: str = None, current_user: User = Depends(get_current_user)):
+async def process_images_api(images: List[UploadFile] = [], album_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
     logger.info(f"/process-images - Endpoint accessed by user: {current_user['username']}")
 
     if not images:
