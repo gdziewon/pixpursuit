@@ -21,6 +21,11 @@ export default async function Gallery({ searchParams }) {
           <h1 className="text-3xl font-bold">PixPursuit</h1>
           <Searcher search={search} />
           <div className="flex space-x-6">
+            <Link href="/gallery/upload">
+              <h2 className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800">
+                Upload Images
+              </h2>
+            </Link>
             <Link
               href={{
                 pathname: "/gallery",
