@@ -16,8 +16,9 @@ async def save_image_to_database(data, username, album_id):
         if not album_id:
             album_id = await get_root_id()
 
-        face_embeddings, detected_objects, image_url, thumbnail_url, exif_data, features = data
+        face_embeddings, face_boxes, detected_objects, image_url, thumbnail_url, exif_data, features = data
         embeddings_list = [emb.tolist() for emb in face_embeddings] if face_embeddings is not None else []
+        boxes_list = [box.tolist() for box in face_boxes] if face_boxes is not None else []
         features_list = features.tolist() if features is not None else []
 
         faces_records = [{"face_emb": emb, "added_by_person": username, 'group': ""} for emb in embeddings_list]
@@ -26,7 +27,7 @@ async def save_image_to_database(data, username, album_id):
             'image_url': image_url,
             'thumbnail_url': thumbnail_url,
             'embeddings': embeddings_list,
-            'embeddings_box': [],
+            'embeddings_box': boxes_list,
             'detected_objects': detected_objects,
             'metadata': exif_data,
             'features': features_list,
@@ -417,13 +418,37 @@ def cluster_embeddings(embeddings):
         clusters = dbscan.fit_predict(embeddings_array)
         return clusters
     except Exception as e:
-        logger.exception("Clustering failed.")
+        logger.exception(f"Clustering failed: {e}")
         raise
 
 
 @shared_task(name='database_tools.group_faces')
 def group_faces():
     async def async_task():
+        cursor = async_images_collection.find({'embeddings': {'$exists': True, '$not': {'$size': 0}}})
+        images = await cursor.to_list(length=None)
+
+        all_embeddings = [emb for image in images for emb in image['embeddings']]
+
+        if not all_embeddings:
+            logger.info("No embeddings found for clustering.")
+            return
+
+        embeddings_array = np.array(all_embeddings)
+        clustering = DBSCAN(eps=0.8, min_samples=3).fit(embeddings_array)
+
+        label_idx = 0
+        for image in images:
+            num_embeddings = len(image['embeddings'])
+            if num_embeddings > 0:
+                image_clusters = clustering.labels_[label_idx:label_idx + num_embeddings]
+                label_idx += num_embeddings
+
+                await async_images_collection.update_one(
+                    {'_id': image['_id']},
+                    {'$set': {'auto_faces': image_clusters.tolist()}}
+                )
+
         embeddings, ids = await fetch_all_embeddings()
         if embeddings:  # Proceed only if there are embeddings
             clusters = cluster_embeddings(embeddings)
@@ -439,3 +464,5 @@ def group_faces():
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(async_task())
+
+

@@ -20,7 +20,7 @@ async def read_image(file: UploadFile) -> Image:
 async def process_image_async(upload_file: UploadFile):
     try:
         image = await read_image(upload_file)
-        face_embeddings = await get_embeddings_async(image)
+        face_embeddings, face_boxes = await get_embeddings_async(image)
         detected_objects = await detect_objects_async(image)
         features = await extract_features_async(image)
         image_url, thumbnail_url = await save_image_to_space(image)
@@ -29,4 +29,4 @@ async def process_image_async(upload_file: UploadFile):
         logger.error(f"Runtime error occurred: {e}")
         return
 
-    return face_embeddings, detected_objects, image_url, thumbnail_url, exif_data, features
+    return face_embeddings, face_boxes, detected_objects, image_url, thumbnail_url, exif_data, features
