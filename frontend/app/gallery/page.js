@@ -64,16 +64,22 @@ export default async function Gallery({ searchParams }) {
             {images.map((image, index) => (
               <Suspense fallback={<Loading />} key={index}>
                 <Link
-                  href={`/gallery/${image.id}`}
-                  className="rounded-md overflow-hidden"
+                  href={`/gallery/${image._id.toString()}`}
+                  className="relative rounded-md overflow-hidden group"
                 >
                   <Image
                     src={image.thumbnail_url}
                     alt={image.description}
                     width={300}
                     height={300}
-                    layout="responsive"
+                    layout={"responsive"}
+                    className="transition duration-500 ease-in-out transform hover:scale-105"
                   />
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-500 ease-in-out">
+                    <p className="text-white text-center">
+                      {image.description}
+                    </p>
+                  </div>
                 </Link>
               </Suspense>
             ))}
