@@ -29,6 +29,7 @@ async def save_image_to_database(data, username, album_id):
             'features': [],
             'user_tags': [],
             'auto_tags': [],
+            'user_faces': [],
             'auto_faces': [],
             'feedback': {},
             'description': "",
@@ -101,6 +102,34 @@ async def add_tags(tags, inserted_id):
         return True
     except Exception as e:
         logger.error(f"Error adding tags: {e}")
+        return False
+
+
+async def add_names(inserted_id, anonymous_index, new_name):
+    try:
+        if isinstance(inserted_id, str):
+            inserted_id = ObjectId(inserted_id)
+
+        image = await get_image_document(inserted_id)
+        if not image:
+            logger.error(f"Image not found with ID: {inserted_id}")
+            return False
+
+        if anonymous_index < 0 or anonymous_index >= len(image['user_faces']):
+            logger.error(f"Invalid anonymous index: {anonymous_index}")
+            return False
+
+        image['user_faces'][anonymous_index] = new_name
+
+        await async_images_collection.update_one(
+            {"_id": inserted_id},
+            {"$set": {"user_faces": image['user_faces']}}
+        )
+
+        logger.info(f"Successfully updated name for image: {inserted_id}")
+        return True
+    except Exception as e:
+        logger.error(f"Error while adding name: {e}")
         return False
 
 

@@ -5,7 +5,7 @@ from typing import List, Dict, Optional
 import asyncio
 from image_processing import process_image_async
 from database_tools import save_image_to_database, add_tags, add_feedback, add_description, create_album, add_photos_to_album, get_album,\
-                                                        remove_tags_from_image, delete_images, delete_album, relocate_to_album
+                                                        remove_tags_from_image, delete_images, delete_album, relocate_to_album, add_names
 from tag_prediction_tools import training_init, predict_and_update_tags
 from logging_config import setup_logging
 from pydantic import BaseModel
@@ -257,6 +257,28 @@ async def delete_album_api(data: DeleteAlbumData, current_user: User = Depends(g
 
     logger.info(f"/delete-album - Successfully deleted album: {album_id}")
     return {"message": "Album deleted successfully"}
+
+
+class FaceData(BaseModel):
+    inserted_id: str
+    anonymous_index: int
+    name: str
+
+
+@app.post("/add-user-face")
+async def add_user_tag_api(data: FaceData, current_user: User = Depends(get_current_user)):
+    logger.info(f"/add-user-faces - Endpoint accessed by user: {current_user['username']}")
+
+    inserted_id = data.inserted_id
+    anonymous_index = data.anonymous_index
+    name = data.name
+    success = await add_names(inserted_id, anonymous_index, name)
+    if not success:
+        logger.error("/add-user-faces - Failed to add faces")
+        raise HTTPException(status_code=500, detail="Failed to add faces")
+
+    logger.info(f"/add-user-faces - Successfully added name to face: {inserted_id}")
+    return {"message": "Name added successfully"}
 
 
 class RelocateImagesData(BaseModel):
