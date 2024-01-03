@@ -33,5 +33,5 @@ class TagPredictor(nn.Module):
         self.eval()
         with torch.no_grad():
             predictions = self.forward(features)
-            high_confidence_tags = (predictions > 0.8).nonzero(as_tuple=True)[1]
+            high_confidence_tags = (predictions > 0.5).nonzero(as_tuple=True)[1]
             return high_confidence_tags.tolist()

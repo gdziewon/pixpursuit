@@ -19,7 +19,7 @@ def make_celery(app_name=__name__):
     celery_app.conf.timezone = 'CET'
     celery_app.conf.task_default_queue = 'default'
     celery_app.conf.task_routes = {
-        '*.*': {'queue': 'tag_prediction_tools'},
+        '*.*': {'queue': 'main_queue'},
     }
 
     return celery_app
@@ -29,3 +29,6 @@ celery = make_celery()
 import tag_prediction_tools
 import app
 import database_tools
+import face_detection
+import object_detection
+import feature_extraction

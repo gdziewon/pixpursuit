@@ -52,7 +52,7 @@ async def save_image_to_space(image: Image):
     thumbnail_byte_arr = image_to_byte_array(image)
     image_url = await put_into_space_async(img_byte_arr, filename, content_type)
     thumbnail_url = await put_into_space_async(thumbnail_byte_arr, f'thumbnail{filename}', content_type)
-    return image_url, thumbnail_url
+    return image_url, thumbnail_url, filename
 
 
 async def delete_image_from_space(file_url: str):

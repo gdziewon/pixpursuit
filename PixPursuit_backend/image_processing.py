@@ -1,14 +1,21 @@
 from image_to_space import save_image_to_space
 from metadata_extraction import get_exif_data_async
-from face_detection import get_embeddings_async
-from object_detection import detect_objects_async
-from feature_extraction import extract_features_async
+from face_detection import get_face_embeddings
+from object_detection import detect_objects
+from feature_extraction import extract_features
 from PIL import Image
 from fastapi import UploadFile
 from io import BytesIO
 from logging_config import setup_logging
 
 logger = setup_logging(__name__)
+
+
+async def image_to_byte_array(image: Image) -> bytes:
+    img_byte_arr = BytesIO()
+    image.save(img_byte_arr, format=image.format)
+    img_byte_arr = img_byte_arr.getvalue()
+    return img_byte_arr
 
 
 async def read_image(file: UploadFile) -> Image:
@@ -20,13 +27,16 @@ async def read_image(file: UploadFile) -> Image:
 async def process_image_async(upload_file: UploadFile):
     try:
         image = await read_image(upload_file)
-        face_embeddings, face_boxes = await get_embeddings_async(image)
-        detected_objects = await detect_objects_async(image)
-        features = await extract_features_async(image)
-        image_url, thumbnail_url = await save_image_to_space(image)
+        image_byte_arr = await image_to_byte_array(image)
+
+        image_url, thumbnail_url, filename = await save_image_to_space(image)
         exif_data = await get_exif_data_async(image)
+
+        get_face_embeddings.delay(image_byte_arr, filename)
+        detect_objects.delay(image_byte_arr, filename)
+        extract_features.delay(image_byte_arr, filename)
     except RuntimeError as e:
         logger.error(f"Runtime error occurred: {e}")
         return
 
-    return face_embeddings, face_boxes, detected_objects, image_url, thumbnail_url, exif_data, features
+    return image_url, thumbnail_url, filename, exif_data

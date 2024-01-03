@@ -1,10 +1,16 @@
 from setup import activate_object_models
-import asyncio
+from celery import shared_task
+from database_tools import add_something_to_image
+from io import BytesIO
+from PIL import Image
 
 model = activate_object_models()
 
 
-def detect_objects(image):
+@shared_task(name='object_detection.detect_objects')
+def detect_objects(image_data, filename):
+    image = Image.open(BytesIO(image_data))
+    image = image.convert("RGB")
     results = model.predict(source=image)
     detected_objects = []
 
@@ -18,8 +24,5 @@ def detect_objects(image):
             if confidence > 0.7:
                 detected_objects.append({'name': label, 'confidence': confidence})
 
-    return detected_objects
+    add_something_to_image('detected_objects', detected_objects, filename)
 
-
-async def detect_objects_async(image):
-    return await asyncio.to_thread(detect_objects, image)

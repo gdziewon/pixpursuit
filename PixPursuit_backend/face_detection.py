@@ -1,40 +1,35 @@
 from setup import activate_face_models
-import asyncio
-
+from celery import shared_task
+from database_tools import add_something_to_image, insert_many_faces
+from io import BytesIO
+from PIL import Image
 
 device, mtcnn, resnet = activate_face_models()
 
 
-def resize_image(image, max_size=1200):
-    ratio = max_size / max(image.width, image.height)
-    if ratio < 1:
-        image = image.resize((int(image.width * ratio), int(image.height * ratio)))
-    return image
-
-
-def get_face_embeddings_and_boxes(image):
-    resized_image = resize_image(image)
+@shared_task(name='face_detection.get_face_embeddings')
+def get_face_embeddings(image_data, filename):
+    image = Image.open(BytesIO(image_data))
+    image = image.convert("RGB")
     try:
-        boxes, _ = mtcnn.detect(resized_image)
+        boxes, _ = mtcnn.detect(image)
         if boxes is None:
             return None, None
 
-        faces = mtcnn(resized_image)
+        faces = mtcnn(image)
         embeddings = resnet(faces.to(device))
         embeddings = embeddings.detach().cpu().numpy()
 
-        return embeddings, boxes
+        boxes_list = [box.tolist() for box in boxes] if boxes is not None else []
+        embeddings_list = [emb.tolist() for emb in embeddings] if embeddings is not None else []
+
+        add_something_to_image('embeddings', embeddings_list, filename)
+        add_something_to_image('embeddings_box', boxes_list, filename)
+
+        faces_records = [{"face_emb": emb, 'group': ""} for emb in embeddings_list]
+        insert_many_faces(faces_records)
 
     except Exception as e:
         print(f"Error processing image: {e}")
         return None, None
 
-
-async def get_embeddings_async(image):
-    loop = asyncio.get_event_loop()
-
-    def sync_process():
-        return get_face_embeddings_and_boxes(image)
-
-    embeddings, boxes = await loop.run_in_executor(None, sync_process)
-    return embeddings, boxes

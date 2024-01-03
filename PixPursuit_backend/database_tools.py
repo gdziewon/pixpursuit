@@ -8,7 +8,7 @@ from celery import shared_task
 import asyncio
 
 logger = setup_logging(__name__)
-async_images_collection, sync_images_collection, async_tags_collection, sync_tags_collection, faces_collection, user_collection, album_collection = connect_to_mongodb()
+async_images_collection, sync_images_collection, async_tags_collection, sync_tags_collection, sync_faces_collection, async_faces_collection, user_collection, album_collection = connect_to_mongodb()
 
 
 async def save_image_to_database(data, username, album_id):
@@ -16,21 +16,17 @@ async def save_image_to_database(data, username, album_id):
         if not album_id:
             album_id = await get_root_id()
 
-        face_embeddings, face_boxes, detected_objects, image_url, thumbnail_url, exif_data, features = data
-        embeddings_list = [emb.tolist() for emb in face_embeddings] if face_embeddings is not None else []
-        boxes_list = [box.tolist() for box in face_boxes] if face_boxes is not None else []
-        features_list = features.tolist() if features is not None else []
-
-        faces_records = [{"face_emb": emb, "added_by_person": username, 'group': ""} for emb in embeddings_list]
+        image_url, thumbnail_url, filename, exif_data = data
 
         image_record = {
             'image_url': image_url,
             'thumbnail_url': thumbnail_url,
-            'embeddings': embeddings_list,
-            'embeddings_box': boxes_list,
-            'detected_objects': detected_objects,
+            'filename': filename,
+            'embeddings': [],
+            'embeddings_box': [],
+            'detected_objects': {},
             'metadata': exif_data,
-            'features': features_list,
+            'features': [],
             'user_tags': [],
             'auto_tags': [],
             'auto_faces': [],
@@ -44,7 +40,6 @@ async def save_image_to_database(data, username, album_id):
         logger.info(f"Inserted_id in save_to_database: {str(inserted_id)}")
 
         await add_photos_to_album(inserted_id, album_id)
-        await faces_collection.insert_many(faces_records)
 
         logger.info(f"Successfully saved data for image: {image_url}")
         return inserted_id
@@ -202,14 +197,19 @@ def add_auto_tags(inserted_id, predicted_tags):
         logger.error(f"Error while adding auto tags: {e}")
 
 
-async def add_photos_to_album(photo_ids, album_id):
+async def add_photos_to_album(image_ids, album_id):
     try:
         album_id = ObjectId(album_id)
-        if not isinstance(photo_ids, list):
-            photo_ids = [photo_ids]
+        if not isinstance(image_ids, list):
+            image_ids = [image_ids]
+
+        image_ids_obj = []
+        for image_id in image_ids:
+            image_ids_obj.append(ObjectId(image_id))
+
         update_result = await album_collection.update_one(
             {"_id": album_id},
-            {"$push": {"images": {"$each": photo_ids}}}
+            {"$push": {"images": {"$each": image_ids_obj}}}
         )
         return update_result.modified_count > 0
     except Exception as e:
@@ -397,9 +397,20 @@ async def get_album(album_id):
         return None
 
 
+def add_something_to_image(field_to_set, data, filename):
+    sync_images_collection.update_one(
+        {'filename': filename},
+        {'$set': {field_to_set: data}}
+    )
+
+
+def insert_many_faces(faces_records):
+    sync_faces_collection.insert_many(faces_records)
+
+
 async def fetch_all_embeddings():
     try:
-        cursor = faces_collection.find({})
+        cursor = async_faces_collection.find({})
         embeddings = []
         ids = []
         async for doc in cursor:
@@ -454,7 +465,7 @@ def group_faces():
             clusters = cluster_embeddings(embeddings)
             for idx, cluster_id in enumerate(clusters):
                 group_id = f"face{cluster_id}"
-                await faces_collection.update_one(
+                await async_faces_collection.update_one(
                     {'_id': ObjectId(ids[idx])},
                     {'$set': {'group': group_id}}
                 )

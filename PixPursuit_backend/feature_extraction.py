@@ -1,17 +1,22 @@
 from setup import activate_feature_models
-import asyncio
 import torch
+from celery import shared_task
+from database_tools import add_something_to_image
+from io import BytesIO
+from PIL import Image
 
 resnet, transform = activate_feature_models()
 
 
-def extract_features(image):
+@shared_task(name='feature_extraction.extract_features')
+def extract_features(image_data, filename):
+    image = Image.open(BytesIO(image_data))
+    image = image.convert("RGB")
     image = transform(image).unsqueeze(0)
     with torch.no_grad():
         features = resnet(image)
-    return features.numpy()
 
+    features.numpy()
+    features_list = features.tolist() if features is not None else []
+    add_something_to_image('features', features_list, filename)
 
-async def extract_features_async(image):
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, extract_features, image)
