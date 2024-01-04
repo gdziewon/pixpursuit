@@ -13,7 +13,7 @@ def make_celery(app_name=__name__):
         },
         'cluster-faces-daily': {
             'task': 'database_tools.group_faces',
-            'schedule': crontab(minute='*'),
+            'schedule': crontab(hour='*'),
         },
     }
     celery_app.conf.timezone = 'CET'
