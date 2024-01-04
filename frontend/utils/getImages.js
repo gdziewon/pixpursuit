@@ -1,10 +1,18 @@
 import { connectToDatabase } from "@/pages/api/connectMongo";
 
-export async function getImages({ limit, page, query }) {
+export async function getImages({ limit, page, query, sort }) {
   const db = await connectToDatabase();
 
   const skip = limit * (page - 1);
-  const pipeline = [{ $skip: skip }, { $limit: limit }];
+  const pipeline = [
+    { $skip: skip },
+    { $limit: limit },
+    {
+      $sort: {
+        "metadata.date-time": sort === "asc" ? 1 : -1,
+      },
+    },
+  ];
 
   if (query) {
     pipeline.unshift({

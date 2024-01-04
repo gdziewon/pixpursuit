@@ -1,14 +1,11 @@
-import { connectToDatabase } from "@/pages/api/connectMongo";
-import { ObjectId } from "mongodb";
-
-export async function getSingleImage(id) {
-  const db = await connectToDatabase();
-
+// utils/getSingleImage.js
+export default async function getSingleImage(id) {
   try {
-    const objectId = new ObjectId(id);
-
-    const image = await db.collection("images").findOne({ _id: objectId });
-
+    const response = await fetch(`/api/getSingleImage?id=${id}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.statusText}`);
+    }
+    const image = await response.json();
     return image;
   } catch (error) {
     console.error("Error fetching image:", error);

@@ -3,7 +3,6 @@ import Image from "next/legacy/image";
 import Link from "next/link";
 import Loading from "@/app/loading";
 import Searcher from "@/app/components/Searcher";
-
 import { getImages } from "@/utils/getImages";
 import clsx from "clsx";
 
@@ -11,8 +10,9 @@ export default async function Gallery({ searchParams }) {
   let page = parseInt(searchParams.page, 10) || 1;
   let limit = parseInt(searchParams.limit, 10) || 12;
   let search = searchParams.search || undefined;
+  let sort = searchParams.sort || "asc";
 
-  const images = await getImages({ limit, page, query: search });
+  const images = await getImages({ limit, page, query: search, sort });
 
   return (
     <section className="py-24">
@@ -55,6 +55,19 @@ export default async function Gallery({ searchParams }) {
               )}
             >
               Next
+            </Link>
+            <Link
+              href={{
+                pathname: "/gallery",
+                query: {
+                  ...(search ? { search } : {}),
+                  page,
+                  sort: sort === "asc" ? "desc" : "asc",
+                },
+              }}
+              className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800"
+            >
+              Toggle Sort
             </Link>
           </div>
         </div>
