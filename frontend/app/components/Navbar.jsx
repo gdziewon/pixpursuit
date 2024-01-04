@@ -4,7 +4,7 @@ import Link from "next/link";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { config } from "@fortawesome/fontawesome-svg-core";
 import { useSession, signIn, signOut } from 'next-auth/react';
-import React, { useState } from 'react';
+import React from 'react';
 
 config.autoAddCss = false;
 
@@ -25,6 +25,13 @@ export default function Navbar() {
           <Link href="/gallery">
             <div className="text-white text-lg hover:text-gray-300 px-4">
               Gallery
+            </div>
+          </Link>
+        </li>
+        <li>
+          <Link href="/albums">
+            <div className="text-white text-lg hover:text-gray-300 px-4">
+              Albums
             </div>
           </Link>
         </li>

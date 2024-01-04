@@ -1,6 +1,7 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/app/components/Navbar";
+import AlbumsPage from "@/app/albums/page";
 import NextAuthProvider from "@/app/components/NextAuthProvider";
 import router from "next/navigation";
 const inter = Inter({ subsets: ["latin"] });
