@@ -52,6 +52,8 @@ async def save_image_to_database(data, username, album_id):
 async def create_album(album_name, parent_id):
     if not parent_id:
         parent_id = await get_root_id()
+    else:
+        parent_id = ObjectId(parent_id)
 
     new_album = {
         "name": album_name,

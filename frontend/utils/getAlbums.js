@@ -1,7 +1,7 @@
 import { connectToDatabase } from "@/pages/api/connectMongo";
 import { ObjectId } from 'mongodb';
 
-export async function getAlbums(albumId = null, thumbnailLimit = 10) {
+export async function getAlbums(albumId = null, thumbnailLimit = 50) {
     const db = await connectToDatabase();
 
     let albumQuery = albumId ? { _id: new ObjectId(albumId) } : { "parent": null };
@@ -20,7 +20,8 @@ export async function getAlbums(albumId = null, thumbnailLimit = 10) {
         ...album,
         parentAlbumId: album.parent,
         images,
-        sons: subAlbums
+        sons: subAlbums,
+        albumId: album._id
     };
 
     return combinedData;

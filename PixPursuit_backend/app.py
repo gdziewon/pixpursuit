@@ -1,5 +1,5 @@
 from datetime import timedelta
-from fastapi import FastAPI, UploadFile, HTTPException, Depends
+from fastapi import FastAPI, UploadFile, HTTPException, Depends, Form, File
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import List, Dict, Optional
 import asyncio
@@ -45,7 +45,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 
 @app.post("/process-images")
-async def process_images_api(images: List[UploadFile] = [], album_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
+async def process_images_api(images: List[UploadFile] = File(...), album_id: Optional[str] = Form(None), current_user: User = Depends(get_current_user)):
     logger.info(f"/process-images - Endpoint accessed by user: {current_user['username']}")
 
     if not images:
@@ -54,6 +54,7 @@ async def process_images_api(images: List[UploadFile] = [], album_id: Optional[s
 
     processed_images = [asyncio.create_task(process_image_async(image)) for image in images]
     results = await asyncio.gather(*processed_images)
+    logger.info(f"Album id: {album_id}")
 
     inserted_ids = []
     for result in results:

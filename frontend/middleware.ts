@@ -1,3 +1,3 @@
 export {default} from "next-auth/middleware"
 
-export const config = {matcher: ["/gallery/upload"]}
+export const config = {matcher: ["/gallery/upload/:path*", "/albums/add/:path*"]}

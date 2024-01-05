@@ -29,6 +29,24 @@ export default async function AlbumsPage() {
 
     return (
         <div className="album-container">
+            <div className="mb-12 flex items-center justify-between gap-x-16">
+                <div>
+                </div>
+                <div>
+                </div>
+                <div className="flex space-x-6">
+                    <Link href="/gallery/upload">
+                        <h2 className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800">
+                            Upload Images to this album
+                        </h2>
+                    </Link>
+                    <Link href={`/albums/add/${albumData.albumId}`} passHref>
+                        <h2 className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800">
+                            Add album
+                        </h2>
+                    </Link>
+                </div>
+            </div>
             <div className="albums">{albumItems}</div>
             <div className="images">{imageItems}</div>
         </div>

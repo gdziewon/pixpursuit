@@ -43,7 +43,9 @@ const UploadForm = () => {
         <section className="fa-upload">
             <form onSubmit={handleSubmit}>
                 <input type="file" onChange={handleImageChange} multiple/>
-                <button type="submit">Upload Images</button>
+                <button type="submit" className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800">
+                    Upload Images
+                </button>
             </form>
             <div>
                 {image && image.map((img, index) => (
