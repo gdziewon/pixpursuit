@@ -9,7 +9,7 @@ export async function getImages({ limit, page, query, sort }) {
     { $limit: limit },
     {
       $sort: {
-        "metadata.date-time": sort === "asc" ? 1 : -1,
+        "metadata.DateTime": sort === "asc" ? 1 : -1,
       },
     },
   ];

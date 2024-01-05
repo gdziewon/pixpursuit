@@ -67,7 +67,7 @@ export default async function Gallery({ searchParams }) {
               }}
               className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800"
             >
-              Toggle Sort
+              Sort by date {sort === "asc" ? "descending" : "ascending"}
             </Link>
           </div>
         </div>
