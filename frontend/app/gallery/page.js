@@ -5,6 +5,11 @@ import Loading from "@/app/loading";
 import Searcher from "@/app/components/Searcher";
 import { getImages } from "@/utils/getImages";
 import clsx from "clsx";
+import {
+  CloudArrowUpIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
+} from "@heroicons/react/24/solid";
 
 export default async function Gallery({ searchParams }) {
   let page = parseInt(searchParams.page, 10) || 1;
@@ -21,11 +26,6 @@ export default async function Gallery({ searchParams }) {
           <h1 className="text-3xl font-bold">PixPursuit</h1>
           <Searcher search={search} />
           <div className="flex space-x-6">
-            <Link href="/gallery/upload">
-              <h2 className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800">
-                Upload Images
-              </h2>
-            </Link>
             <Link
               href={{
                 pathname: "/gallery",
@@ -35,7 +35,7 @@ export default async function Gallery({ searchParams }) {
                 },
               }}
               className={clsx(
-                "rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800",
+                "rounded border bg-gray-100 px-4 py-2 text-sm text-gray-800",
                 page <= 1 && "pointer-events-none opacity-50"
               )}
             >
@@ -50,28 +50,40 @@ export default async function Gallery({ searchParams }) {
                 },
               }}
               className={clsx(
-                "rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800",
+                "rounded border bg-gray-100 px-4 py-2 text-sm text-gray-800",
                 images.length < limit && "pointer-events-none opacity-50"
               )}
             >
               Next
             </Link>
-            <Link
-              href={{
-                pathname: "/gallery",
-                query: {
-                  ...(search ? { search } : {}),
-                  page,
-                  sort: sort === "asc" ? "desc" : "asc",
-                },
-              }}
-              className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800"
-            >
-              Sort by date {sort === "asc" ? "descending" : "ascending"}
-            </Link>
           </div>
         </div>
-
+        <div className="mb-12 flex justify-end space-x-6">
+          <Link href="/gallery/upload">
+            <h2 className="rounded border bg-blue-500 px-3 py-1 text-xs text-white">
+              Upload Images{" "}
+              <CloudArrowUpIcon className="inline-block w-4 h-4" />
+            </h2>
+          </Link>
+          <Link
+            href={{
+              pathname: "/gallery",
+              query: {
+                ...(search ? { search } : {}),
+                page,
+                sort: sort === "asc" ? "desc" : "asc",
+              },
+            }}
+            className="rounded border bg-blue-500 px-3 py-1 text-xs text-white"
+          >
+            Sort by date{" "}
+            {sort === "asc" ? (
+              <ChevronDownIcon className="inline-block w-4 h-4" />
+            ) : (
+              <ChevronUpIcon className="inline-block w-4 h-4" />
+            )}
+          </Link>
+        </div>
         <Suspense fallback={<Loading />}>
           <div className="grid grid-cols-4 gap-8">
             {images.map((image, index) => (
