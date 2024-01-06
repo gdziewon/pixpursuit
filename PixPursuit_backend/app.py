@@ -269,7 +269,7 @@ class FaceData(BaseModel):
 
 
 @app.post("/add-user-face")
-async def add_user_tag_api(data: FaceData, current_user: User = Depends(get_current_user)):
+async def add_user_face_api(data: FaceData, current_user: User = Depends(get_current_user)):
     logger.info(f"/add-user-faces - Endpoint accessed by user: {current_user['username']}")
 
     inserted_id = data.inserted_id
