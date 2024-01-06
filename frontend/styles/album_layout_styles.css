@@ -1,0 +1,28 @@
+.album-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.grid-layout {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    width: 100%;
+    padding: 16px;
+}
+
+.album-item, .image-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.album-item img, .image-item img {
+    width: 100%; /* Make images responsive */
+    height: auto;
+    object-fit: cover; /* Ensure images cover the area */
+    object-position: center; /* Center images */
+}

@@ -32,6 +32,7 @@ async def save_image_to_database(data, username, album_id):
             'user_faces': [],
             'auto_faces': [],
             'feedback': {},
+            'feedback_history': {},
             'description': "",
             'added_by': username,
             'album_id': album_id
@@ -135,48 +136,59 @@ async def add_names(inserted_id, anonymous_index, new_name):
         return False
 
 
-async def add_feedback(feedback, inserted_id):
+async def add_feedback(tag, is_positive, user, inserted_id):
     try:
-        inserted_id = ObjectId(inserted_id)
-    except Exception as e:
-        logger.error(f"Invalid inserted_id: {e}")
-        return False
+        inserted_id_obj = ObjectId(inserted_id)
+        image_document = await get_image_document(inserted_id)
+        if not image_document:
+            logger.error(f"No image found with ID: {inserted_id}")
+            return False
 
-    try:
-        update_operations = {'$set': {f'feedback.{tag}': value for tag, value in feedback.items() if value is not False},
-                             '$setOnInsert': {f'feedback.{tag}': False for tag, value in feedback.items() if value is False}}
+        feedback = image_document.get('feedback', {})
+        feedback_history = image_document.get('feedback_history', {})
+        user_feedback_history = feedback_history.get(user, {})
+        previous_feedback = user_feedback_history.get(tag)
+
+        if previous_feedback is not None:
+            if previous_feedback != is_positive:
+                feedback[tag]['positive'] += 1 if is_positive else -1
+                feedback[tag]['negative'] += -1 if is_positive else 1
+        else:
+            feedback[tag] = feedback.get(tag, {'positive': 0, 'negative': 0})
+            feedback[tag]['positive'] += 1 if is_positive else 0
+            feedback[tag]['negative'] += 0 if is_positive else 1
+
+        user_feedback_history[tag] = is_positive
+        feedback_history[user] = user_feedback_history
 
         await async_images_collection.update_one(
-            {'_id': inserted_id},
-            update_operations,
-            upsert=True
+            {'_id': inserted_id_obj},
+            {'$set': {'feedback': feedback, 'feedback_history': feedback_history}}
         )
 
-        logger.info(f"Successfully added feedback")
+        logger.info(f"Feedback updated for image: {inserted_id}")
         return True
     except Exception as e:
         logger.error(f"Error updating feedback: {e}")
         return False
 
 
-def add_feedback_sync(feedback, inserted_id):
+def add_feedback_sync(auto_tags, inserted_id):
     try:
-        inserted_id = ObjectId(inserted_id)
-    except Exception as e:
-        logger.error(f"Invalid inserted_id: {e}")
-        return False
+        inserted_id_obj = ObjectId(inserted_id)
+        image_document = sync_images_collection.find_one({'_id': inserted_id_obj})
+        existing_feedback = image_document.get('feedback', {})
+        for tag in auto_tags:
+            existing_feedback.setdefault(tag, {"positive": 0, "negative": 0})
 
-    try:
-        update_operations = {'$set': {f'feedback.{tag}': value for tag, value in feedback.items() if value is not False},
-                             '$setOnInsert': {f'feedback.{tag}': False for tag, value in feedback.items() if value is False}}
+        existing_feedback = {tag: data for tag, data in existing_feedback.items() if tag in auto_tags}
 
         sync_images_collection.update_one(
-            {'_id': inserted_id},
-            update_operations,
-            upsert=True
+            {'_id': inserted_id_obj},
+            {'$set': {'feedback': existing_feedback}}
         )
 
-        logger.info(f"Successfully added feedback")
+        logger.info("Successfully updated feedback for auto tags")
         return True
     except Exception as e:
         logger.error(f"Error updating feedback: {e}")
@@ -210,20 +222,23 @@ def add_auto_tags(inserted_id, predicted_tags):
         inserted_id_obj = ObjectId(inserted_id) if isinstance(inserted_id, str) else inserted_id
 
         image_document = sync_images_collection.find_one({'_id': inserted_id_obj})
+        if not image_document:
+            logger.error(f"No document found with id: {inserted_id}")
+            return
+
         user_tags = image_document.get('user_tags', [])
-        feedback = image_document.get('feedback', {})
-        filtered_predicted_tags = [tag for tag in predicted_tags if tag not in user_tags]
+        auto_tags_to_add = [tag for tag in predicted_tags if tag not in user_tags]
 
-        sync_images_collection.update_one(
-            {'_id': inserted_id_obj},
-            {'$set': {'auto_tags': predicted_tags}}
-        )
+        if auto_tags_to_add:
+            sync_images_collection.update_one(
+                {'_id': inserted_id_obj},
+                {'$set': {'auto_tags': auto_tags_to_add}}
+            )
 
-        feedback_update = {tag: feedback.get(tag, False) for tag in filtered_predicted_tags}
-        logger.info(f"Added auto tags: {predicted_tags}")
+        if auto_tags_to_add:
+            add_feedback_sync(auto_tags_to_add, inserted_id_obj)
 
-        add_feedback_sync(feedback_update, inserted_id_obj)
-
+        logger.info(f"Added auto tags: {auto_tags_to_add}")
     except Exception as e:
         logger.error(f"Error while adding auto tags: {e}")
 
@@ -506,5 +521,3 @@ def group_faces():
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(async_task())
-
-

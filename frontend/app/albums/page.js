@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getAlbums } from "@/utils/getAlbums";
+import "/styles/album_layout_styles.css"
 
 export default async function AlbumsPage() {
     const albumData = await getAlbums();
@@ -28,7 +29,7 @@ export default async function AlbumsPage() {
     ));
 
     return (
-        <div className="album-container">
+        <div className="container">
             <div className="mb-12 flex items-center justify-between gap-x-16">
                 <div>
                 </div>
@@ -47,8 +48,10 @@ export default async function AlbumsPage() {
                     </Link>
                 </div>
             </div>
-            <div className="albums">{albumItems}</div>
-            <div className="images">{imageItems}</div>
+            <div className="album-container grid-layout">
+                {albumItems}
+                {imageItems}
+            </div>
         </div>
     );
 }

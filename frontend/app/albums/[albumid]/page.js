@@ -3,10 +3,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getAlbums } from "@/utils/getAlbums";
 import { isRootId} from "@/utils/isRootId";
+import "/styles/album_layout_styles.css"
 
 export default async function SubAlbumPage({ params }) {
     const albumId = params.albumid;
     const albumData = await getAlbums(albumId);
+
 
     const isRoot = albumData.parentAlbumId ? await isRootId(albumData.parentAlbumId) : true;
 
@@ -48,7 +50,6 @@ export default async function SubAlbumPage({ params }) {
             </div>
         </Link>
     ));
-    console.log("AlbumId: ", albumId)
     const imageItems = albumData.images.map((image, idx) => (
         <Link key={idx} href={`/gallery/${image._id}`} passHref>
             <div>
@@ -58,7 +59,7 @@ export default async function SubAlbumPage({ params }) {
     ));
 
     return (
-        <div className="album-container">
+        <div className="container">
             <div className="mb-12 flex items-center justify-between gap-x-16">
                 <div className="flex space-x-6">
                     <Link href={parentLinkHref} passHref>
@@ -82,8 +83,10 @@ export default async function SubAlbumPage({ params }) {
                     </Link>
                 </div>
             </div>
-            <div className="albums">{albumItems}</div>
-            <div className="images">{imageItems}</div>
+            <div className="album-container grid-layout">
+                {albumItems}
+                {imageItems}
+            </div>
         </div>
     );
 }

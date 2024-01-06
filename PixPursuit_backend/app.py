@@ -41,7 +41,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         data={"sub": user["username"]}, expires_delta=access_token_expires
     )
     logger.info(f"/token - Successfully provided token to user: {user['username']}")
-    return {"access_token": access_token, "token_type": "bearer", "name": user['username']}
+    return {"access_token": access_token, "token_type": "bearer", "username": user['username']}
 
 
 @app.post("/process-images")
@@ -90,7 +90,8 @@ async def add_user_tag_api(data: TagData, current_user: User = Depends(get_curre
 
 class FeedbackData(BaseModel):
     inserted_id: str
-    feedback: Dict[str, bool]
+    tag: str
+    is_positive: bool
 
 
 @app.post("/feedback-on-tags")
@@ -98,8 +99,9 @@ async def feedback_on_tags_api(data: FeedbackData, current_user: User = Depends(
     logger.info(f"/feedback-on-tags - Endpoint accessed by user: {current_user['username']}")
 
     inserted_id = data.inserted_id
-    feedback = data.feedback
-    success = await add_feedback(feedback, inserted_id)
+    tag = data.tag
+    is_positive = data.is_positive
+    success = await add_feedback(tag, is_positive, current_user['username'], inserted_id)
     if not success:
         logger.error("/feedback-on-tags - Failed to add feedback")
         raise HTTPException(status_code=500, detail="Failed to add feedback")

@@ -31,13 +31,19 @@ export default NextAuth({
     },
     callbacks: {
         async jwt({ token, user }) {
+
             if (user) {
-                token.accessToken = user.access_token; // Assuming access_token is returned from your API
+                token.accessToken = user.access_token;
+                token.username = user.username;
             }
             return token;
-        },
+        }
+        ,
         async session({ session, token }) {
-            session.accessToken = token.accessToken;
+            if (session?.user) {
+                session.accessToken = token.accessToken;
+                session.user.name = token.username;
+            }
             return session;
         }
     }

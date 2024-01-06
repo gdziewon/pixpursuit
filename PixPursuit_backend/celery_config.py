@@ -9,7 +9,7 @@ def make_celery(app_name=__name__):
     celery_app.conf.beat_schedule = {
         'update-auto-tags-daily': {
             'task': 'tag_prediction_tools.update_all_auto_tags',
-            'schedule': crontab(hour='1')
+            'schedule': crontab(hour='*/6')
         },
         'cluster-faces-daily': {
             'task': 'database_tools.group_faces',

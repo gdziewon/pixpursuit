@@ -11,6 +11,7 @@ logger = setup_logging(__name__)
 
 MODEL_FILE_PATH = os.getenv('MODEL_FILE_PATH', 'tag_predictor_state.pth')
 LEARNING_RATE = float(os.getenv('LEARNING_RATE', '0.001'))
+POSITIVE_THRESHOLD = 3
 
 
 def save_model_state(model, file_path=MODEL_FILE_PATH):
@@ -55,7 +56,7 @@ async def update_model_tags():
         logger.error(f"Error updating model tags: {e}", exc_info=True)
 
 
-async def tags_to_vector(tags, feedback):
+def tags_to_vector(tags, feedback):
     try:
         unique_tags = get_unique_tags()
         tag_vector = [0] * len(unique_tags)
@@ -65,9 +66,11 @@ async def tags_to_vector(tags, feedback):
             if tag in tag_dict:
                 tag_vector[tag_dict[tag]] = 1
 
-        for tag, value in feedback.items():
-            if tag in tag_dict and tag not in tags:
-                tag_vector[tag_dict[tag]] = int(value)
+        for tag, data in feedback.items():
+            if tag in tag_dict:
+                net_feedback = data['positive'] - data['negative']
+                if net_feedback >= POSITIVE_THRESHOLD:
+                    tag_vector[tag_dict[tag]] = 1
 
         return tag_vector
     except Exception as e:
@@ -83,7 +86,7 @@ async def training_init(inserted_id):
             feedback_tags = image_document.get('feedback', {})
             tags = image_document['user_tags']
             await update_model_tags()
-            tag_vector = await tags_to_vector(tags, feedback_tags)
+            tag_vector = tags_to_vector(tags, feedback_tags)
             train_model.delay(features, tag_vector)
             logger.info(f"Training initialized for image: {inserted_id}")
     except Exception as e:
@@ -99,6 +102,10 @@ def predictions_to_tag_names(predictions):
 @shared_task(name='tag_prediction_tools.train_model')
 def train_model(features, tag_vector):
     tag_predictor = load_model_state()
+    if not features:
+        logger.error("Image has no features")
+        return
+
     if not tag_predictor:
         logger.error("Model loading failed, training aborted.")
         return

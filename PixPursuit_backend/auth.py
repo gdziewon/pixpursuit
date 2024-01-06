@@ -14,7 +14,7 @@ logger = setup_logging(__name__)
 
 SECRET_KEY = os.environ['AUTH_SECRET_KEY']
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 120
 
 
 class User(BaseModel):
@@ -25,6 +25,7 @@ class User(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    username: str
 
 
 class TokenData(BaseModel):
