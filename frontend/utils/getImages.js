@@ -17,7 +17,7 @@ export async function getImages({ limit, page, query, sort }) {
   if (query) {
     pipeline.unshift({
       $search: {
-        index: "images_index",
+        index: "pixiep",
         text: {
           query,
           fuzzy: {
