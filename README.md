@@ -353,7 +353,7 @@ This section covers the steps required to set up and run the PixPursuit applicat
 
 - On Windows:
     ```bash
-    .\\venv\\Scripts\\activate
+    .\venv\Scripts\activate
 
 - On Unix or MacOS:
     ```bash
