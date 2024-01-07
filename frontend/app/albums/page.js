@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getAlbums } from "@/utils/getAlbums";
 import "/styles/album_layout_styles.css"
+import {FolderArrowDownIcon, FolderPlusIcon} from "@heroicons/react/24/outline";
 
 export default async function AlbumsPage() {
     const albumData = await getAlbums();
@@ -37,14 +38,18 @@ export default async function AlbumsPage() {
                 </div>
                 <div className="flex space-x-6">
                     <Link href="/gallery/upload">
-                        <h2 className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800">
-                            Upload Images to this album
-                        </h2>
+                        <button
+                            className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center">
+                            <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
+                            Upload images to this album
+                        </button>
                     </Link>
                     <Link href={`/albums/add/${albumData.albumId}`} passHref>
-                        <h2 className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800">
+                        <button
+                            className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center">
+                        <FolderPlusIcon className="h-5 w-5 mr-2"/>
                             Add album
-                        </h2>
+                        </button>
                     </Link>
                 </div>
             </div>
