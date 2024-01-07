@@ -2,11 +2,25 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/legacy/image";
-import { Suspense } from "react";
 import Loading from "@/app/loading";
+import { Suspense } from "react";
 
-function RandomImage() {
+export default function RandomImage() {
   const [image, setImage] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const getRandomLyric = () => {
+    const taylorSwiftLyrics = [
+      "Karma is the guy on the screen coming straight home to me",
+      "Lord, what will become of me / Once I've lost my novelty?",
+      "You call me up again just to break me like a promise / So casually cruel in the name of being honest",
+      "I'm captivated by you, baby, like a fireworks show",
+      "You made a rebel of a careless man's careful daughter / You are the best thing that's ever been mine",
+    ];
+
+    const randomIndex = Math.floor(Math.random() * taylorSwiftLyrics.length);
+    return taylorSwiftLyrics[randomIndex];
+  };
 
   useEffect(() => {
     const fetchRandomImage = async () => {
@@ -20,6 +34,8 @@ function RandomImage() {
         }
       } catch (error) {
         console.error("Error fetching random image:", error);
+      } finally {
+        setIsLoading(false); // Mark loading as complete
       }
     };
 
@@ -28,7 +44,7 @@ function RandomImage() {
 
   useEffect(() => {
     // Auto-swap image after 10 seconds
-    const timer = setInterval(fetchRandomImage, 100000);
+    const timer = setInterval(fetchRandomImage, 8000);
 
     return () => {
       clearInterval(timer);
@@ -36,6 +52,8 @@ function RandomImage() {
   }, []);
 
   const fetchRandomImage = async () => {
+    setIsLoading(true);
+
     try {
       const response = await fetch("/api/randomImages");
       if (response.ok) {
@@ -46,13 +64,16 @@ function RandomImage() {
       }
     } catch (error) {
       console.error("Error fetching random image:", error);
+    } finally {
+      setIsLoading(false); // Mark loading as complete
     }
   };
+
   return (
-    <div className="bg-indigo-800 bg-opacity-25 p-8 shadow-lg rounded-2xl">
+    <div className="bg-indigo-400 bg-opacity-25 p-8 shadow-lg rounded-2xl">
       <div className="container mx-auto flex items-center space-x-8">
         {image ? (
-          <div className="w-1/2">
+          <div className={`w-1/2 ${isLoading ? "opacity-0" : "opacity-100"}`}>
             <Suspense fallback={<Loading />}>
               <Image
                 src={image.image_url}
@@ -60,7 +81,10 @@ function RandomImage() {
                 width={400}
                 height={400}
                 layout={"responsive"}
-                className="rounded-lg"
+                className={`rounded-lg transition-opacity duration-500 ${
+                  isLoading ? "" : "ease-in"
+                }`}
+                onLoad={() => setIsLoading(false)}
               />
             </Suspense>
           </div>
@@ -69,17 +93,10 @@ function RandomImage() {
         )}
         <div className="w-1/2">
           <p className="text-2xl font-semibold mb-4">
-            {image ? image.description : "Loading..."}
-          </p>
-          <p className="text-gray-600">
-            {image
-              ? "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus gravida purus ac ex volutpat, eu posuere libero congue."
-              : ""}
+            {image ? image.description || getRandomLyric() : "Loading..."}
           </p>
         </div>
       </div>
     </div>
   );
 }
-
-export default RandomImage;
