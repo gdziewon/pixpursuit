@@ -83,8 +83,9 @@ To set up the PixPursuit locally, you need to:
 ## Running the App
 
 To run the app locally, use the following command in the console:
+    ```bash
 
-npm run dev
+    npm run dev
 
 ## Introduction
 
@@ -369,18 +370,36 @@ This section covers the steps required to set up and run the PixPursuit applicat
 1. **Install Redis** (if not already installed):
    - Follow the instructions specific to your operating system from the [official Redis website](https://redis.io/download).
 
-2. **Start the Redis Server**:
+2. **Start the Redis Server**
    ```bash
    redis-server
 
 ### Running Celery Worker and Beat
 
-1. **Start Celery Worker**:
+1. **Start Celery Worker**
    ```bash
-   celery -A your_project worker -l info -P solo
+   celery -A app worker -l info -P solo
 
-2. **Start Celery Beat (in a separate terminal):**
+2. **Start Celery Beat (in a separate terminal)**
     Ensure the virtual environment is activated in this terminal as well.
 
     ```bash
-    celery -A your_project beat -l info.
+    celery -A app beat -l info.
+
+### Running the Application
+
+1. **Start the PixPursuit Application**
+    ```bash
+    uvicorn app:app --reload
+
+---
+
+## Credits
+
+Made with ❤️ by [Eryk](https://github.com/gdziewon) and [Michał](https://github.com/MistarzM).
+
+## Acknowledgements
+
+Special thanks to all contributors and the open-source community for making this project possible.
+
+---
