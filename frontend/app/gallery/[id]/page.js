@@ -9,7 +9,6 @@ import axios from 'axios';
 import {useSession} from "next-auth/react";
 
 export default function ImagePage({ params }) {
-  const [image, setImage] = useState(null);
   const [newTag, setNewTag] = useState(null);
   const [editingDescription, setEditingDescription] = useState(false);
   const [editedDescription, setEditedDescription] = useState("");
@@ -18,6 +17,7 @@ export default function ImagePage({ params }) {
   const [leaveTimer, setLeaveTimer] = useState(null);
   const [originalSize, setOriginalSize] = useState({ width: 0, height: 0 });
   const id = params.id;
+  const [image, setImage] = useState(null);
 
   useEffect(() => {
     const fetchImage = async () => {
@@ -385,12 +385,13 @@ const BoxOverlay = ({ image, boxes, originalSize, session }) => {
                   <div
                       style={{
                         position: 'absolute',
-                        top: '100%',
+                        top: '102%',
                         left: '0',
                         right: '0',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        width: '100%',
                       }}
                   >
                     <input
@@ -405,6 +406,8 @@ const BoxOverlay = ({ image, boxes, originalSize, session }) => {
                           flexGrow: 1,
                           marginRight: '2px',
                           border: '1px solid',
+                          width: 'auto',
+                          minWidth: '100px',
                         }}
                     />
                     {isLoggedIn && (
