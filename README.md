@@ -378,13 +378,13 @@ This section covers the steps required to set up and run the PixPursuit applicat
 
 1. **Start Celery Worker**
    ```bash
-   celery -A app worker -l info -P solo
+   celery -A app.celery worker -l info -P solo
 
 2. **Start Celery Beat (in a separate terminal)**
     Ensure the virtual environment is activated in this terminal as well.
 
     ```bash
-    celery -A app beat -l info.
+    celery -A app.celery beat -l info.
 
 ### Running the Application
 

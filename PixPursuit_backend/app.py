@@ -1,7 +1,7 @@
 from datetime import timedelta
 from fastapi import FastAPI, UploadFile, HTTPException, Depends, Form, File
 from fastapi.security import OAuth2PasswordRequestForm
-from typing import List, Dict, Optional
+from typing import List, Optional
 import asyncio
 from image_processing import process_image_async
 from database_tools import save_image_to_database, add_tags, add_feedback, add_description, create_album, add_photos_to_album, get_album,\
