@@ -9,7 +9,9 @@ import os
 from argon2 import PasswordHasher
 import argon2.exceptions
 from logging_config import setup_logging
+from dotenv import load_dotenv
 
+load_dotenv()
 logger = setup_logging(__name__)
 
 SECRET_KEY = os.environ['AUTH_SECRET_KEY']

@@ -7,13 +7,13 @@ def make_celery(app_name=__name__):
                         broker='redis://localhost:6379/0',
                         backend='redis://localhost:6379/0')
     celery_app.conf.beat_schedule = {
-        'update-auto-tags-daily': {
+        'update-auto-tags-every-15-min': {
             'task': 'tag_prediction_tools.update_all_auto_tags',
-            'schedule': crontab(hour='*/6')
+            'schedule': crontab(minute='*/15')
         },
-        'cluster-faces-daily': {
+        'cluster-faces-every-5-min': {
             'task': 'database_tools.group_faces',
-            'schedule': crontab(hour='*'),
+            'schedule': crontab(minute='*/5'),
         },
     }
     celery_app.conf.timezone = 'CET'

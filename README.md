@@ -1,5 +1,7 @@
 # PixPursuit Project Documentation
 
+Backend and fronted of application from image management and processing with AI usage.
+Made for [competition at Cracow University of Technology](https://konkursit.pk.edu.pl/)
 ## Frontend
 
 Built with Next.js.
@@ -339,15 +341,18 @@ The data stored in the MongoDB database is an integral part of PixPursuit's func
 
 This section covers the steps required to set up and run the PixPursuit application on your local machine. Ensure you have Python 3.9 installed before proceeding.
 
+### Add `.env` file
+    - Create a `.env` file with the required environment variables. Application wont work without correctly set up `.env` file.
+
 ### Setting Up the Virtual Environment
 
 1. **Install Virtual Environment**
    ```bash
-   python3.9 -m pip install virtualenv
+   python -m pip install virtualenv
 
 2. **Create Virtual Environment**
     ```bash
-    python3.9 -m virtualenv venv
+    python -m virtualenv venv
 
 3. **Activate Virtual Environment**
 
@@ -376,19 +381,22 @@ This section covers the steps required to set up and run the PixPursuit applicat
 
 ### Running Celery Worker and Beat
 
+Ensure the virtual environment is activated in these terminals as well.
+
 1. **Start Celery Worker**
+
    ```bash
    celery -A app.celery worker -l info -P solo
 
 2. **Start Celery Beat (in a separate terminal)**
-    Ensure the virtual environment is activated in this terminal as well.
 
     ```bash
-    celery -A app.celery beat -l info.
+    celery -A app.celery beat -l info
 
 ### Running the Application
 
 1. **Start the PixPursuit Application**
+
     ```bash
     uvicorn app:app --reload
 
