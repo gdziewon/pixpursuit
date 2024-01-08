@@ -6,7 +6,8 @@ import Loading from "@/app/loading";
 import { Suspense } from "react";
 
 export default function RandomImage() {
-  const [image, setImage] = useState(null);
+  const [currentImage, setCurrentImage] = useState(null);
+  const [nextImage, setNextImage] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const getRandomLyric = () => {
@@ -23,80 +24,62 @@ export default function RandomImage() {
   };
 
   useEffect(() => {
-    const fetchRandomImage = async () => {
-      try {
-        const response = await fetch("/api/randomImages");
-        if (response.ok) {
-          const data = await response.json();
-          setImage(data);
-        } else {
-          console.error("Failed to fetch random image");
-        }
-      } catch (error) {
-        console.error("Error fetching random image:", error);
-      } finally {
-        setIsLoading(false); // Mark loading as complete
-      }
-    };
-
     fetchRandomImage();
   }, []);
 
   useEffect(() => {
-    // Auto-swap image after 10 seconds
-    const timer = setInterval(fetchRandomImage, 8000);
+    if (nextImage) {
+      const timer = setTimeout(() => {
+        setCurrentImage(nextImage);
+        fetchRandomImage();
+      }, 8000);
 
-    return () => {
-      clearInterval(timer);
-    };
-  }, []);
+      return () => clearTimeout(timer);
+    }
+  }, [nextImage]);
 
   const fetchRandomImage = async () => {
-    setIsLoading(true);
-
     try {
       const response = await fetch("/api/randomImages");
       if (response.ok) {
         const data = await response.json();
-        setImage(data);
+        setNextImage(data); // Store the next image
       } else {
         console.error("Failed to fetch random image");
       }
     } catch (error) {
       console.error("Error fetching random image:", error);
-    } finally {
-      setIsLoading(false); // Mark loading as complete
     }
   };
 
   return (
-    <div className="bg-indigo-400 bg-opacity-25 p-8 shadow-lg rounded-2xl">
-      <div className="container mx-auto flex items-center space-x-8">
-        {image ? (
-          <div className={`w-1/2 ${isLoading ? "opacity-0" : "opacity-100"}`}>
-            <Suspense fallback={<Loading />}>
-              <Image
-                src={image.image_url}
-                alt={image.description}
-                width={400}
-                height={400}
-                layout={"responsive"}
-                className={`rounded-lg transition-opacity duration-500 ${
-                  isLoading ? "" : "ease-in"
-                }`}
-                onLoad={() => setIsLoading(false)}
-              />
-            </Suspense>
+      <div className="bg-indigo-400 bg-opacity-25 p-8 shadow-lg rounded-2xl">
+        <div className="container mx-auto flex items-center space-x-8">
+          {currentImage ? (
+              <div className={`w-1/2 ${isLoading ? "opacity-0" : "opacity-100"}`}>
+                <Suspense fallback={<Loading />}>
+                  <Image
+                      src={currentImage.image_url}
+                      alt={currentImage.description}
+                      width={400}
+                      height={400}
+                      layout={"responsive"}
+                      className={`rounded-lg transition-opacity duration-500 ${
+                          isLoading ? "" : "ease-in"
+                      }`}
+                      onLoad={() => setIsLoading(false)}
+                  />
+                </Suspense>
+              </div>
+          ) : (
+              <div className="w-1/2 h-400px bg-gray-200 rounded-lg"></div>
+          )}
+          <div className="w-1/2">
+            <p className="text-2xl font-semibold mb-4">
+              {currentImage ? currentImage.description || getRandomLyric() : "Loading..."}
+            </p>
           </div>
-        ) : (
-          <div className="w-1/2 h-400px bg-gray-200 rounded-lg"></div>
-        )}
-        <div className="w-1/2">
-          <p className="text-2xl font-semibold mb-4">
-            {image ? image.description || getRandomLyric() : "Loading..."}
-          </p>
         </div>
       </div>
-    </div>
   );
 }
