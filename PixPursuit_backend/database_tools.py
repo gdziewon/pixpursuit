@@ -34,6 +34,9 @@ async def save_image_to_database(data, username, album_id):
             'feedback': {},
             'feedback_history': {},
             'description': "",
+            'likes': 0,
+            'liked_by': [],
+            'views': 0,
             'added_by': username,
             'album_id': album_id
         }
@@ -216,6 +219,46 @@ async def add_description(description, inserted_id):
         return update_result.matched_count > 0 and update_result.modified_count > 0
     except Exception as e:
         logger.error(f"Error updating description: {e}")
+        return False
+
+
+async def add_like(is_positive, username, inserted_id):
+    try:
+        inserted_id = ObjectId(inserted_id)
+    except Exception as e:
+        logger.error(f"Invalid inserted_id: {e}")
+        return False
+
+    try:
+        update_result = await async_images_collection.update_one(
+            {'_id': inserted_id},
+            {'$inc': {'likes': 1 if is_positive else -1}}
+        )
+        await async_images_collection.update_one(
+            {'_id': inserted_id},
+            {'$addToSet': {'liked_by': username}} if is_positive else {'$pull': {'liked_by': username}}
+        )
+        return update_result.matched_count > 0 and update_result.modified_count > 0
+    except Exception as e:
+        logger.error(f"Error updating likes: {e}")
+        return False
+
+
+async def add_view(inserted_id):
+    try:
+        inserted_id = ObjectId(inserted_id)
+    except Exception as e:
+        logger.error(f"Invalid inserted_id: {e}")
+        return False
+
+    try:
+        update_result = await async_images_collection.update_one(
+            {'_id': inserted_id},
+            {'$inc': {'views': 1}}
+        )
+        return update_result.matched_count > 0 and update_result.modified_count > 0
+    except Exception as e:
+        logger.error(f"Error updating views: {e}")
         return False
 
 

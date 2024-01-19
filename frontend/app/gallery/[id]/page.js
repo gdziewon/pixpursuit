@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { PlusIcon, PencilIcon, XMarkIcon, CheckIcon, HandThumbDownIcon, HandThumbUpIcon} from "@heroicons/react/24/solid";
+import { EyeIcon, HeartIcon, PlusIcon, PencilIcon, XMarkIcon, CheckIcon, HandThumbDownIcon, HandThumbUpIcon} from "@heroicons/react/24/solid";
 import getSingleImage from "@/utils/getSingleImage";
 import Loading from "@/app/loading";
 import axios from 'axios';
@@ -18,11 +18,17 @@ export default function ImagePage({ params }) {
   const [originalSize, setOriginalSize] = useState({ width: 0, height: 0 });
   const id = params.id;
   const [image, setImage] = useState(null);
+  const [likes, setLikes] = useState(0);
+  const [isLikedByUser, setIsLikedByUser] = useState(false);
+  const [autoTagsFeedback, setAutoTagsFeedback] = useState({});
+  const hasAddedView = useRef(false)
 
   useEffect(() => {
     const fetchImage = async () => {
       const imageData = await getSingleImage(id);
       setImage(imageData);
+      setLikes(imageData.likes);
+      setIsLikedByUser(session && session.user ? imageData.liked_by.includes(session.user.name) : false);
       setEditedDescription(imageData.description);
       const img = new window.Image();
       img.onload = () => {
@@ -31,10 +37,35 @@ export default function ImagePage({ params }) {
       img.src = imageData.image_url;
     };
 
+    const addView = async () => {
+      try {
+        const viewData = {
+          inserted_id: id,
+        };
+        console.log('Adding view for image id:', id);
+        const response = await axios.post('http://localhost:8000/add-view', viewData, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.status !== 200) {
+          console.error('Failed to add view');
+        }
+      } catch (error) {
+        console.error('Error adding view:', error);
+      }
+    };
+
     fetchImage();
+    if (id && !hasAddedView.current) {
+      addView();
+      hasAddedView.current = true;
+    } else {
+      hasAddedView.current = false;
+    }
   }, [id]);
 
-  // Function to handle adding user-defined tags
   const handleAddTag = async () => {
       try {
         const tagData = {
@@ -61,6 +92,45 @@ export default function ImagePage({ params }) {
         console.error(error);
       }
   };
+
+  const renderHeartIcon = () => {
+    const heartIconClass = session
+        ? `h-10 w-10 ${isLikedByUser ? 'text-red-500 cursor-pointer' : 'text-gray-500 hover:text-pink-500 cursor-pointer'}`
+        : 'h-10 w-10 text-pink-500';
+
+    return (
+        <HeartIcon
+            onClick={session ? () => handleHeartClick(!isLikedByUser) : undefined}
+            className={heartIconClass}
+        />
+    );
+  };
+
+  const handleHeartClick = async (isPositive) => {
+    try {
+      const faceData = {
+        inserted_id: image._id,
+        is_positive: isPositive,
+      };
+
+      const response = await axios.post('http://localhost:8000/add-like', faceData, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+      });
+
+      if (response.status === 200) {
+        alert(isPositive ? 'Like submitted successfully' : 'Unlike submitted successfully');
+        setLikes(isPositive ? likes + 1 : likes - 1);
+        setIsLikedByUser(isPositive);
+      } else {
+        alert('Failed to submit like');
+      }
+    } catch (error) {
+      alert('Error submitting like:', error);
+    }
+  }
 
   const handleChangeDescription = async () => {
     const descriptionData = {
@@ -107,7 +177,7 @@ export default function ImagePage({ params }) {
 
       if (response.status === 200) {
         alert("Feedback submitted successfully");
-        // You might want to update the UI or state based on the feedback
+        setAutoTagsFeedback(prev => ({ ...prev, [tag]: isPositive }));
       } else {
         alert("Failed to submit feedback");
       }
@@ -115,18 +185,12 @@ export default function ImagePage({ params }) {
       console.error("Error submitting feedback:", error);
       alert("Error submitting feedback");
     }
+
   };
 
   const checkFeedbackHistory = (tag) => {
-    if (!session || !image.feedback_history || !image.feedback_history[session.user.name]) {
-      return null;
-    }
-
-    const userFeedback = image.feedback_history[session.user.name];
-    return userFeedback[tag];
+    return autoTagsFeedback[tag] || null;
   };
-
-
 
   const handleMouseEnter = (tag) => {
     if (leaveTimer) {
@@ -168,8 +232,20 @@ export default function ImagePage({ params }) {
         <div className="flex justify-center flex-col">
           <BoxOverlay image={image} boxes={image.embeddings_box || []} originalSize={originalSize} session={session}/>
         </div>
-          <p className="">Taken: {image.metadata.DateTime}</p>
-          <p>Added by: {image.added_by}</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <p className="">Taken: {image.metadata.DateTime}</p>
+            <p>Added by: {image.added_by}</p>
+            <p className="flex items-center">
+              <EyeIcon className="h-5 w-5 mr-1"/>
+              {image.views}
+            </p>
+          </div>
+          <div className="flex items-center">
+            <p className="ml-2">{likes}</p>
+            {renderHeartIcon()}
+          </div>
+        </div>
       </div>
       <div className="w-1/2 pl-6">
         <h1 className="text-3xl font-bold text-teal-100 dark:text-white mb-4">
@@ -231,7 +307,8 @@ export default function ImagePage({ params }) {
                     onMouseLeave={handleMouseLeave}
                     className="relative inline-block"
                 >
-        <span className="bg-blue-200 rounded-full px-3 py-1 text-sm font-semibold text-blue-700 mr-2">
+        <span
+            className={`bg-blue-200 rounded-full px-3 py-1 text-sm font-semibold text-blue-700 mr-2 ${feedback === true ? 'bg-green-200' : feedback === false ? 'bg-red-200' : ''}`}>
           {tag}
         </span>
                   {session && hoveredTag === tag && (
@@ -242,7 +319,8 @@ export default function ImagePage({ params }) {
                             disabled={feedback === true}
                         >
                           <HandThumbUpIcon
-                              className={`h-4 w-4 ${feedback === true ? 'text-black' : 'text-green-700'}`}/>
+                              className={`h-4 w-4 ${feedback === true ? 'text-black' : 'text-green-700'}`}
+                          />
                         </button>
                         <button
                             className={`bg-red-200 p-1 rounded-full ${feedback === false ? 'opacity-50' : ''}`}
@@ -250,7 +328,8 @@ export default function ImagePage({ params }) {
                             disabled={feedback === false}
                         >
                           <HandThumbDownIcon
-                              className={`h-4 w-4 ${feedback === false ? 'text-black' : 'text-red-700'}`}/>
+                              className={`h-4 w-4 ${feedback === false ? 'text-black' : 'text-red-700'}`}
+                          />
                         </button>
                       </div>
                   )}
@@ -291,7 +370,7 @@ export default function ImagePage({ params }) {
   );
 }
 
-const BoxOverlay = ({ image, boxes, originalSize, session }) => {
+const BoxOverlay = ({image, boxes, originalSize, session}) => {
   const displayWidth = 800;  // Adjust as needed
   const displayHeight = 800; // Adjust as needed
 

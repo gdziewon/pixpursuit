@@ -5,7 +5,7 @@ from typing import List, Optional
 import asyncio
 from image_processing import process_image_async
 from database_tools import save_image_to_database, add_tags, add_feedback, add_description, create_album, add_photos_to_album, get_album,\
-                                                        remove_tags_from_image, delete_images, delete_album, relocate_to_album, add_names
+                            remove_tags_from_image, delete_images, delete_album, relocate_to_album, add_names, add_like, add_view
 from tag_prediction_tools import training_init, predict_and_update_tags
 from logging_config import setup_logging
 from pydantic import BaseModel
@@ -129,6 +129,42 @@ async def add_description_api(data: DescriptionData, current_user: User = Depend
 
     logger.info(f"/add-description - Successfully added description to image: {inserted_id}")
     return {"message": "Description added successfully"}
+
+
+class LikeData(BaseModel):
+    inserted_id: str
+    is_positive: bool
+
+
+@app.post("/add-like")
+async def add_like_api(data: LikeData, current_user: User = Depends(get_current_user)):
+    logger.info(f"/add-like - Endpoint accessed by user: {current_user['username']}")
+
+    inserted_id = data.inserted_id
+    is_positive = data.is_positive
+    success = await add_like(is_positive, current_user['username'], inserted_id)
+    if not success:
+        logger.error("/add-like - Failed to add like")
+        raise HTTPException(status_code=500, detail="Failed to add like")
+
+    logger.info(f"/add-like - Successfully added like to image: {inserted_id}")
+    return {"message": "Like added successfully"}
+
+
+class ViewData(BaseModel):
+    inserted_id: str
+
+
+@app.post("/add-view")
+async def add_view_api(data: ViewData):
+    inserted_id = data.inserted_id
+    success = await add_view(inserted_id)
+    if not success:
+        logger.error("/add-view - Failed to add view")
+        raise HTTPException(status_code=500, detail="Failed to add view")
+
+    logger.info(f"/add-view - Successfully added view to image: {inserted_id}")
+    return {"message": "View added successfully"}
 
 
 class CreateAlbumData(BaseModel):
