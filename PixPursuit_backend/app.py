@@ -249,6 +249,7 @@ async def remove_tags_api(data: RemovingTagsData, current_user: User = Depends(g
         raise HTTPException(status_code=500, detail="Failed to add photos to the album")
 
     logger.info(f"remove-tags - Successfully removed tags from image: {image_id}")
+    await training_init(image_id)
     return {"message": "Tags removed successfully"}
 
 

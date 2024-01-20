@@ -1,12 +1,12 @@
 "use client";
 
+import {BoxOverlay} from "@/utils/faceBoxes";
 import { useState, useEffect, useRef } from "react";
-import Image from "next/image";
-import { EyeIcon, HeartIcon, PlusIcon, PencilIcon, XMarkIcon, CheckIcon, HandThumbDownIcon, HandThumbUpIcon} from "@heroicons/react/24/solid";
+import { XCircleIcon, EyeIcon, HeartIcon, PlusIcon, PencilIcon, XMarkIcon, CheckIcon, HandThumbDownIcon, HandThumbUpIcon} from "@heroicons/react/24/solid";
 import getSingleImage from "@/utils/getSingleImage";
 import Loading from "@/app/loading";
-import axios from 'axios';
 import {useSession} from "next-auth/react";
+import axios from "axios";
 
 export default function ImagePage({ params }) {
   const [newTag, setNewTag] = useState(null);
@@ -35,8 +35,15 @@ export default function ImagePage({ params }) {
         setOriginalSize({ width: img.naturalWidth, height: img.naturalHeight });
       };
       img.src = imageData.image_url;
-    };
 
+      if (session && session.user && imageData.feedback_history && imageData.feedback_history[session.user.name]) {
+        setAutoTagsFeedback(imageData.feedback_history[session.user.name]);
+      }
+    };
+    fetchImage();
+  }, [id, session]);
+
+  useEffect(() => {
     const addView = async () => {
       try {
         const viewData = {
@@ -56,42 +63,13 @@ export default function ImagePage({ params }) {
         console.error('Error adding view:', error);
       }
     };
-
-    fetchImage();
     if (id && !hasAddedView.current) {
-      addView();
-      hasAddedView.current = true;
+        addView(id);
+        hasAddedView.current = true;
     } else {
       hasAddedView.current = false;
     }
   }, [id]);
-
-  const handleAddTag = async () => {
-      try {
-        const tagData = {
-          inserted_id: id,
-          tags: [newTag],
-        };
-
-        const response = await axios.post('http://localhost:8000/add-user-tag', tagData, {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.accessToken}`,
-          },
-        });
-
-        if (response.status === 200) {
-          alert("Tag added successfully");
-          setImage(prev => ({ ...prev, user_tags: [...prev.user_tags, newTag] }));
-          setNewTag(""); // Clear the input field
-        } else {
-          alert("Failed to add tag");
-        }
-      } catch (error) {
-        alert("Error adding tag");
-        console.error(error);
-      }
-  };
 
   const renderHeartIcon = () => {
     const heartIconClass = session
@@ -106,10 +84,37 @@ export default function ImagePage({ params }) {
     );
   };
 
+  const handleAddTag = async () => {
+    try {
+      const tagData = {
+        inserted_id: id,
+        tags: [newTag],
+      };
+
+      const response = await axios.post('http://localhost:8000/add-user-tag', tagData, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+      });
+
+      if (response.status === 200) {
+        alert("Tag added successfully");
+        setImage(prev => ({ ...prev, user_tags: [...prev.user_tags, newTag] }));
+        setNewTag(""); // Clear the input field
+      } else {
+        alert("Failed to add tag");
+      }
+    } catch (error) {
+      alert("Error adding tag");
+      console.error(error);
+    }
+  };
+
   const handleHeartClick = async (isPositive) => {
     try {
       const faceData = {
-        inserted_id: image._id,
+        inserted_id: id,
         is_positive: isPositive,
       };
 
@@ -160,6 +165,35 @@ export default function ImagePage({ params }) {
     setEditingDescription(false);
   };
 
+  const handleRemoveTag = async (tagToRemove) => {
+    try {
+      const tagData = {
+        image_id: id,
+        tags: [tagToRemove],
+      };
+
+      const response = await axios.post('http://localhost:8000/remove-tags', tagData, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+      });
+
+      if (response.status === 200) {
+        alert("Tag removed successfully");
+        setImage(prev => ({
+          ...prev,
+          user_tags: prev.user_tags.filter(tag => tag !== tagToRemove)
+        }));
+      } else {
+        alert("Failed to remove tag");
+      }
+    } catch (error) {
+      alert("Error removing tag");
+      console.error(error);
+    }
+  };
+
   const sendTagFeedback = async (tag, isPositive) => {
     try {
       const feedbackData = {
@@ -185,11 +219,10 @@ export default function ImagePage({ params }) {
       console.error("Error submitting feedback:", error);
       alert("Error submitting feedback");
     }
-
   };
 
   const checkFeedbackHistory = (tag) => {
-    return autoTagsFeedback[tag] || null;
+    return autoTagsFeedback[tag] !== undefined ? autoTagsFeedback[tag] : null;
   };
 
   const handleMouseEnter = (tag) => {
@@ -255,7 +288,7 @@ export default function ImagePage({ params }) {
             <div>
               <div>
       <textarea
-          className="w-full rounded border bg-gray-900 text-white px-3 py-1 text-lg shadow-md" // Adjusted for visibility
+          className="w-full rounded border bg-gray-900 text-white px-3 py-1 text-lg shadow-md"
           value={editedDescription}
           onChange={handleDescriptionChange}
           rows="3"
@@ -312,23 +345,32 @@ export default function ImagePage({ params }) {
           {tag}
         </span>
                   {session && hoveredTag === tag && (
-                      <div className="absolute -bottom-8 left-0 flex gap-2" onMouseEnter={() => handleMouseEnter(tag)}>
+                      <div
+                          className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2"
+                          onMouseEnter={() => handleMouseEnter(tag)}
+                          style={{ bottom: '-15px' }} // Adjust as needed
+                      >
                         <button
                             className={`bg-green-200 p-1 rounded-full ${feedback === true ? 'opacity-50' : ''}`}
                             onClick={() => feedback !== true && sendTagFeedback(tag, true)}
                             disabled={feedback === true}
                         >
                           <HandThumbUpIcon
-                              className={`h-4 w-4 ${feedback === true ? 'text-black' : 'text-green-700'}`}
+                              className={`h-3.5 w-3.5 ${feedback === true ? 'text-black' : 'text-green-700'}`}
                           />
                         </button>
                         <button
                             className={`bg-red-200 p-1 rounded-full ${feedback === false ? 'opacity-50' : ''}`}
-                            onClick={() => feedback !== false && sendTagFeedback(tag, false)}
+                            onClick={() => {
+                              if (feedback !== false) {
+                                sendTagFeedback(tag, false);
+                                setAutoTagsFeedback(prev => ({...prev, [tag]: false}));
+                              }
+                            }}
                             disabled={feedback === false}
                         >
                           <HandThumbDownIcon
-                              className={`h-4 w-4 ${feedback === false ? 'text-black' : 'text-red-700'}`}
+                              className={`h-3.5 w-3.5 ${feedback === false ? 'text-black' : 'text-red-700'}`}
                           />
                         </button>
                       </div>
@@ -341,12 +383,19 @@ export default function ImagePage({ params }) {
           {image &&
               Array.isArray(image.user_tags) &&
               image.user_tags.map((tag, index) => (
-                  <span
-                      key={index}
-                      className="inline-block bg-green-200 rounded-full px-3 py-1 text-sm font-semibold text-green-700 mr-2"
-                  >
-                {tag}
-              </span>
+                  <div key={index} className="relative inline-block group">
+            <span
+                className="inline-block bg-green-200 rounded-full px-3 py-1 text-sm font-semibold text-green-700 mr-2"
+            >
+              {tag}
+            </span>
+                    {session && (
+                        <XCircleIcon
+                            className="absolute right-0 top-0 h-4 w-4 text-red-500 cursor-pointer opacity-0 group-hover:opacity-100"
+                            onClick={() => handleRemoveTag(tag)}
+                        />
+                    )}
+                  </div>
               ))}
         </div>
         {session && (
@@ -369,143 +418,3 @@ export default function ImagePage({ params }) {
     </main>
   );
 }
-
-const BoxOverlay = ({image, boxes, originalSize, session}) => {
-  const displayWidth = 800;  // Adjust as needed
-  const displayHeight = 800; // Adjust as needed
-
-  const [editableBoxIndex, setEditableBoxIndex] = useState(null);
-  const [boxText, setBoxText] = useState('');
-  const [isMouseOver, setIsMouseOver] = useState(false);
-  const isLoggedIn = session && session.accessToken;
-
-  const scaleX = originalSize.width ? displayWidth / originalSize.width : 1;
-  const scaleY = originalSize.height ? displayHeight / originalSize.height : 1;
-  const scale = Math.min(scaleX, scaleY) * (0.41 * (originalSize.height / originalSize.width) + 0.375);
-
-  const handleBoxClick = (index, e) => {
-    e.stopPropagation();  // Prevents event bubbling up
-    setEditableBoxIndex(index);
-    const userFaceAtIndex = image.user_faces[index];
-    setBoxText(userFaceAtIndex);
-  };
-
-  const handleBoxTextChange = (e) => {
-    setBoxText(e.target.value);
-  };
-
-  const handlePlusButtonClick = async (e, index) => {
-    e.stopPropagation();
-    console.log('plus button clicked');
-    if (boxText.trim() === '') {
-      console.log('No name entered.');
-      return;
-    }
-
-    try {
-      const faceData = {
-        inserted_id: image._id,
-        anonymous_index: index,
-        name: boxText,
-      };
-
-      const response = await axios.post('http://localhost:8000/add-user-face', faceData, {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.accessToken}`,
-        },
-      });
-
-      if (response.status === 200) {
-        alert('Name added successfully');
-        // Update state or UI as needed
-      } else {
-        alert('Failed to add name to face');
-      }
-    } catch (error) {
-      alert('Error adding name to face:', error);
-    }
-
-    setEditableBoxIndex(null);
-  };
-
-  const handleMouseDownOnPlusButton = (event) => {
-    event.preventDefault();
-  };
-
-  return (
-      <div style={{ position: 'relative' }}
-           onMouseEnter={() => setIsMouseOver(true)}
-           onMouseLeave={() => setIsMouseOver(false)}>
-        <Image
-            src={image.image_url}
-            alt={image.description}
-            width={displayWidth}
-            height={displayHeight}
-            quality={100}
-            className="rounded-lg"
-        />
-        {isMouseOver &&
-        boxes.map((box, index) => (
-            <div
-                key={index}
-                style={{
-                  position: 'absolute',
-                  border: '2px solid red',
-                  left: `${box[0] * scale}px`,
-                  top: `${box[1] * scale}px`,
-                  width: `${(box[2] - box[0]) * scale}px`,
-                  height: `${(box[3] - box[1]) * scale}px`,
-                  cursor: 'pointer',
-                }}
-                onClick={(e) => handleBoxClick(index, e)}
-            >
-              {editableBoxIndex === index && (
-                  <div
-                      style={{
-                        position: 'absolute',
-                        top: '102%',
-                        left: '0',
-                        right: '0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '100%',
-                      }}
-                  >
-                    <input
-                        className="inline-block bg-blue-200 rounded-s-lg px-3 py-1 text-sm font-semibold text-gray-950 mr-2"
-                        type="text"
-                        value={boxText}
-                        onChange={isLoggedIn ? handleBoxTextChange : undefined} // Only allow change if logged in
-                        readOnly={!isLoggedIn}
-                        onBlur={() => setEditableBoxIndex(null)}
-                        autoFocus
-                        style={{
-                          flexGrow: 1,
-                          marginRight: '2px',
-                          border: '1px solid',
-                          width: 'auto',
-                          minWidth: '100px',
-                        }}
-                    />
-                    {isLoggedIn && (
-                    <button
-                        className="inline-block bg-blue-200 rounded-e-lg px-3 py-1 text-sm font-semibold text-gray-950 mr-2"
-                        onMouseDown={handleMouseDownOnPlusButton}
-                        onClick={(e) => handlePlusButtonClick(e, index)}
-                        style={{
-                          border: '1px solid',
-                          flexShrink: 0,
-                        }}
-                    >
-                      +
-                    </button>
-                        )}
-                  </div>
-              )}
-            </div>
-        ))}
-      </div>
-  );
-};

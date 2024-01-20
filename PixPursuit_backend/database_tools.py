@@ -418,7 +418,7 @@ async def decrement_tags_count(tags):
             )
             tag_doc = await async_tags_collection.find_one({"name": tag})
             if tag_doc and tag_doc['count'] <= 0:
-                await async_tags_collection.delete_one({"name": tag})
+                await async_tags_collection.update_one({"name": tag}, {"$set": {"name": "NULL"}})
 
         from tag_prediction_tools import update_model_tags
         await update_model_tags()

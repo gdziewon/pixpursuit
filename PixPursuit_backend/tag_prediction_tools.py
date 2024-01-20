@@ -96,7 +96,7 @@ async def training_init(inserted_id):
 def predictions_to_tag_names(predictions):
     all_tags = get_unique_tags()
     index_to_tag = {i: tag for i, tag in enumerate(all_tags)}
-    return [index_to_tag[idx] for idx in predictions if idx in index_to_tag]
+    return [index_to_tag[idx] for idx in predictions if idx in index_to_tag and index_to_tag[idx] != 'NULL']
 
 
 @shared_task(name='tag_prediction_tools.train_model')
