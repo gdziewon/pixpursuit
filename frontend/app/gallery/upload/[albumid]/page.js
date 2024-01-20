@@ -13,6 +13,8 @@ const UploadToAlbumForm = ({ params }) => {
     const { data: session } = useSession();
     const albumId = params.albumid;
     const fileInputRef = useRef(null);
+    const [resizeValues, setResizeValues] = useState({});
+    const [showResizeFields, setShowResizeFields] = useState({})
 
     const handleImageChange = (e) => {
         setImages([...Array.from(e.target.files)]);
@@ -50,6 +52,59 @@ const UploadToAlbumForm = ({ params }) => {
         }
     };
 
+    const handleResizeImage = async (img, index) => {
+        const newWidth = resizeValues[index]?.width;
+        const newHeight = resizeValues[index]?.height;
+
+        if (!newWidth || !newHeight) {
+            alert('Please enter width and height');
+            return;
+        }
+        const image = new window.Image();
+        image.src = URL.createObjectURL(img);
+        await new Promise((resolve) => {
+            image.onload = resolve;
+        });
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+        ctx.drawImage(image, 0, 0, newWidth, newHeight);
+
+        canvas.toBlob((blob) => {
+            setImages(images.map((img, i) => (i === index ? blob : img)));
+            setResizeValues({
+                ...resizeValues,
+                [index]: { width: newWidth, height: newHeight },
+            });
+            setShowResizeFields({ ...showResizeFields, [index]: false });
+        }, 'image/jpeg');
+    };
+
+    const handleResizeInputChange = (index, dimension, value) => {
+        setResizeValues({
+            ...resizeValues,
+            [index]: { ...resizeValues[index], [dimension]: value },
+        });
+    };
+
+    const handleResizeButtonClick = async (img, index) => {
+        if (showResizeFields[index]) {
+            await handleResizeImage(img, index);
+        } else {
+            const image = new window.Image();
+            image.src = URL.createObjectURL(img);
+            image.onload = () => {
+                setResizeValues({
+                    ...resizeValues,
+                    [index]: { width: image.naturalWidth, height: image.naturalHeight },
+                });
+            };
+        }
+        setShowResizeFields({ ...showResizeFields, [index]: !showResizeFields[index] });
+    };
+
     return (
         <section className="fa-upload">
             {isLoading && <Loading />}
@@ -81,11 +136,40 @@ const UploadToAlbumForm = ({ params }) => {
                     Upload
                 </button>
             </form>
-            <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+            <div style={{display: 'flex', flexWrap: 'wrap'}}>
                 {images.map((img, index) => (
-                    <div key={index} style={{ margin: '5px' }}>
+                    <div key={index} style={{margin: '5px', width: '200px', height: '200px'}}>
                         <Image src={URL.createObjectURL(img)} alt={`image-${index}`} width="200" height="200"/>
-                        <button onClick={() => handleRemoveImage(index)}>Remove</button>
+                        <div style={{
+                            width: '100%',
+                            display: 'flex',
+                            justifyContent: 'space-between'
+                        }}>
+                            <button onClick={() => handleRemoveImage(index)}>Remove</button>
+                            <button onClick={() => handleResizeButtonClick(img, index)}>Resize</button>
+                        </div>
+                        {showResizeFields[index] && (
+                            <div>
+                                <label>
+                                    W:
+                                    <input
+                                        type="number"
+                                        value={resizeValues[index]?.width || ''}
+                                        onChange={(e) => handleResizeInputChange(index, 'width', e.target.value)}
+                                        style={{width: '70px', color: 'black'}}
+                                    />
+                                </label>
+                                <label>
+                                    H:
+                                    <input
+                                        type="number"
+                                        value={resizeValues[index]?.height || ''}
+                                        onChange={(e) => handleResizeInputChange(index, 'height', e.target.value)}
+                                        style={{width: '70px', color: 'black'}}
+                                    />
+                                </label>
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>
