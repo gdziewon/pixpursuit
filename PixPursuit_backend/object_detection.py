@@ -12,7 +12,7 @@ def detect_objects(image_data, filename):
     image = Image.open(BytesIO(image_data))
     image = image.convert("RGB")
     results = model.predict(source=image)
-    detected_objects = []
+    detected_objects_dict = {}
 
     if isinstance(results, list) and len(results) > 0:
         result = results[0]
@@ -22,7 +22,8 @@ def detect_objects(image_data, filename):
             label = result.names[label_index]
             confidence = float(box.conf)
             if confidence > 0.7:
-                detected_objects.append({'name': label, 'confidence': confidence})
+                detected_objects_dict[label] = {'name': label, 'confidence': confidence}
 
+    detected_objects = list(detected_objects_dict.values())
     add_something_to_image('detected_objects', detected_objects, filename)
 

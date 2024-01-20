@@ -1,6 +1,8 @@
 from datetime import timedelta
 from fastapi import FastAPI, UploadFile, HTTPException, Depends, Form, File
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import StreamingResponse
+import requests
 from typing import List, Optional
 import asyncio
 from image_processing import process_image_async
@@ -42,6 +44,20 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     )
     logger.info(f"/token - Successfully provided token to user: {user['username']}")
     return {"access_token": access_token, "token_type": "bearer", "username": user['username']}
+
+
+@app.get("/download-image/")
+async def download_image(url: str):
+    try:
+        response = requests.get(url, stream=True)
+
+        def iterfile():
+            for chunk in response.iter_content(chunk_size=1024):
+                yield chunk
+
+        return StreamingResponse(iterfile(), media_type=response.headers['Content-Type'])
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Failed to download image")
 
 
 @app.post("/process-images")

@@ -2,11 +2,12 @@
 
 import {BoxOverlay} from "@/utils/faceBoxes";
 import { useState, useEffect, useRef } from "react";
-import { XCircleIcon, EyeIcon, HeartIcon, PlusIcon, PencilIcon, XMarkIcon, CheckIcon, HandThumbDownIcon, HandThumbUpIcon} from "@heroicons/react/24/solid";
+import { ArrowDownTrayIcon, XCircleIcon, EyeIcon, HeartIcon, PlusIcon, PencilIcon, XMarkIcon, CheckIcon, HandThumbDownIcon, HandThumbUpIcon} from "@heroicons/react/24/solid";
 import getSingleImage from "@/utils/getSingleImage";
 import Loading from "@/app/loading";
 import {useSession} from "next-auth/react";
 import axios from "axios";
+import { saveAs } from 'file-saver';
 
 export default function ImagePage({ params }) {
   const [newTag, setNewTag] = useState(null);
@@ -70,6 +71,41 @@ export default function ImagePage({ params }) {
       hasAddedView.current = false;
     }
   }, [id]);
+
+  async function downloadImage(url, filename) {
+    try {
+      const response = await fetch(`http://localhost:8000/download-image?url=${encodeURIComponent(url)}`);
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+      const reader = response.body.getReader();
+      const stream = new ReadableStream({
+        async start(controller) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            controller.enqueue(value);
+          }
+          controller.close();
+          reader.releaseLock();
+        }
+      });
+
+      new Response(stream).blob().then(blob => {
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      });
+    } catch (error) {
+      console.error('Error in downloadImage function:', error);
+    }
+  }
+
+
 
   const renderHeartIcon = () => {
     const heartIconClass = session
@@ -277,6 +313,10 @@ export default function ImagePage({ params }) {
           <div className="flex items-center">
             <p className="ml-2">{likes}</p>
             {renderHeartIcon()}
+            <ArrowDownTrayIcon
+                className="h-6 w-6 text-blue-500 hover:text-blue-700 cursor-pointer ml-2"
+                onClick={() => downloadImage(image.image_url, image.filename)}
+            />
           </div>
         </div>
       </div>
@@ -328,7 +368,18 @@ export default function ImagePage({ params }) {
         <h1 className="text-3xl font-bold text-teal-100 dark:text-white mb-4">
           Tags:
         </h1>
-
+        <div className="flex flex-wrap gap-2 mb-4">
+          {image &&
+              Array.isArray(image.detected_objects) &&
+              image.detected_objects.map((object, index) => (
+                  <span
+                      key={index}
+                      className="inline-block bg-yellow-200 rounded-full px-3 py-1 text-sm font-semibold text-yellow-700 mr-2"
+                  >
+        {object.name}
+      </span>
+              ))}
+        </div>
         <div className="flex flex-wrap gap-2 mb-4">
           {image && Array.isArray(image.auto_tags) && image.auto_tags.map((tag, index) => {
             const feedback = checkFeedbackHistory(tag);
@@ -348,7 +399,7 @@ export default function ImagePage({ params }) {
                       <div
                           className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2"
                           onMouseEnter={() => handleMouseEnter(tag)}
-                          style={{ bottom: '-15px' }} // Adjust as needed
+                          style={{bottom: '-15px'}} // Adjust as needed
                       >
                         <button
                             className={`bg-green-200 p-1 rounded-full ${feedback === true ? 'opacity-50' : ''}`}
