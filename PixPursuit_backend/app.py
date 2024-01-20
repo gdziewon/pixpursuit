@@ -3,8 +3,9 @@ from fastapi import FastAPI, UploadFile, HTTPException, Depends, Form, File
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import StreamingResponse
 import requests
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import asyncio
+from sharepoint_client import SharePointClient
 from image_processing import process_image_async
 from database_tools import save_image_to_database, add_tags, add_feedback, add_description, create_album, add_photos_to_album, get_album,\
                             remove_tags_from_image, delete_images, delete_album, relocate_to_album, add_names, add_like, add_view
@@ -18,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 celery.autodiscover_tasks(['tag_prediction_tools', 'database_tools', 'object_detection', 'face_detection', 'feature_extraction'])
 logger = setup_logging(__name__)
+sharepoint_client = SharePointClient()
 
 app.add_middleware(
     CORSMiddleware,
@@ -51,12 +53,13 @@ async def download_image(url: str):
     try:
         response = requests.get(url, stream=True)
 
-        def iterfile():
+        def iter_file():
             for chunk in response.iter_content(chunk_size=1024):
                 yield chunk
 
-        return StreamingResponse(iterfile(), media_type=response.headers['Content-Type'])
+        return StreamingResponse(iter_file(), media_type=response.headers['Content-Type'])
     except Exception as e:
+        logger(f"/download-image - Failed to download image {url} - {e}")
         raise HTTPException(status_code=400, detail="Failed to download image")
 
 
@@ -363,6 +366,65 @@ async def relocate_images_api(data: RelocateImagesData, current_user: User = Dep
 
     logger.info(f"Successfully relocated images from album: {prev_album_id}")
     return {"message": "Images relocated successfully"}
+
+
+class CopyAlbumToSharePointData(BaseModel):
+    album_id: str
+    folder_name: str
+    sharepoint_url: str
+    access_token: str
+
+
+@app.post("/copy-album-to-sharepoint")
+async def copy_album_to_sharepoint(data: CopyAlbumToSharePointData, current_user: User = Depends(get_current_user)):
+    logger.info(f"/copy-album-to-sharepoint - Endpoint accessed by user: {current_user['username']}")
+    success = await sharepoint_client.copy_album_to_sharepoint(data.album_id, data.folder_name, data.sharepoint_url, data.access_token)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to copy album to SharePoint")
+    return {"message": "Album copied to SharePoint successfully"}
+
+
+class CopyAlbumFromSharePointData(BaseModel):
+    folder_name: str
+    sharepoint_url: str
+    access_token: str
+
+
+@app.post("/copy-album-from-sharepoint")
+async def copy_album_from_sharepoint(data: CopyAlbumFromSharePointData, current_user: User = Depends(get_current_user)):
+    logger.info(f"/copy-album-from-sharepoint - Endpoint accessed by user: {current_user['username']}")
+    success = await sharepoint_client.copy_album_from_sharepoint(data.folder_name, data.sharepoint_url, data.access_token)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to copy album from SharePoint")
+    return {"message": "Album copied from SharePoint successfully"}
+
+
+class CopyImagesToSharePointData(BaseModel):
+    image_ids: List[str]
+    folder_name: str
+    sharepoint_url: str
+    access_token: str
+
+
+@app.post("/copy-images-to-sharepoint")
+async def copy_images_to_sharepoint(data: CopyImagesToSharePointData, current_user: User = Depends(get_current_user)):
+    logger.info(f"/copy-images-to-sharepoint - Endpoint accessed by user: {current_user['username']}")
+    await sharepoint_client.copy_images_to_sharepoint(data.image_ids, data.folder_name, data.sharepoint_url, data.access_token)
+    return {"message": "Images copied to SharePoint successfully"}
+
+
+class CopyImagesFromSharePointData(BaseModel):
+    items: List[Tuple[str, str]]
+    folder_name: str
+    sharepoint_url: str
+    access_token: str
+
+
+@app.post("/copy-images-from-sharepoint")
+async def copy_images_from_sharepoint(data: CopyImagesFromSharePointData, current_user: User = Depends(get_current_user)):
+    logger.info(f"/copy-images-from-sharepoint - Endpoint accessed by user: {current_user['username']}")
+    inserted_ids = await sharepoint_client.copy_images_from_sharepoint(data.items, data.folder_name, data.sharepoint_url, data.access_token)
+    return {"message": "Images copied from SharePoint successfully", "inserted_ids": inserted_ids}
 
 
 if __name__ == "__main__":
