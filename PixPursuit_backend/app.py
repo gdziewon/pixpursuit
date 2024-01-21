@@ -8,15 +8,20 @@ import asyncio
 from sharepoint_client import SharePointClient
 from image_processing import process_image_async
 from database_tools import save_image_to_database, add_tags, add_feedback, add_description, create_album, add_photos_to_album, get_album,\
-                            remove_tags_from_image, delete_images, delete_album, relocate_to_album, add_names, add_like, add_view
+                            remove_tags_from_image, delete_images, delete_album, relocate_to_album, add_names, add_like, add_view, get_image_document
 from tag_prediction_tools import training_init, predict_and_update_tags
 from logging_config import setup_logging
 from pydantic import BaseModel
 from celery_config import celery
+from zipfile import ZipFile, ZIP_DEFLATED
+from io import BytesIO
+import os
 from auth import authenticate_user, create_access_token, User, Token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
 from fastapi.middleware.cors import CORSMiddleware
+from setup import connect_to_space
 
 app = FastAPI()
+space_client = connect_to_space()
 celery.autodiscover_tasks(['tag_prediction_tools', 'database_tools', 'object_detection', 'face_detection', 'feature_extraction'])
 logger = setup_logging(__name__)
 sharepoint_client = SharePointClient()
@@ -53,14 +58,64 @@ async def download_image(url: str):
     try:
         response = requests.get(url, stream=True)
 
-        def iter_file():
+        def iterfile():
             for chunk in response.iter_content(chunk_size=1024):
                 yield chunk
 
-        return StreamingResponse(iter_file(), media_type=response.headers['Content-Type'])
+        return StreamingResponse(iterfile(), media_type=response.headers['Content-Type'])
     except Exception as e:
-        logger(f"/download-image - Failed to download image {url} - {e}")
+        logger.info(f"/download-image - Failed to download image {url} - {e}")
         raise HTTPException(status_code=400, detail="Failed to download image")
+
+
+class ZipData(BaseModel):
+    album_ids: Optional[List[str]] = []
+    image_ids: Optional[List[str]] = []
+
+
+@app.post("/download-zip")
+async def download_zip(data: ZipData):
+    album_ids = data.album_ids
+    image_ids = data.image_ids
+    logger.info(f"Received request to download zip with album_ids: {album_ids} and image_ids: {image_ids}")
+    zip_buffer = BytesIO()
+    with ZipFile(zip_buffer, 'w', ZIP_DEFLATED) as zipf:
+        for album_id in album_ids:
+            album = await get_album(album_id)
+            if not album:
+                raise HTTPException(status_code=404, detail=f"Album {album_id} not found")
+            await add_album_to_zip(album, zipf, "")
+
+        for image_id in image_ids:
+            image = await get_image_document(image_id)
+            if not image:
+                raise HTTPException(status_code=404, detail=f"Image {image_id} not found")
+            response = space_client.get_object(Bucket='pixpursuit', Key=image['filename'])
+            file_content = response['Body'].read()
+            zipf.writestr(image['filename'], file_content)
+
+    zip_buffer.seek(0)
+
+    def iterfile():
+        yield from zip_buffer
+
+    return StreamingResponse(iterfile(), media_type="application/zip")
+
+
+async def add_album_to_zip(album, zipf, path):
+    logger.info(f"Adding album: {album['name']} to zip at path: {path}")
+    path = os.path.join(path, album['name'])
+    for image_id in album['images']:
+        image = await get_image_document(image_id)
+        if image:
+            response = space_client.get_object(Bucket='pixpursuit', Key=image['filename'])
+            file_content = response['Body'].read()
+            zipf.writestr(os.path.join(path, image['filename']), file_content)
+
+    for sub_album_id in album['sons']:
+        sub_album = await get_album(sub_album_id)
+        if sub_album:
+            await add_album_to_zip(sub_album, zipf, path)
 
 
 @app.post("/process-images")

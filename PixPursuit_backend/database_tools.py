@@ -38,7 +38,7 @@ async def save_image_to_database(data, username, album_id):
             'liked_by': [],
             'views': 0,
             'added_by': username,
-            'album_id': album_id
+            'album_id': str(album_id)
         }
         result = await async_images_collection.insert_one(image_record)
         inserted_id = str(result.inserted_id)
@@ -56,8 +56,6 @@ async def save_image_to_database(data, username, album_id):
 async def create_album(album_name, parent_id):
     if not parent_id:
         parent_id = await get_root_id()
-    else:
-        parent_id = ObjectId(parent_id)
 
     new_album = {
         "name": album_name,
@@ -77,7 +75,7 @@ async def create_album(album_name, parent_id):
     if parent_id is not None:
         await album_collection.update_one(
             {"_id": parent_id},
-            {"$push": {"sons": new_album_id}}
+            {"$push": {"sons": str(new_album_id)}}
         )
 
     return new_album_id
@@ -296,13 +294,9 @@ async def add_photos_to_album(image_ids, album_id):
         if not isinstance(image_ids, list):
             image_ids = [image_ids]
 
-        image_ids_obj = []
-        for image_id in image_ids:
-            image_ids_obj.append(ObjectId(image_id))
-
         update_result = await album_collection.update_one(
             {"_id": album_id},
-            {"$push": {"images": {"$each": image_ids_obj}}}
+            {"$push": {"images": {"$each": image_ids}}}
         )
         return update_result.modified_count > 0
     except Exception as e:
@@ -333,7 +327,7 @@ async def relocate_to_album(prev_album_id, new_album_id=None, image_ids=None):
 
         await album_collection.update_one(
             {'_id': prev_album_id},
-            {'$pullAll': {'images': image_ids}}
+            {'$pullAll': {'images': str(image_ids)}}
         )
         return True
 
@@ -353,8 +347,8 @@ async def delete_album(album_id):
 
         if album['parent']:
             await album_collection.update_one(
-                {'_id': album['parent']},
-                {'$pull': {'sons': album_id}}
+                {'_id': ObjectId(album['parent'])},
+                {'$pull': {'sons': str(album_id)}}
             )
 
         await album_collection.delete_one({'_id': album_id})
@@ -375,7 +369,7 @@ async def delete_images(image_ids):
             image_id = ObjectId(image_id)
             await async_images_collection.delete_one({"_id": image_id})
 
-            await album_collection.update_many({}, {"$pull": {"images": image_id}})
+            await album_collection.update_many({}, {"$pull": {"images": str(image_id)}})
 
             await decrement_tags_count(image['user_tags'])
 

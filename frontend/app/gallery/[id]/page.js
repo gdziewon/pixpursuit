@@ -7,7 +7,6 @@ import getSingleImage from "@/utils/getSingleImage";
 import Loading from "@/app/loading";
 import {useSession} from "next-auth/react";
 import axios from "axios";
-import { saveAs } from 'file-saver';
 
 export default function ImagePage({ params }) {
   const [newTag, setNewTag] = useState(null);

@@ -1,4 +1,3 @@
-// utils/getSingleImage.js
 export default async function getSingleImage(id) {
   try {
     const response = await fetch(`/api/getSingleImage?id=${id}`);

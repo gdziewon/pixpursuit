@@ -6,7 +6,7 @@ import axios from 'axios';
 import Image from 'next/image';
 import Loading from '@/app/loading';
 import { DocumentDuplicateIcon,  CloudArrowUpIcon} from '@heroicons/react/24/outline';
-import { toBlob } from 'html-to-image';
+import { signIn } from 'next-auth/react';
 
 const UploadForm = () => {
     const [images, setImages] = useState([]);
@@ -43,7 +43,11 @@ const UploadForm = () => {
             });
             alert(response.status === 200 ? "Images uploaded successfully" : "Upload failed");
         } catch (error) {
-            alert("Upload failed");
+            if (error.response && error.response.status === 401) {
+                signIn();
+            } else {
+                alert("Upload failed");
+            }
         } finally {
             setIsLoading(false);
             setImages([]);
