@@ -26,9 +26,3 @@ def make_celery(app_name=__name__):
 
 
 celery = make_celery()
-import tag_prediction_tools
-import app
-import database_tools
-import face_detection
-import object_detection
-import feature_extraction

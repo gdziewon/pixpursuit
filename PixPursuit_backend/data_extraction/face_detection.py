@@ -1,6 +1,6 @@
-from setup import activate_face_models
+from config.models_config import activate_face_models
 from celery import shared_task
-from database_tools import add_something_to_image, insert_many_faces
+from databases.database_tools import add_something_to_image, insert_many_faces
 from io import BytesIO
 from PIL import Image
 

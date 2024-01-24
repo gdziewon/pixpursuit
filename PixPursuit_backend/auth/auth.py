@@ -4,11 +4,11 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from typing import Optional
-from database_tools import get_user
+from databases.database_tools import get_user
 import os
 from argon2 import PasswordHasher
 import argon2.exceptions
-from logging_config import setup_logging
+from config.logging_config import setup_logging
 from dotenv import load_dotenv
 
 load_dotenv()

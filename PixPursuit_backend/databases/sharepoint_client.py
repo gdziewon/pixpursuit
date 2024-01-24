@@ -1,5 +1,5 @@
-from logging_config import setup_logging
-from database_tools import get_image_document, save_image_to_database, get_album, create_album, add_photos_to_album
+from config.logging_config import setup_logging
+from databases.database_tools import get_image_document, save_image_to_database, get_album, create_album, add_photos_to_album
 import requests
 
 

@@ -1,7 +1,7 @@
-from setup import activate_feature_models
+from config.models_config import activate_feature_models
 import torch
 from celery import shared_task
-from database_tools import add_something_to_image
+from databases.database_tools import add_something_to_image
 from io import BytesIO
 from PIL import Image
 

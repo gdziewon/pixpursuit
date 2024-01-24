@@ -1,9 +1,9 @@
-from setup import connect_to_mongodb
-from logging_config import setup_logging
+from config.database_config import connect_to_mongodb
+from config.logging_config import setup_logging
 import numpy as np
 from sklearn.cluster import DBSCAN
 from bson import ObjectId
-from image_to_space import delete_image_from_space
+from databases.image_to_space import delete_image_from_space
 from celery import shared_task
 import asyncio
 
@@ -414,7 +414,7 @@ async def decrement_tags_count(tags):
             if tag_doc and tag_doc['count'] <= 0:
                 await async_tags_collection.update_one({"name": tag}, {"$set": {"name": "NULL"}})
 
-        from tag_prediction_tools import update_model_tags
+        from tag_prediction.tag_prediction_tools import update_model_tags
         await update_model_tags()
     except Exception as e:
         logger.error(f"Error while decrementing tags count: {e}")

@@ -7,6 +7,8 @@ import getSingleImage from "@/utils/getSingleImage";
 import Loading from "@/app/loading";
 import {useSession} from "next-auth/react";
 import axios from "axios";
+import Image from "next/image";
+import Link from "next/link";
 
 export default function ImagePage({ params }) {
   const [newTag, setNewTag] = useState(null);
@@ -22,6 +24,7 @@ export default function ImagePage({ params }) {
   const [isLikedByUser, setIsLikedByUser] = useState(false);
   const [autoTagsFeedback, setAutoTagsFeedback] = useState({});
   const hasAddedView = useRef(false)
+  const [similarImages, setSimilarImages] = useState([]);
 
   useEffect(() => {
     const fetchImage = async () => {
@@ -69,6 +72,27 @@ export default function ImagePage({ params }) {
     } else {
       hasAddedView.current = false;
     }
+  }, [id]);
+
+  useEffect(() => {
+    const fetchSimilarImages = async () => {
+      try {
+        const response = await axios.post('http://localhost:8000/find-similar-images', {
+          image_id: id,
+          limit: 10,
+        });
+
+        if (response.status === 200) {
+          setSimilarImages(response.data.similar_images);
+        } else {
+          console.error('Failed to fetch similar images');
+        }
+      } catch (error) {
+        console.error('Error fetching similar images:', error);
+      }
+    };
+
+    fetchSimilarImages();
   }, [id]);
 
   async function downloadImage(url, filename) {
@@ -295,37 +319,39 @@ export default function ImagePage({ params }) {
   }
 
   return (
-    <main className="flex p-6">
-      <div className="w-1/2">
-        <div className="flex justify-center flex-col">
-          <BoxOverlay image={image} boxes={image.embeddings_box || []} originalSize={originalSize} session={session}/>
-        </div>
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="">Taken: {image.metadata.DateTime}</p>
-            <p>Added by: {image.added_by}</p>
-            <p className="flex items-center">
-              <EyeIcon className="h-5 w-5 mr-1"/>
-              {image.views}
-            </p>
-          </div>
-          <div className="flex items-center">
-            <p className="ml-2">{likes}</p>
-            {renderHeartIcon()}
-            <ArrowDownTrayIcon
-                className="h-6 w-6 text-blue-500 hover:text-blue-700 cursor-pointer ml-2"
-                onClick={() => downloadImage(image.image_url, image.filename)}
-            />
-          </div>
-        </div>
-      </div>
-      <div className="w-1/2 pl-6">
-        <h1 className="text-3xl font-bold text-teal-100 dark:text-white mb-4">
-          Photo description:
-        </h1>
-        {editingDescription ? (
-            <div>
+      <main className="flex flex-col p-6">
+        <div className="flex">
+          <div className="w-1/2">
+            <div className="flex justify-center flex-col">
+              <BoxOverlay image={image} boxes={image.embeddings_box || []} originalSize={originalSize}
+                          session={session}/>
+            </div>
+            <div className="flex justify-between items-center">
               <div>
+                <p className="">Taken: {image.metadata.DateTime}</p>
+                <p>Added by: {image.added_by}</p>
+                <p className="flex items-center">
+                  <EyeIcon className="h-5 w-5 mr-1"/>
+                  {image.views}
+                </p>
+              </div>
+              <div className="flex items-center">
+                <p className="ml-2">{likes}</p>
+                {renderHeartIcon()}
+                <ArrowDownTrayIcon
+                    className="h-6 w-6 text-blue-500 hover:text-blue-700 cursor-pointer ml-2"
+                    onClick={() => downloadImage(image.image_url, image.filename)}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="w-1/2 pl-6">
+            <h1 className="text-3xl font-bold text-teal-100 dark:text-white mb-4">
+              Photo description:
+            </h1>
+            {editingDescription ? (
+                <div>
+                  <div>
       <textarea
           className="w-full rounded border bg-gray-900 text-white px-3 py-1 text-lg shadow-md"
           value={editedDescription}
@@ -333,138 +359,159 @@ export default function ImagePage({ params }) {
           rows="3"
           style={{resize: "vertical"}}
       />
-              </div>
-              <div className="mt-2">
-                <button
-                    className="rounded border bg-red-200 px-3 py-1 text-sm text-red-700 mr-2"
-                    onClick={handleCancelEdit}
-                >
-                  <XMarkIcon className="h-5 w-5"/>
-                </button>
-                <button
-                    className="rounded border bg-green-200 px-3 py-1 text-sm text-green-700"
-                    onClick={handleChangeDescription}
-                >
-                  <CheckIcon className="h-5 w-5"/>
-                </button>
-              </div>
-            </div>
-        ) : (
-            <div>
-              <h1 className="text-2xl text-gray-900 dark:text-white mb-4" style={{color: 'white'}}>
-                {image.description}
-              </h1>
-              {session && (
-                  <button
-                      className="inline-flex items-center bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-800 ml-2 hover:bg-gray-400 transition-colors duration-200 ease-in-out"
-                      onClick={toggleEditingDescription}
-                  >
-                    <PencilIcon className="h-5 w-5 mr-2"/> Edit Description
-                  </button>
-              )}
-            </div>
-        )}
-        <h1 className="text-3xl font-bold text-teal-100 dark:text-white mb-4">
-          Tags:
-        </h1>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {image &&
-              Array.isArray(image.detected_objects) &&
-              image.detected_objects.map((object, index) => (
-                  <span
-                      key={index}
-                      className="inline-block bg-yellow-200 rounded-full px-3 py-1 text-sm font-semibold text-yellow-700 mr-2"
-                  >
-        {object.name}
+                  </div>
+                  <div className="mt-2">
+                    <button
+                        className="rounded border bg-red-200 px-3 py-1 text-sm text-red-700 mr-2"
+                        onClick={handleCancelEdit}
+                    >
+                      <XMarkIcon className="h-5 w-5"/>
+                    </button>
+                    <button
+                        className="rounded border bg-green-200 px-3 py-1 text-sm text-green-700"
+                        onClick={handleChangeDescription}
+                    >
+                      <CheckIcon className="h-5 w-5"/>
+                    </button>
+                  </div>
+                </div>
+            ) : (
+                <div>
+                  <h1 className="text-2xl text-gray-900 dark:text-white mb-4" style={{color: 'white'}}>
+                    {image.description}
+                  </h1>
+                  {session && (
+                      <button
+                          className="inline-flex items-center bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-800 ml-2 hover:bg-gray-400 transition-colors duration-200 ease-in-out"
+                          onClick={toggleEditingDescription}
+                      >
+                        <PencilIcon className="h-5 w-5 mr-2"/> Edit Description
+                      </button>
+                  )}
+                </div>
+            )}
+            <h1 className="text-3xl font-bold text-teal-100 dark:text-white mb-4">
+              Tags:
+            </h1>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {image &&
+                  Array.isArray(image.detected_objects) &&
+                  image.detected_objects.map((object, index) => (
+                      <span
+                          key={index}
+                          className="inline-block bg-yellow-200 rounded-full px-3 py-1 text-sm font-semibold text-yellow-700 mr-2"
+                      >
+        {object}
       </span>
-              ))}
-        </div>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {image && Array.isArray(image.auto_tags) && image.auto_tags.map((tag, index) => {
-            const feedback = checkFeedbackHistory(tag);
+                  ))}
+            </div>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {image && Array.isArray(image.auto_tags) && image.auto_tags.map((tag, index) => {
+                const feedback = checkFeedbackHistory(tag);
 
-            return (
-                <div
-                    key={index}
-                    onMouseEnter={() => handleMouseEnter(tag)}
-                    onMouseLeave={handleMouseLeave}
-                    className="relative inline-block"
-                >
+                return (
+                    <div
+                        key={index}
+                        onMouseEnter={() => handleMouseEnter(tag)}
+                        onMouseLeave={handleMouseLeave}
+                        className="relative inline-block"
+                    >
         <span
             className={`bg-blue-200 rounded-full px-3 py-1 text-sm font-semibold text-blue-700 mr-2 ${feedback === true ? 'bg-green-200' : feedback === false ? 'bg-red-200' : ''}`}>
           {tag}
         </span>
-                  {session && hoveredTag === tag && (
-                      <div
-                          className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2"
-                          onMouseEnter={() => handleMouseEnter(tag)}
-                          style={{bottom: '-15px'}} // Adjust as needed
-                      >
-                        <button
-                            className={`bg-green-200 p-1 rounded-full ${feedback === true ? 'opacity-50' : ''}`}
-                            onClick={() => feedback !== true && sendTagFeedback(tag, true)}
-                            disabled={feedback === true}
-                        >
-                          <HandThumbUpIcon
-                              className={`h-3.5 w-3.5 ${feedback === true ? 'text-black' : 'text-green-700'}`}
-                          />
-                        </button>
-                        <button
-                            className={`bg-red-200 p-1 rounded-full ${feedback === false ? 'opacity-50' : ''}`}
-                            onClick={() => {
-                              if (feedback !== false) {
-                                sendTagFeedback(tag, false);
-                                setAutoTagsFeedback(prev => ({...prev, [tag]: false}));
-                              }
-                            }}
-                            disabled={feedback === false}
-                        >
-                          <HandThumbDownIcon
-                              className={`h-3.5 w-3.5 ${feedback === false ? 'text-black' : 'text-red-700'}`}
-                          />
-                        </button>
-                      </div>
-                  )}
-                </div>
-            );
-          })}
-        </div>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {image &&
-              Array.isArray(image.user_tags) &&
-              image.user_tags.map((tag, index) => (
-                  <div key={index} className="relative inline-block group">
+                      {session && hoveredTag === tag && (
+                          <div
+                              className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2"
+                              onMouseEnter={() => handleMouseEnter(tag)}
+                              style={{bottom: '-15px'}} // Adjust as needed
+                          >
+                            <button
+                                className={`bg-green-200 p-1 rounded-full ${feedback === true ? 'opacity-50' : ''}`}
+                                onClick={() => feedback !== true && sendTagFeedback(tag, true)}
+                                disabled={feedback === true}
+                            >
+                              <HandThumbUpIcon
+                                  className={`h-3.5 w-3.5 ${feedback === true ? 'text-black' : 'text-green-700'}`}
+                              />
+                            </button>
+                            <button
+                                className={`bg-red-200 p-1 rounded-full ${feedback === false ? 'opacity-50' : ''}`}
+                                onClick={() => {
+                                  if (feedback !== false) {
+                                    sendTagFeedback(tag, false);
+                                    setAutoTagsFeedback(prev => ({...prev, [tag]: false}));
+                                  }
+                                }}
+                                disabled={feedback === false}
+                            >
+                              <HandThumbDownIcon
+                                  className={`h-3.5 w-3.5 ${feedback === false ? 'text-black' : 'text-red-700'}`}
+                              />
+                            </button>
+                          </div>
+                      )}
+                    </div>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {image &&
+                  Array.isArray(image.user_tags) &&
+                  image.user_tags.map((tag, index) => (
+                      <div key={index} className="relative inline-block group">
             <span
                 className="inline-block bg-green-200 rounded-full px-3 py-1 text-sm font-semibold text-green-700 mr-2"
             >
               {tag}
             </span>
-                    {session && (
-                        <XCircleIcon
-                            className="absolute right-0 top-0 h-4 w-4 text-red-500 cursor-pointer opacity-0 group-hover:opacity-100"
-                            onClick={() => handleRemoveTag(tag)}
-                        />
-                    )}
-                  </div>
-              ))}
-        </div>
-        {session && (
-            <div className="flex items-center">
-              <input
-                  type="text"
-                  className="rounded border bg-gray-900 text-white px-3 py-1 text-sm shadow-md"
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-              />
-              <button
-                  className="inline-flex items-center bg-blue-200 rounded-full px-3 py-1 text-sm font-semibold text-blue-700 ml-2 hover:bg-blue-300 transition-colors duration-200 ease-in-out"
-                  onClick={handleAddTag}
-              >
-                <PlusIcon className="h-5 w-5"/>
-              </button>
+                        {session && (
+                            <XCircleIcon
+                                className="absolute right-0 top-0 h-4 w-4 text-red-500 cursor-pointer opacity-0 group-hover:opacity-100"
+                                onClick={() => handleRemoveTag(tag)}
+                            />
+                        )}
+                      </div>
+                  ))}
             </div>
-        )}
-      </div>
-    </main>
+            {session && (
+                <div className="flex items-center">
+                  <input
+                      type="text"
+                      className="rounded border bg-gray-900 text-white px-3 py-1 text-sm shadow-md"
+                      value={newTag}
+                      onChange={(e) => setNewTag(e.target.value)}
+                  />
+                  <button
+                      className="inline-flex items-center bg-blue-200 rounded-full px-3 py-1 text-sm font-semibold text-blue-700 ml-2 hover:bg-blue-300 transition-colors duration-200 ease-in-out"
+                      onClick={handleAddTag}
+                  >
+                    <PlusIcon className="h-5 w-5"/>
+                  </button>
+                </div>
+            )}
+          </div>
+        </div>
+        <div className="mt-20">
+          <h2 className="text-3xl">
+            Similar Images
+          </h2>
+          <div className="grid grid-cols-5 gap-6">
+            {similarImages.map((image, index) => (
+                <Link key={index} href={`/gallery/${image._id}`} passHref>
+                  <div className="w-48 h-48 relative overflow-hidden">
+                    <Image
+                        src={image.thumbnail_url}
+                        layout="fill"
+                        objectFit="cover"
+                        alt={`Similar image ${index + 1}`}
+                    />
+                  </div>
+                </Link>
+            ))}
+          </div>
+        </div>
+      </main>
+
   );
 }

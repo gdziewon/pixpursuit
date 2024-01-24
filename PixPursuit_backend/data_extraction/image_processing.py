@@ -1,12 +1,12 @@
-from image_to_space import save_image_to_space
-from metadata_extraction import get_exif_data_async
-from face_detection import get_face_embeddings
-from object_detection import detect_objects
-from feature_extraction import extract_features
+from databases.image_to_space import save_image_to_space
+from data_extraction.metadata_extraction import get_exif_data_async
+from data_extraction.face_detection import get_face_embeddings
+from data_extraction.object_detection import detect_objects
+from data_extraction.feature_extraction import extract_features
 from PIL import Image
 from fastapi import UploadFile
 from io import BytesIO
-from logging_config import setup_logging
+from config.logging_config import setup_logging
 
 logger = setup_logging(__name__)
 

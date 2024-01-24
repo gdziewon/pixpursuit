@@ -3,8 +3,8 @@ from io import BytesIO
 from PIL import Image
 from datetime import datetime
 import uuid
-from setup import connect_to_space
-from logging_config import setup_logging
+from config.database_config import connect_to_space
+from config.logging_config import setup_logging
 
 logger = setup_logging(__name__)
 
