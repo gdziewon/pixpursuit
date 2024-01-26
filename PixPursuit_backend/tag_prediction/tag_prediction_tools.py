@@ -9,7 +9,10 @@ from databases.database_tools import get_image_document, get_image_document_sync
 
 logger = setup_logging(__name__)
 
-MODEL_FILE_PATH = os.getenv('MODEL_FILE_PATH', '../tag_predictor_state.pth')
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+tg_file_path = os.path.join(script_dir, '..', 'generated', 'tag_predictor_state.pth')
+MODEL_FILE_PATH = tg_file_path
 LEARNING_RATE = float(os.getenv('LEARNING_RATE', '0.001'))
 POSITIVE_THRESHOLD = 3
 

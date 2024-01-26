@@ -1,14 +1,11 @@
 from fastapi import FastAPI
-from databases.sharepoint_client import SharePointClient
-from config.logging_config import setup_logging
 from config.celery_config import celery
 from fastapi.middleware.cors import CORSMiddleware
 from routes import albums, content, download, images, auth, sharepoint
 
 app = FastAPI()
-celery.autodiscover_tasks(['tag_prediction_tools', 'database_tools', 'object_detection', 'face_detection', 'feature_extraction'])
-logger = setup_logging(__name__)
-sharepoint_client = SharePointClient()
+celery.autodiscover_tasks(['tag_prediction.tag_prediction_tools', 'databases.face_operations',
+                           'data_extraction.object_detection', 'data_extraction.face_detection', 'data_extraction.feature_extraction'])
 
 app.add_middleware(
     CORSMiddleware,

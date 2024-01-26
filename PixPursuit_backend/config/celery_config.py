@@ -1,5 +1,6 @@
 from celery import Celery
 from celery.schedules import crontab
+import os
 
 
 def make_celery(app_name=__name__):
@@ -12,7 +13,7 @@ def make_celery(app_name=__name__):
             'schedule': crontab(minute='*/15')
         },
         'cluster-faces-every-5-min': {
-            'task': 'database_tools.group_faces',
+            'task': 'face_operations.group_faces',
             'schedule': crontab(minute='*/5'),
         },
     }
@@ -21,6 +22,9 @@ def make_celery(app_name=__name__):
     celery_app.conf.task_routes = {
         '*.*': {'queue': 'main_queue'},
     }
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    beat_file_path = os.path.join(script_dir, '..', 'generated', 'celerybeat-schedule')
+    celery_app.conf.beat_schedule_filename = beat_file_path
 
     return celery_app
 

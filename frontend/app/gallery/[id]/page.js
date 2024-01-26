@@ -25,6 +25,8 @@ export default function ImagePage({ params }) {
   const [autoTagsFeedback, setAutoTagsFeedback] = useState({});
   const hasAddedView = useRef(false)
   const [similarImages, setSimilarImages] = useState([]);
+  const [isSimilarImagesLoading, setSimilarImagesLoading] = useState(true);
+
 
   useEffect(() => {
     const fetchImage = async () => {
@@ -77,6 +79,7 @@ export default function ImagePage({ params }) {
   useEffect(() => {
     const fetchSimilarImages = async () => {
       try {
+        setSimilarImagesLoading(true); // Start loading
         const response = await axios.post('http://localhost:8000/find-similar-images', {
           image_id: id,
           limit: 10,
@@ -89,6 +92,8 @@ export default function ImagePage({ params }) {
         }
       } catch (error) {
         console.error('Error fetching similar images:', error);
+      } finally {
+        setSimilarImagesLoading(false);
       }
     };
 
@@ -497,18 +502,22 @@ export default function ImagePage({ params }) {
             Similar Images
           </h2>
           <div className="grid grid-cols-5 gap-6">
-            {similarImages.map((image, index) => (
-                <Link key={index} href={`/gallery/${image._id}`} passHref>
-                  <div className="w-48 h-48 relative overflow-hidden">
-                    <Image
-                        src={image.thumbnail_url}
-                        layout="fill"
-                        objectFit="cover"
-                        alt={`Similar image ${index + 1}`}
-                    />
-                  </div>
-                </Link>
-            ))}
+            {isSimilarImagesLoading ? (
+                <Loading/>
+            ) : (
+                similarImages.map((image, index) => (
+                    <Link key={index} href={`/gallery/${image._id}`} passHref>
+                      <div className="w-48 h-48 relative overflow-hidden">
+                        <Image
+                            src={image.thumbnail_url}
+                            layout="fill"
+                            objectFit="cover"
+                            alt={`Similar image ${index + 1}`}
+                        />
+                      </div>
+                    </Link>
+                ))
+            )}
           </div>
         </div>
       </main>

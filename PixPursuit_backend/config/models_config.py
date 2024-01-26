@@ -4,6 +4,7 @@ from ultralytics import YOLO
 from config.logging_config import setup_logging
 from facenet_pytorch import MTCNN, InceptionResnetV1
 import torch
+import os
 
 logger = setup_logging(__name__)
 
@@ -24,7 +25,9 @@ def activate_feature_models():
 
 
 def activate_object_models():
-    model = YOLO('../yolov8n.pt')
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    model_path = os.path.join(script_dir, '..', 'generated', 'yolov8n.pt')
+    model = YOLO(model_path)
     logger.info("Activated pretrained YOLOv8 model")
     return model
 

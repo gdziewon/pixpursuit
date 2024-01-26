@@ -16,12 +16,13 @@ def detect_objects(image_data, filename):
 
     if isinstance(results, list) and len(results) > 0:
         result = results[0]
-
         for box in result.boxes:
             label_index = int(box.cls)
             label = result.names[label_index]
             confidence = float(box.conf)
             if confidence > 0.7:
                 detected_objects.append(label)
+
+    detected_objects = list(set(detected_objects))
 
     add_something_to_image('detected_objects', detected_objects, filename)

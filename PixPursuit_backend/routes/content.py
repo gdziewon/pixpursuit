@@ -1,8 +1,7 @@
-from typing import List
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 from config.logging_config import setup_logging
-from databases.database_tools import add_tags, add_feedback, add_description, add_like, add_view, remove_tags_from_image, add_names
+from databases.database_tools import add_tags, add_feedback, add_description, add_like, add_view, remove_tags_from_image
+from databases.face_operations import add_names
 from auth.auth import get_current_user, User
 from tag_prediction.tag_prediction_tools import training_init
 from schemas.content_schema import TagData, FeedbackData, DescriptionData, LikeData, ViewData, RemovingTagsData, FaceData
