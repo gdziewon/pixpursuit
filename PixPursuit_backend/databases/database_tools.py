@@ -247,7 +247,6 @@ def add_auto_tags(inserted_id, predicted_tags):
         if auto_tags_to_add:
             add_feedback_sync(auto_tags_to_add, inserted_id_obj)
 
-        logger.info(f"Added auto tags: {auto_tags_to_add}")
     except Exception as e:
         logger.error(f"Error while adding auto tags: {e}")
 
@@ -300,26 +299,27 @@ async def relocate_to_album(prev_album_id, new_album_id=None, image_ids=None):
         return False
 
 
-async def delete_album(album_id):
-    try:
-        album = await get_album(album_id)
-        if not album:
+async def delete_albums(album_ids):
+    for album_id in album_ids:
+        try:
+            album = await get_album(album_id)
+            if not album:
+                return False
+
+            album_id = ObjectId(album_id)
+            await relocate_to_album(prev_album_id=album_id)
+
+            if album['parent']:
+                await album_collection.update_one(
+                    {'_id': ObjectId(album['parent'])},
+                    {'$pull': {'sons': str(album_id)}}
+                )
+
+            await album_collection.delete_one({'_id': album_id})
+        except Exception as e:
+            logger.error(f"Error deleting album: {e}")
             return False
-
-        album_id = ObjectId(album_id)
-        await relocate_to_album(prev_album_id=album_id)
-
-        if album['parent']:
-            await album_collection.update_one(
-                {'_id': ObjectId(album['parent'])},
-                {'$pull': {'sons': str(album_id)}}
-            )
-
-        await album_collection.delete_one({'_id': album_id})
-        return True
-    except Exception as e:
-        logger.error(f"Error deleting album: {e}")
-        return False
+    return True
 
 
 async def delete_images(image_ids):

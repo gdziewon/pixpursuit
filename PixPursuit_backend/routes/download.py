@@ -8,15 +8,14 @@ from io import BytesIO
 import requests
 from databases.database_tools import get_album
 from databases.image_to_space import space_client
-from schemas.download_schema import DownloadData, ZipData
+from schemas.download_schema import ZipData
 
 router = APIRouter()
 logger = setup_logging(__name__)
 
 
 @router.get("/download-image/")
-async def download_image(data: DownloadData):
-    url = data.url
+async def download_image(url: str):
     try:
         response = requests.get(url, stream=True)
 

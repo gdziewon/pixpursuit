@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from config.logging_config import setup_logging
-from databases.database_tools import create_album, get_album, add_photos_to_album, delete_album
+from databases.database_tools import create_album, get_album, add_photos_to_album, delete_albums
 from auth.auth import get_current_user, User
-from schemas.albums_schema import CreateAlbumData, AddPhotosToAlbumData, DeleteAlbumData
+from schemas.albums_schema import CreateAlbumData, AddPhotosToAlbumData, DeleteAlbumsData
 
 router = APIRouter()
 logger = setup_logging(__name__)
@@ -58,21 +58,23 @@ async def add_images_to_album_api(data: AddPhotosToAlbumData, current_user: User
     return {"message": "Images added to album successfully"}
 
 
-@router.delete("/delete-album")
-async def delete_album_api(data: DeleteAlbumData, current_user: User = Depends(get_current_user)):
-    logger.info(f"/delete-album  - Endpoint accessed by user: {current_user['username']}")
+@router.delete("/delete-albums")
+async def delete_albums_api(data: DeleteAlbumsData, current_user: User = Depends(get_current_user)):
+    logger.info(f"/delete-albums  - Endpoint accessed by user: {current_user['username']}")
 
-    album_id = data.album_id
+    album_ids = data.album_ids
 
-    album = await get_album(album_id)
-    if not album:
-        logger.warning("/delete-album - Album not found")
-        raise HTTPException(status_code=404, detail="Album not found")
+    for album_id in album_ids:
+        album = await get_album(album_id)
+        if not album:
+            logger.warning(f"/delete-albums - Album not found: {album_id}")
+            raise HTTPException(status_code=404, detail="Album not found")
 
-    success = await delete_album(album_id)
+    success = await delete_albums(album_ids)
     if not success:
-        logger.error(f"/delete-album - Failed to delete album")
-        raise HTTPException(status_code=500, detail="Failed to delete album")
+        logger.error(f"/delete-albums - Failed to delete albums: {album_ids}")
+        raise HTTPException(status_code=500, detail="Failed to delete albums")
 
-    logger.info(f"/delete-album - Successfully deleted album: {album_id}")
-    return {"message": "Album deleted successfully"}
+    logger.info(f"/delete-albums - Successfully deleted albums: {album_ids}")
+
+    return {"message": "Albums deleted successfully"}

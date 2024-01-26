@@ -13,5 +13,5 @@ class AddPhotosToAlbumData(BaseModel):
     image_ids: List[str]
 
 
-class DeleteAlbumData(BaseModel):
-    album_id: str
+class DeleteAlbumsData(BaseModel):
+    album_ids: List[str]

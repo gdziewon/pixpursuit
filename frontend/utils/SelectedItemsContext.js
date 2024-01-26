@@ -7,6 +7,7 @@ export const SelectedItemsContext = createContext();
 export const SelectedItemsProvider = ({ children }) => {
     const [selectedImageIds, setSelectedImageIds] = useState([]);
     const [selectedAlbumIds, setSelectedAlbumIds] = useState([]);
+    const [isAllItemsDeselected, setIsAllItemsDeselected] = useState(false);
 
     const selectItem = (id, isAlbum) => {
         if (isAlbum) {
@@ -35,7 +36,7 @@ export const SelectedItemsProvider = ({ children }) => {
     };
 
     return (
-        <SelectedItemsContext.Provider value={{ selectedImageIds, selectedAlbumIds, setSelectedImageIds, setSelectedAlbumIds, selectItem, deselectItem }}>
+        <SelectedItemsContext.Provider value={{ selectedImageIds, selectedAlbumIds, setSelectedImageIds, setSelectedAlbumIds, selectItem, deselectItem, isAllItemsDeselected, setIsAllItemsDeselected }}>
             {children}
         </SelectedItemsContext.Provider>
     );

@@ -154,7 +154,6 @@ def predict_and_update_tags(image_ids):
 
         features = image_document['features']
         if not features:
-            logger.warning(f"No features in image: {image_id}")
             continue
 
         features_tensor = torch.tensor(features, dtype=torch.float32)
@@ -163,9 +162,6 @@ def predict_and_update_tags(image_ids):
 
         predicted_indices = tag_predictor.predict_tags(features_tensor)
         predicted_tags = predictions_to_tag_names(predicted_indices)
-
-        if not predicted_tags:
-            logger.info(f"No tags predicted for image {image_id}")
 
         add_auto_tags(image_id_obj, predicted_tags)
 

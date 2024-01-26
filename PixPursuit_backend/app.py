@@ -2,8 +2,15 @@ from fastapi import FastAPI
 from config.celery_config import celery
 from fastapi.middleware.cors import CORSMiddleware
 from routes import albums, content, download, images, auth, sharepoint
+import os
 
 app = FastAPI()
+
+current_file_path = os.path.abspath(__file__)
+generated_files_dir = os.path.join(os.path.dirname(current_file_path), 'generated')
+if not os.path.exists(generated_files_dir):
+    os.makedirs(generated_files_dir)
+
 celery.autodiscover_tasks(['tag_prediction.tag_prediction_tools', 'databases.face_operations',
                            'data_extraction.object_detection', 'data_extraction.face_detection', 'data_extraction.feature_extraction'])
 

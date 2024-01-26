@@ -8,12 +8,18 @@ import ImageSelection from '/utils/ImageSelection';
 import {SelectedItemsContext} from '/utils/SelectedItemsContext';
 import axios from "axios";
 import download from 'downloadjs';
+import {useSession} from "next-auth/react";
+
 
 export default function AlbumsPage() {
     const [albumData, setAlbumData] = useState(null);
     const { selectedImageIds, selectedAlbumIds } = useContext(SelectedItemsContext);
     const [downloadProgress, setDownloadProgress] = useState(null);
     const albumId = 'root';
+    const { setSelectedImageIds, setSelectedAlbumIds } = useContext(SelectedItemsContext);
+    const { setIsAllItemsDeselected } = useContext(SelectedItemsContext);
+    const { data: session } = useSession();
+    const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -74,7 +80,7 @@ export default function AlbumsPage() {
 
                 if (response.status === 200) {
                     const contentDisposition = response.headers['content-disposition'];
-                    let fileName = 'download.zip'; // Default file name
+                    let fileName = 'download.zip';
 
                     if (contentDisposition) {
                         const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
@@ -94,6 +100,93 @@ export default function AlbumsPage() {
                 setDownloadProgress(null);
             }
         }
+        setSelectedImageIds([]);
+        setSelectedAlbumIds([]);
+        setIsAllItemsDeselected(true);
+    };
+
+    const handleDelete = async () => {
+        const image_ids = selectedImageIds;
+        const album_ids = selectedAlbumIds;
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.accessToken}`,
+        };
+
+        setIsConfirmDialogOpen(true);
+
+        if (image_ids.length > 0) {
+            try {
+                const response = await axios.delete('http://localhost:8000/delete-images', { data: { image_ids }, headers });
+                if (response.status === 200) {
+                    console.log(response.data.message);
+                    setAlbumData(prevState => ({
+                        ...prevState,
+                        images: prevState.images.filter(image => !image_ids.includes(image._id))
+                    }));
+                    setSelectedImageIds([]);
+                } else {
+                    console.error('Failed to delete images');
+                }
+            } catch (error) {
+                console.error('Error deleting images:', error);
+            }
+        }
+
+        if (album_ids.length > 0) {
+            try {
+                const response = await axios.delete('http://localhost:8000/delete-albums', { data: { album_ids }, headers });
+                if (response.status === 200) {
+                    console.log(response.data.message);
+                    setAlbumData(prevState => ({
+                        ...prevState,
+                        sons: prevState.sons.filter(album => !album_ids.includes(album._id))
+                    }));
+                    setSelectedAlbumIds([]);
+                } else {
+                    console.error('Failed to delete albums');
+                }
+            } catch (error) {
+                console.error('Error deleting albums:', error);
+            }
+        }
+        setIsAllItemsDeselected(true);
+    };
+
+    const ConfirmDialog = ({ isOpen, onConfirm, onCancel }) => {
+        if (!isOpen) {
+            return null;
+        }
+
+        return (
+            <div className="fixed z-10 inset-0 overflow-y-auto">
+                <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                    <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+                        <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+                    </div>
+                    <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                    <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                        <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                            <div className="sm:flex sm:items-start">
+                                <div className="mt-3 text-center sm:mt-0 sm:text-center">
+                                    <h3 className="text-lg leading-6 font-medium text-gray-900 text-center" id="modal-title">
+                                        Are you sure you want to delete the selected items?
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                            <button type="button" className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm" onClick={onConfirm}>
+                                Delete
+                            </button>
+                            <button type="button" className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm" onClick={onCancel}>
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     if (!albumData || (!albumData.sons.length && !albumData.images.length)) {
@@ -118,10 +211,31 @@ export default function AlbumsPage() {
                 <div className="flex space-x-6">
                     {selectedImageIds.length + selectedAlbumIds.length > 0 && (
                         downloadProgress === null ? (
-                            <button onClick={handleDownload} className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center">
-                                <ArrowDownTrayIcon className="h-5 w-5 mr-2"/>
-                                Download selected
-                            </button>
+                            <>
+                                {session && (
+                                    <button
+                                        onClick={() => setIsConfirmDialogOpen(true)}
+                                        className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center"
+                                    >
+                                        Delete selected
+                                    </button>
+                                )}
+                                <ConfirmDialog
+                                    isOpen={isConfirmDialogOpen}
+                                    onConfirm={() => {
+                                        handleDelete();
+                                        setIsConfirmDialogOpen(false);
+                                    }}
+                                    onCancel={() => setIsConfirmDialogOpen(false)}
+                                />
+                                <button
+                                    onClick={handleDownload}
+                                    className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center"
+                                >
+                                    <ArrowDownTrayIcon className="h-5 w-5 mr-2"/>
+                                    Download selected
+                                </button>
+                            </>
                         ) : (
                             <div>
                                 {downloadProgress}

@@ -10,10 +10,14 @@ const ImageSelection = ({ item, isAlbum }) => {
     const [isSelected, setIsSelected] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const { selectedItems, selectItem, deselectItem } = useContext(SelectedItemsContext);
+    const { isAllItemsDeselected, setIsAllItemsDeselected } = useContext(SelectedItemsContext);
 
     useEffect(() => {
-        console.log('selectedItems:', selectedItems);
-    }, [selectedItems]);
+        if (isAllItemsDeselected) {
+            setIsSelected(false);
+            setIsAllItemsDeselected(false);
+        }
+    }, [isAllItemsDeselected, setIsAllItemsDeselected]);
 
     if (!item) {
         return null;
