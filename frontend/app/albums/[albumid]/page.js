@@ -114,10 +114,6 @@ export default function SubAlbumPage({ params}) {
             Authorization: `Bearer ${session.accessToken}`,
         };
 
-        const isConfirmed = window.confirm('Are you sure you want to delete the selected items?');
-        if (!isConfirmed) {
-            return;
-        }
         setIsConfirmDialogOpen(true);
 
         if (image_ids.length > 0) {

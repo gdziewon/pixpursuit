@@ -26,6 +26,7 @@ export default function ImagePage({ params }) {
   const hasAddedView = useRef(false)
   const [similarImages, setSimilarImages] = useState([]);
   const [isSimilarImagesLoading, setSimilarImagesLoading] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
 
 
   useEffect(() => {
@@ -133,7 +134,56 @@ export default function ImagePage({ params }) {
     }
   }
 
-
+  const renderDescription = () => {
+    if (editingDescription) {
+      return (
+          <div>
+            <div>
+                        <textarea
+                            className="w-full rounded border bg-gray-900 text-white px-3 py-1 text-lg shadow-md"
+                            value={editedDescription}
+                            onChange={handleDescriptionChange}
+                            rows="3"
+                            style={{resize: "vertical"}}
+                        />
+            </div>
+            <div className="mt-2">
+              <button
+                  className="rounded border bg-red-200 px-3 py-1 text-sm text-red-700 mr-2"
+                  onClick={handleCancelEdit}
+              >
+                <XMarkIcon className="h-5 w-5"/>
+              </button>
+              <button
+                  className="rounded border bg-green-200 px-3 py-1 text-sm text-green-700"
+                  onClick={handleChangeDescription}
+              >
+                <CheckIcon className="h-5 w-5"/>
+              </button>
+            </div>
+          </div>
+      );
+    } else {
+      return (
+          <div
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+          >
+            <h1 className="text-2xl text-gray-900 dark:text-white mb-4" style={{color: 'white'}}>
+              {image.description || 'No description.'}
+            </h1>
+            {session && isHovered && (
+                <button
+                    className="inline-flex items-center bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-800 ml-2 hover:bg-gray-400 transition-colors duration-200 ease-in-out"
+                    onClick={toggleEditingDescription}
+                >
+                  <PencilIcon className="h-5 w-5 mr-2"/> {image.description ? 'Edit Description' : 'Add Description'}
+                </button>
+            )}
+          </div>
+      );
+    }
+  };
 
   const renderHeartIcon = () => {
     const heartIconClass = session
@@ -333,7 +383,7 @@ export default function ImagePage({ params }) {
             </div>
             <div className="flex justify-between items-center">
               <div>
-                <p className="">Taken: {image.metadata.DateTime}</p>
+                {image.metadata.DateTime && <p className="">Taken: {image.metadata.DateTime}</p>}
                 <p>Added by: {image.added_by}</p>
                 <p className="flex items-center">
                   <EyeIcon className="h-5 w-5 mr-1"/>
@@ -354,47 +404,7 @@ export default function ImagePage({ params }) {
             <h1 className="text-3xl font-bold text-teal-100 dark:text-white mb-4">
               Photo description:
             </h1>
-            {editingDescription ? (
-                <div>
-                  <div>
-      <textarea
-          className="w-full rounded border bg-gray-900 text-white px-3 py-1 text-lg shadow-md"
-          value={editedDescription}
-          onChange={handleDescriptionChange}
-          rows="3"
-          style={{resize: "vertical"}}
-      />
-                  </div>
-                  <div className="mt-2">
-                    <button
-                        className="rounded border bg-red-200 px-3 py-1 text-sm text-red-700 mr-2"
-                        onClick={handleCancelEdit}
-                    >
-                      <XMarkIcon className="h-5 w-5"/>
-                    </button>
-                    <button
-                        className="rounded border bg-green-200 px-3 py-1 text-sm text-green-700"
-                        onClick={handleChangeDescription}
-                    >
-                      <CheckIcon className="h-5 w-5"/>
-                    </button>
-                  </div>
-                </div>
-            ) : (
-                <div>
-                  <h1 className="text-2xl text-gray-900 dark:text-white mb-4" style={{color: 'white'}}>
-                    {image.description}
-                  </h1>
-                  {session && (
-                      <button
-                          className="inline-flex items-center bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-800 ml-2 hover:bg-gray-400 transition-colors duration-200 ease-in-out"
-                          onClick={toggleEditingDescription}
-                      >
-                        <PencilIcon className="h-5 w-5 mr-2"/> Edit Description
-                      </button>
-                  )}
-                </div>
-            )}
+            {renderDescription()}
             <h1 className="text-3xl font-bold text-teal-100 dark:text-white mb-4">
               Tags:
             </h1>
