@@ -1,6 +1,7 @@
 from celery import Celery
 from celery.schedules import crontab
 import os
+from utils.function_utils import get_generated_dir_path
 
 
 def make_celery(app_name=__name__):
@@ -22,8 +23,7 @@ def make_celery(app_name=__name__):
     celery_app.conf.task_routes = {
         '*.*': {'queue': 'main_queue'},
     }
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    beat_file_path = os.path.join(script_dir, '..', 'generated', 'celerybeat-schedule')
+    beat_file_path = os.path.join(get_generated_dir_path(), 'celerybeat-schedule')
     celery_app.conf.beat_schedule_filename = beat_file_path
 
     return celery_app

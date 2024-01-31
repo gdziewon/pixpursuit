@@ -5,6 +5,7 @@ from config.logging_config import setup_logging
 from facenet_pytorch import MTCNN, InceptionResnetV1
 import torch
 import os
+from utils.function_utils import get_generated_dir_path
 
 logger = setup_logging(__name__)
 
@@ -25,8 +26,7 @@ def activate_feature_models():
 
 
 def activate_object_models():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(script_dir, '..', 'generated', 'yolov8n.pt')
+    model_path = os.path.join(get_generated_dir_path(), 'yolov8n.pt')
     model = YOLO(model_path)
     logger.info("Activated pretrained YOLOv8 model")
     return model
