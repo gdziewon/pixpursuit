@@ -59,6 +59,15 @@ export default async function Gallery({ searchParams }) {
           </div>
         </div>
         <div className="mb-12 flex justify-end space-x-6">
+          <Link href="/gallery/upload/zip">
+            <button
+                type="button"
+                className="rounded border bg-blue-500 px-3 py-1 text-xs text-white"
+            >
+              Upload Zip{" "}
+              <CloudArrowUpIcon className="inline-block w-4 h-4" />
+            </button>
+          </Link>
           <Link href="/gallery/upload">
             <h2 className="rounded border bg-blue-500 px-3 py-1 text-xs text-white">
               Upload Images{" "}
@@ -74,7 +83,7 @@ export default async function Gallery({ searchParams }) {
                 sort: sort === "asc" ? "desc" : "asc",
               },
             }}
-            className="rounded border bg-blue-500 px-3 py-1 text-xs text-white"
+            className="rounded border bg-gray-300 px-3 py-1 text-xs text-black"
           >
             Sort by date{" "}
             {sort === "asc" ? (

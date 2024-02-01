@@ -39,7 +39,9 @@ export default function AlbumsPage() {
         };
 
         fetchData();
-    }, [albumId]);
+        setSelectedImageIds([]);
+        setSelectedAlbumIds([]);
+    }, [albumId, setSelectedImageIds, setSelectedAlbumIds]);
 
     const handleDownload = async () => {
         if (selectedImageIds.length === 1 && selectedAlbumIds.length === 0) {
@@ -242,11 +244,20 @@ export default function AlbumsPage() {
                             </div>
                         )
                     )}
+                    {session && (
+                    <div className="flex space-x-6">
+                    <Link href="/gallery/upload/zip">
+                        <button
+                            className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center">
+                            <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
+                            Upload zip here
+                        </button>
+                    </Link>
                     <Link href="/gallery/upload">
                         <button
                             className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center">
                             <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
-                            Upload images to this album
+                            Upload images here
                         </button>
                     </Link>
 
@@ -257,6 +268,8 @@ export default function AlbumsPage() {
                             Add album
                         </button>
                     </Link>
+                    </div>
+                    )}
                 </div>
             </div>
             <div className="album-container grid-layout">

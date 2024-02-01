@@ -67,7 +67,7 @@ async def create_album(album_name, parent_id):
 
     new_album = {
         "name": album_name,
-        "parent": parent_id,
+        "parent": str(parent_id),
         "sons": [],
         "images": []
     }

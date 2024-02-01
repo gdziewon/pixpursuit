@@ -1,8 +1,11 @@
 from databases.image_to_space import space_client
-from databases.database_tools import get_album, get_image_document
+from databases.database_tools import get_album, get_image_document, get_root_id, create_album, save_image_to_database
 import os
 import asyncio
 from config.logging_config import setup_logging
+from utils.function_utils import allowed_file
+from fastapi import UploadFile
+from data_extraction.image_processing import process_image_async
 
 logger = setup_logging(__name__)
 
@@ -38,3 +41,29 @@ async def add_image_to_zip(image, zipf, path):
     response = space_client.get_object(Bucket='pixpursuit', Key=image['filename'])
     file_content = response['Body'].read()
     zipf.writestr(os.path.join(path, image['filename']), file_content)
+
+
+async def process_folder(path, username, parent_id=None):
+    logger.info(f"Processing folder: {path}")
+
+    if parent_id is None:
+        parent_id = await get_root_id(username)
+        logger.info(f"Parent id is None, setting to root id: {parent_id}")
+
+    for item in os.listdir(path):
+        item_path = os.path.join(path, item)
+        if os.path.isdir(item_path):
+            logger.info(f"Processing sub-directory: {item_path}")
+            album_id = await create_album(item, str(parent_id))
+            logger.info(f"Created album: {album_id}")
+            await process_folder(item_path, username, str(album_id))
+        elif allowed_file(item):
+            logger.info(f"Processing file: {item_path}")
+            with open(item_path, "rb") as file:
+                upload_file = UploadFile(filename=item, file=file)
+                data = await process_image_async(upload_file)
+                if data:
+                    await save_image_to_database(data, username, str(parent_id))
+                    logger.info(f"Saved image to database: {item_path}")
+                else:
+                    logger.warning(f"Failed to process image: {item_path}")

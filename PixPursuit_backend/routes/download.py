@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from config.logging_config import setup_logging
-from utils.images_to_zip import add_album_to_zip
+from utils.images_zip import add_album_to_zip
 from databases.database_tools import get_image_document
 from fastapi.responses import StreamingResponse
 from zipfile import ZipFile, ZIP_DEFLATED

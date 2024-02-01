@@ -37,7 +37,9 @@ export default function SubAlbumPage({ params}) {
         };
 
         fetchData();
-    }, [albumId]);
+        setSelectedImageIds([]);
+        setSelectedAlbumIds([]);
+    }, [albumId, setSelectedImageIds, setSelectedAlbumIds]);
 
     const parentLinkHref = albumData?.parentIsRoot ? '/albums' : `/albums/${albumData?.parentAlbumId}`;
 
@@ -204,22 +206,6 @@ export default function SubAlbumPage({ params}) {
                 </div>
                 <div>
                 </div>
-                <div className="flex space-x-6">
-                    <Link href={`/gallery/upload/${albumId}`} passHref>
-                        <button
-                            className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center">
-                            <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
-                            Upload images to this album
-                        </button>
-                    </Link>
-                    <Link href={`/albums/add/${albumId}`} passHref>
-                        <button
-                            className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center">
-                            <FolderPlusIcon className="h-5 w-5 mr-2"/>
-                            Add album
-                        </button>
-                    </Link>
-                </div>
             </div>
             No albums or images found.</div>;
     }
@@ -278,6 +264,8 @@ export default function SubAlbumPage({ params}) {
                             </div>
                         )
                     )}
+                    {session && (
+                        <div className="flex space-x-6">
                     <Link href={`/gallery/upload/${albumId}`} passHref>
                         <button className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center">
                             <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
@@ -290,6 +278,8 @@ export default function SubAlbumPage({ params}) {
                             Add album
                         </button>
                     </Link>
+                        </div>
+                    )}
                 </div>
             </div>
             <div className="album-container grid-layout">

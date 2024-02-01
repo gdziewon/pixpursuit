@@ -1,8 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
+import os
+import shutil
+from zipfile import ZipFile
+from fastapi import APIRouter, Depends, HTTPException, Form
 from config.logging_config import setup_logging
 from databases.database_tools import create_album, get_album, add_photos_to_album, delete_albums
 from auth.auth import get_current_user, User
 from schemas.albums_schema import CreateAlbumData, AddPhotosToAlbumData, DeleteAlbumsData
+from fastapi import UploadFile, File
+from typing import Optional
+from utils.function_utils import get_tmp_dir_path
+from utils.images_zip import process_folder
 
 router = APIRouter()
 logger = setup_logging(__name__)
@@ -78,3 +85,29 @@ async def delete_albums_api(data: DeleteAlbumsData, current_user: User = Depends
     logger.info(f"/delete-albums - Successfully deleted albums: {album_ids}")
 
     return {"message": "Albums deleted successfully"}
+
+
+@router.post("/upload-zip")
+async def upload_zip(file: UploadFile = File(...), parent_id: Optional[str] = Form(None), current_user: User = Depends(get_current_user)):
+    logger.info(f"/upload-zip - Endpoint accessed by user: {current_user['username']}")
+
+    # save the zip file temporarily
+    temp_file = os.path.join(get_tmp_dir_path(), file.filename)
+    with open(temp_file, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # unzip
+    with ZipFile(temp_file, 'r') as zip_ref:
+        zip_ref.extractall(get_tmp_dir_path())
+
+    os.remove(temp_file)
+
+    filename_without_extension, _ = os.path.splitext(file.filename)
+    album_id = await create_album(filename_without_extension, parent_id)
+    await process_folder(get_tmp_dir_path(), current_user['username'], album_id)
+
+    # remove the unzipped files
+    shutil.rmtree(get_tmp_dir_path())
+
+    logger.info(f"/upload-zip - Successfully processed zip file: {file.filename}")
+    return {"message": "Zip file processed successfully"}

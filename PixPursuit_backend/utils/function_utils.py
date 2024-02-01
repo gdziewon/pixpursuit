@@ -14,3 +14,11 @@ def get_generated_dir_path():
     if not os.path.exists(generated_files_dir):
         os.makedirs(generated_files_dir)
     return generated_files_dir
+
+
+def get_tmp_dir_path():
+    current_file_path = os.path.abspath(__file__)
+    tmp_dir = os.path.join(os.path.dirname(current_file_path), '..', 'tmp')
+    if not os.path.exists(tmp_dir):
+        os.makedirs(tmp_dir)
+    return tmp_dir
