@@ -104,7 +104,7 @@ export default function ImagePage({ params }) {
   async function downloadImage(url, filename) {
     try {
       const response = await fetch(`http://localhost:8000/download-image?url=${encodeURIComponent(url)}`);
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      if (!response.ok) alert('Failed to download image');
 
       const reader = response.body.getReader();
       const stream = new ReadableStream({
@@ -390,6 +390,11 @@ export default function ImagePage({ params }) {
                   {image.views}
                 </p>
               </div>
+              <Link href={`/albums/${image.album_id}`}>
+                <div className="mt-2 inline-flex items-center px-2 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-400 hover:bg-gray-600">
+                  Go to album
+                </div>
+              </Link>
               <div className="flex items-center">
                 <p className="ml-2">{likes}</p>
                 {renderHeartIcon()}
