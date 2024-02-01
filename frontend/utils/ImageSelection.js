@@ -5,12 +5,19 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { CheckCircleIcon, PlusCircleIcon } from '@heroicons/react/24/solid';
 import {SelectedItemsContext} from '/utils/SelectedItemsContext';
+import axios from 'axios';
+import { useSession } from 'next-auth/react';
+import TagModal from './TagModal';
 
 const ImageSelection = ({ item, isAlbum }) => {
     const [isSelected, setIsSelected] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
+    const [isAddTagsButtonVisible, setIsAddTagsButtonVisible] = useState(false);
+    const [isTagModalOpen, setIsTagModalOpen] = useState(false);
+    const [tagInput, setTagInput] = useState('');
     const { selectedItems, selectItem, deselectItem } = useContext(SelectedItemsContext);
     const { isAllItemsDeselected, setIsAllItemsDeselected } = useContext(SelectedItemsContext);
+    const { data: session } = useSession();
 
     useEffect(() => {
         if (isAllItemsDeselected) {
@@ -19,16 +26,16 @@ const ImageSelection = ({ item, isAlbum }) => {
         }
     }, [isAllItemsDeselected, setIsAllItemsDeselected]);
 
-    if (!item) {
-        return null;
-    }
-
     const handleMouseEnter = () => {
         setIsHovered(true);
+        if (isAlbum && session) {
+            setIsAddTagsButtonVisible(true);
+        }
     };
 
     const handleMouseLeave = () => {
         setIsHovered(false);
+        setIsAddTagsButtonVisible(false);
     };
 
     const handleClick = (e) => {
@@ -44,6 +51,27 @@ const ImageSelection = ({ item, isAlbum }) => {
         });
     };
 
+    const handleTagButtonClick = () => {
+        setIsTagModalOpen(true);
+    };
+
+    const handleTagSubmit = async (e) => {
+        e.preventDefault();
+        const tags = tagInput.split(',').map(tag => tag.trim());
+        const albumId = item._id;
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.accessToken}`,
+        };
+        const response = await axios.post('http://localhost:8000/add-tags-to-album', { album_id: albumId, tags: tags }, { headers });
+        console.log(response.data);
+        setTagInput('');
+        setIsTagModalOpen(false);
+    };
+
+    const handleTagInputChange = (e) => {
+        setTagInput(e.target.value);
+    };
 
     return (
         <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} className="relative">
@@ -61,7 +89,7 @@ const ImageSelection = ({ item, isAlbum }) => {
             )}
 
             {(isHovered || isSelected) && (
-                <button onClick={handleClick} className="absolute top-0 right-2 p-1">
+                <button onClick={handleClick} className="absolute top-0 left-2 p-1">
                     {isSelected ? (
                         <CheckCircleIcon className="h-10 w-10 text-blue-500" style={{ position: 'relative', top: isAlbum ? '50px' : '0' }} />
                     ) : (
@@ -69,6 +97,14 @@ const ImageSelection = ({ item, isAlbum }) => {
                     )}
                 </button>
             )}
+
+            {isAddTagsButtonVisible && (
+                <button onClick={handleTagButtonClick} className="absolute top-0 left-0 p-1 bg-blue-500 text-white rounded text-xs">
+                    Add tags to album
+                </button>
+            )}
+
+            <TagModal isOpen={isTagModalOpen} onSubmit={handleTagSubmit} onCancel={() => setIsTagModalOpen(false)} tagInput={tagInput} handleTagInputChange={handleTagInputChange} />
         </div>
     );
 };

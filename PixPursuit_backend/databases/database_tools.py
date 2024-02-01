@@ -109,6 +109,31 @@ async def add_tags(tags, inserted_id):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
+async def add_tags_to_album(tags, album_id):
+    album_id = to_object_id(album_id)
+    if not album_id:
+        return False
+
+    try:
+        album = await get_album(album_id)
+        if not album:
+            return False
+
+        image_ids = album['images']
+        for image_id in image_ids:
+            await add_tags(tags, image_id)
+
+        sub_album_ids = album['sons']
+        for sub_album_id in sub_album_ids:
+            await add_tags_to_album(tags, sub_album_id)
+
+        return True
+    except Exception as e:
+        logger.error(f"Error while adding tags to album: {e}")
+        return False
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def add_feedback(tag, is_positive, user, inserted_id):
     inserted_id = to_object_id(inserted_id)
     if not inserted_id:

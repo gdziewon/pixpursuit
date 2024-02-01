@@ -7,6 +7,11 @@ class TagData(BaseModel):
     tags: List[str]
 
 
+class AlbumTagsData(BaseModel):
+    album_id: str
+    tags: List[str]
+
+
 class FeedbackData(BaseModel):
     inserted_id: str
     tag: str

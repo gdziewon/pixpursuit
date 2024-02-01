@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from config.logging_config import setup_logging
-from databases.database_tools import add_tags, add_feedback, add_description, add_like, add_view, remove_tags_from_image
+from databases.database_tools import add_tags, add_feedback, add_description, add_like, add_view, remove_tags_from_image, add_tags_to_album
 from databases.face_operations import add_names
 from auth.auth import get_current_user, User
 from tag_prediction.tag_prediction_tools import training_init
-from schemas.content_schema import TagData, FeedbackData, DescriptionData, LikeData, ViewData, RemovingTagsData, FaceData
+from schemas.content_schema import TagData, FeedbackData, DescriptionData, LikeData, ViewData, RemovingTagsData, FaceData, AlbumTagsData
 
 router = APIRouter()
 logger = setup_logging(__name__)
@@ -24,6 +24,21 @@ async def add_user_tag_api(data: TagData, current_user: User = Depends(get_curre
     logger.info(f"/add-user-tags - Successfully added tags to image: {inserted_id}")
     await training_init(inserted_id)
     return {"message": "Tags added successfully"}
+
+
+@router.post("/add-tags-to-album")
+async def add_tags_to_album_api(data: AlbumTagsData, current_user: User = Depends(get_current_user)):
+    logger.info(f"/add-tags-to-album - Endpoint accessed by user: {current_user['username']}")
+
+    album_id = data.album_id
+    tags = data.tags
+    success = await add_tags_to_album(tags, album_id)
+    if not success:
+        logger.error("/add-tags-to-album - Failed to add tags to album")
+        raise HTTPException(status_code=500, detail="Failed to add tags to album")
+
+    logger.info(f"/add-tags-to-album - Successfully added tags to album: {album_id}")
+    return {"message": "Tags added to album successfully"}
 
 
 @router.post("/feedback-on-tags")
