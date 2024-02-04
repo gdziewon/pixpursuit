@@ -3,9 +3,9 @@ import shutil
 from zipfile import ZipFile
 from fastapi import APIRouter, Depends, HTTPException, Form
 from config.logging_config import setup_logging
-from databases.database_tools import create_album, get_album, add_photos_to_album, delete_albums
+from databases.database_tools import create_album, get_album, add_photos_to_album, delete_albums, rename_album
 from auth.auth import get_current_user, User
-from schemas.albums_schema import CreateAlbumData, AddPhotosToAlbumData, DeleteAlbumsData
+from schemas.albums_schema import CreateAlbumData, AddPhotosToAlbumData, DeleteAlbumsData, RenameAlbumData
 from fastapi import UploadFile, File
 from typing import Optional
 from utils.function_utils import get_tmp_dir_path
@@ -111,3 +111,24 @@ async def upload_zip(file: UploadFile = File(...), parent_id: Optional[str] = Fo
 
     logger.info(f"/upload-zip - Successfully processed zip file: {file.filename}")
     return {"message": "Zip file processed successfully"}
+
+
+@router.put("/rename-album")
+async def rename_album_api(data: RenameAlbumData, current_user: User = Depends(get_current_user)):
+    logger.info(f"/rename-album - Endpoint accessed by user: {current_user['username']}")
+
+    album_id = data.album_id
+    new_name = data.new_name
+
+    album = await get_album(album_id)
+    if not album:
+        logger.warning("/rename-album - Album not found")
+        raise HTTPException(status_code=404, detail="Album not found")
+
+    success = await rename_album(new_name, album_id)
+    if not success:
+        logger.error("/rename-album - Failed to rename album")
+        raise HTTPException(status_code=500, detail="Failed to rename album")
+
+    logger.info(f"/rename-album - Successfully renamed album: {str(album_id)} to {new_name}")
+    return {"message": "Album renamed successfully"}

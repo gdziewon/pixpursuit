@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 from typing import Optional, List
-from fastapi import UploadFile, File
 
 
 class CreateAlbumData(BaseModel):
@@ -16,3 +15,8 @@ class AddPhotosToAlbumData(BaseModel):
 
 class DeleteAlbumsData(BaseModel):
     album_ids: List[str]
+
+
+class RenameAlbumData(BaseModel):
+    album_id: str
+    new_name: str

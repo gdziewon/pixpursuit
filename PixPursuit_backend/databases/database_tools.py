@@ -193,7 +193,6 @@ def add_feedback_sync(auto_tags, inserted_id):
             {'$set': {'feedback': existing_feedback}}
         )
 
-        logger.info("Successfully updated feedback for auto tags")
         return True
     except Exception as e:
         logger.error(f"Error updating feedback: {e}")
@@ -495,3 +494,25 @@ def add_something_to_image(field_to_set, data, filename):
         {'filename': filename},
         {'$set': {field_to_set: data}}
     )
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
+async def rename_album(name, album_id):
+    album_id = to_object_id(album_id)
+    if not album_id:
+        return False
+
+    try:
+        update_result = await album_collection.update_one(
+            {'_id': album_id},
+            {'$set': {'name': name}}
+        )
+        if update_result.matched_count > 0 and update_result.modified_count > 0:
+            logger.info(f"Successfully renamed album: {str(album_id)} to {name}")
+            return True
+        else:
+            logger.error(f"Failed to rename album: {str(album_id)}")
+            return False
+    except Exception as e:
+        logger.error(f"Error renaming album: {e}")
+        return False
