@@ -15,3 +15,8 @@ class RelocateImagesData(BaseModel):
 class SimilarImagesData(BaseModel):
     image_id: str
     limit: Optional[int] = 10
+
+
+class ScrapeImagesData(BaseModel):
+    url: str
+    album_id: Optional[str] = None

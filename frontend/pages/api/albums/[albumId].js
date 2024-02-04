@@ -1,7 +1,7 @@
 // pages/api/albums/[albumId].js
 import { connectToDatabase } from "@/pages/api/connectMongo";
 import { ObjectId } from 'mongodb';
-import { isRootId } from "@/utils/isRootId";
+import { getRootId } from "@/utils/getRootId";
 
 export async function getAlbums(albumId = 'root', thumbnailLimit = 50) {
     const db = await connectToDatabase();
@@ -24,8 +24,9 @@ export async function getAlbums(albumId = 'root', thumbnailLimit = 50) {
     const images = imageIds.length > 0 ? await db.collection("images").find({ _id: { $in: imageIds } }).toArray() : [];
 
     let parentIsRoot = false;
+    const rootId = await getRootId();
     if (album.parent) {
-        parentIsRoot = album.parent ? await isRootId(album.parent) : false;
+        parentIsRoot = album.parent ? rootId === album.parent.toString() : false;
     }
 
     const combinedData = {

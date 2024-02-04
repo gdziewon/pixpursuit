@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from config.logging_config import setup_logging
 
-from auth.auth import get_current_user, User
+from authentication.auth import get_current_user, User
 from databases.sharepoint_client import SharePointClient
 
 router = APIRouter()

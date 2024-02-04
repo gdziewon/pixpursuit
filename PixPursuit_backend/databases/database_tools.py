@@ -313,7 +313,9 @@ async def relocate_to_album(prev_album_id, new_album_id=None, image_ids=None):
         image_ids = [image['_id'] for image in await cursor.to_list(length=100)]
 
     bulk_operations = [UpdateOne({'_id': image_id}, {'$set': {'album_id': new_album_id}}) for image_id in image_ids]
-    await async_images_collection.bulk_write(bulk_operations)
+
+    if bulk_operations:
+        await async_images_collection.bulk_write(bulk_operations)
 
     await add_photos_to_album(image_ids, new_album_id)
 

@@ -4,7 +4,7 @@ from zipfile import ZipFile
 from fastapi import APIRouter, Depends, HTTPException, Form
 from config.logging_config import setup_logging
 from databases.database_tools import create_album, get_album, add_photos_to_album, delete_albums, rename_album
-from auth.auth import get_current_user, User
+from authentication.auth import get_current_user, User
 from schemas.albums_schema import CreateAlbumData, AddPhotosToAlbumData, DeleteAlbumsData, RenameAlbumData
 from fastapi import UploadFile, File
 from typing import Optional
@@ -92,22 +92,23 @@ async def upload_zip(file: UploadFile = File(...), parent_id: Optional[str] = Fo
     logger.info(f"/upload-zip - Endpoint accessed by user: {current_user['username']}")
 
     # save the zip file temporarily
-    temp_file = os.path.join(get_tmp_dir_path(), file.filename)
+    tmp_dir = get_tmp_dir_path()
+    temp_file = os.path.join(tmp_dir, file.filename)
     with open(temp_file, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
     # unzip
     with ZipFile(temp_file, 'r') as zip_ref:
-        zip_ref.extractall(get_tmp_dir_path())
+        zip_ref.extractall(tmp_dir)
 
     os.remove(temp_file)
 
     filename_without_extension, _ = os.path.splitext(file.filename)
     album_id = await create_album(filename_without_extension, parent_id)
-    await process_folder(get_tmp_dir_path(), current_user['username'], album_id)
+    await process_folder(tmp_dir, current_user['username'], album_id)
 
     # remove the unzipped files
-    shutil.rmtree(get_tmp_dir_path())
+    shutil.rmtree(tmp_dir)
 
     logger.info(f"/upload-zip - Successfully processed zip file: {file.filename}")
     return {"message": "Zip file processed successfully"}

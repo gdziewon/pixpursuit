@@ -3,7 +3,7 @@ from fastapi import Depends, HTTPException, APIRouter
 from fastapi.security import OAuth2PasswordBearer
 from config.logging_config import setup_logging
 from dotenv import load_dotenv
-from auth.auth import authenticate_user, create_access_token, Token, ACCESS_TOKEN_EXPIRE_MINUTES
+from authentication.auth import authenticate_user, create_access_token, Token, ACCESS_TOKEN_EXPIRE_MINUTES
 from fastapi.security import OAuth2PasswordRequestForm
 
 load_dotenv()

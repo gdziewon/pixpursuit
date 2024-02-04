@@ -1,11 +1,12 @@
+from io import BytesIO
 from databases.image_to_space import space_client
-from databases.database_tools import get_album, get_image_document, get_root_id, create_album, save_image_to_database
+from databases.database_tools import get_album, get_image_document, get_root_id, create_album
 import os
 import asyncio
 from config.logging_config import setup_logging
-from utils.function_utils import allowed_file
+from utils.function_utils import is_allowed_file
 from fastapi import UploadFile
-from data_extraction.image_processing import process_image_async
+from data_extraction.image_processing import process_and_save_images
 
 logger = setup_logging(__name__)
 
@@ -44,26 +45,24 @@ async def add_image_to_zip(image, zipf, path):
 
 
 async def process_folder(path, username, parent_id=None):
-    logger.info(f"Processing folder: {path}")
-
     if parent_id is None:
-        parent_id = await get_root_id(username)
-        logger.info(f"Parent id is None, setting to root id: {parent_id}")
+        parent_id = await get_root_id()
 
+    image_files = []
     for item in os.listdir(path):
         item_path = os.path.join(path, item)
         if os.path.isdir(item_path):
             logger.info(f"Processing sub-directory: {item_path}")
-            album_id = await create_album(item, str(parent_id))
+            album_id = await create_album(item, parent_id)
             logger.info(f"Created album: {album_id}")
-            await process_folder(item_path, username, str(album_id))
-        elif allowed_file(item):
+            await process_folder(item_path, username, album_id)
+        elif os.path.isfile(item_path) and is_allowed_file(item_path):
             logger.info(f"Processing file: {item_path}")
-            with open(item_path, "rb") as file:
-                upload_file = UploadFile(filename=item, file=file)
-                data = await process_image_async(upload_file)
-                if data:
-                    await save_image_to_database(data, username, str(parent_id))
-                    logger.info(f"Saved image to database: {item_path}")
-                else:
-                    logger.warning(f"Failed to process image: {item_path}")
+            with open(item_path, 'rb') as file:
+                contents = file.read()
+            upload_file = UploadFile(filename=item, file=BytesIO(contents))
+            image_files.append(upload_file)
+
+    inserted_ids = await process_and_save_images(image_files, username, parent_id)
+
+    return inserted_ids

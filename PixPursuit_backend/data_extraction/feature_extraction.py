@@ -19,4 +19,3 @@ def extract_features(image_data, filename):
     features.numpy()
     features_list = features.tolist() if features is not None else []
     add_something_to_image('features', features_list, filename)
-

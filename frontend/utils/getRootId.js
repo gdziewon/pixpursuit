@@ -2,13 +2,11 @@ import { connectToDatabase } from "@/pages/api/connectMongo";
 
 let rootId = null;
 
-export async function isRootId(albumId) {
-    if (!albumId) return false;
+export async function getRootId() {
 
-    const albumId_str = albumId.toString()
 
     if (rootId) {
-        return rootId === albumId_str;
+        return rootId;
     }
 
     const db = await connectToDatabase();
@@ -18,5 +16,5 @@ export async function isRootId(albumId) {
     }
     rootId = rootAlbum._id.toString();
 
-    return rootId === albumId_str;
+    return rootId;
 }

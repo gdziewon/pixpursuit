@@ -53,6 +53,10 @@ async def download_zip(data: ZipData):
     zip_buffer.seek(0)
 
     def iterfile():
-        yield from zip_buffer
+        while True:
+            chunk = zip_buffer.read(4096)
+            if not chunk:
+                break
+            yield chunk
 
     return StreamingResponse(iterfile(), media_type="application/zip")

@@ -266,18 +266,33 @@ export default function SubAlbumPage({ params}) {
                     )}
                     {session && (
                         <div className="flex space-x-6">
-                    <Link href={`/gallery/upload/${albumId}`} passHref>
-                        <button className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center">
-                            <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
-                            Upload images to this album
-                        </button>
-                    </Link>
-                    <Link href={`/albums/add/${albumId}`} passHref>
-                        <button className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center">
-                            <FolderPlusIcon className="h-5 w-5 mr-2"/>
-                            Add album
-                        </button>
-                    </Link>
+                            <Link href={`/gallery/upload/galeria_pk/${albumId}`} passHref>
+                                <button className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
+                                    <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
+                                    Upload from GaleriaPK
+                                </button>
+                            </Link>
+                            <Link href={`/gallery/upload/zip/${albumId}`} passHref>
+                                <button
+                                    className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
+                                    <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
+                                    Upload zip here
+                                </button>
+                            </Link>
+                            <Link href={`/gallery/upload/${albumId}`} passHref>
+                                <button
+                                    className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
+                                    <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
+                                    Upload images here
+                                </button>
+                            </Link>
+                            <Link href={`/albums/add/${albumId}`} passHref>
+                                <button
+                                    className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
+                                    <FolderPlusIcon className="h-5 w-5 mr-2"/>
+                                    Add album
+                                </button>
+                            </Link>
                         </div>
                     )}
                 </div>

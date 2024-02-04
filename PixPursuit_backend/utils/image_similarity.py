@@ -7,7 +7,6 @@ from bson.objectid import ObjectId
 
 logger = setup_logging(__name__)
 tfidf_vectorizer = TfidfVectorizer()
-root_id = get_root_id()
 
 
 async def find_similar_images(image_id, limit=20):
@@ -39,15 +38,15 @@ async def find_similar_images(image_id, limit=20):
         similarities = []
         async for img in cursor:
             score = 0
-            score += weights['features'] * feature_similarity(input_image['features'], img['features'])
-            score += weights['user_tags'] * jaccard_similarity(input_image['user_tags'], img['user_tags'])
-            score += weights['user_faces'] * face_similarity(input_image['user_faces'], img['user_faces'])
-            score += weights['description'] * description_similarity(input_image['description'], img['description'])
-            score += weights['album_id'] * album_similarity(input_image['album_id'], img['album_id'])
-            score += weights['auto_faces'] * face_similarity(input_image['auto_faces'], img['auto_faces'])
-            score += weights['auto_tags'] * jaccard_similarity(input_image['auto_tags'], img['auto_tags'])
-            score += weights['detected_objects'] * jaccard_similarity(input_image['detected_objects'], img['detected_objects'])
-            score += weights['added_by'] * added_by_similarity(input_image['added_by'], img['added_by'])
+            score += weights['features'] * await feature_similarity(input_image['features'], img['features'])
+            score += weights['user_tags'] * await jaccard_similarity(input_image['user_tags'], img['user_tags'])
+            score += weights['user_faces'] * await face_similarity(input_image['user_faces'], img['user_faces'])
+            score += weights['description'] * await description_similarity(input_image['description'], img['description'])
+            score += weights['album_id'] * await album_similarity(input_image['album_id'], img['album_id'])
+            score += weights['auto_faces'] * await face_similarity(input_image['auto_faces'], img['auto_faces'])
+            score += weights['auto_tags'] * await jaccard_similarity(input_image['auto_tags'], img['auto_tags'])
+            score += weights['detected_objects'] * await jaccard_similarity(input_image['detected_objects'], img['detected_objects'])
+            score += weights['added_by'] * await added_by_similarity(input_image['added_by'], img['added_by'])
 
             similarities.append({'_id': str(img['_id']), 'thumbnail_url': img['thumbnail_url'], 'score': score})
     except Exception as e:
@@ -58,7 +57,7 @@ async def find_similar_images(image_id, limit=20):
     return similarities[:limit]
 
 
-def feature_similarity(features1, features2):
+async def feature_similarity(features1, features2):
     if not features1 or not features2:
         return 0.0
 
@@ -72,7 +71,7 @@ def feature_similarity(features1, features2):
     return similarity
 
 
-def jaccard_similarity(set1, set2):
+async def jaccard_similarity(set1, set2):
     if not set1 or not set2:
         return 0.0
 
@@ -89,14 +88,14 @@ def jaccard_similarity(set1, set2):
     return similarity
 
 
-def face_similarity(faces1, faces2):
+async def face_similarity(faces1, faces2):
     set1 = (set(faces1) - {'anon-1', '-1'}) if faces1 else set()
     set2 = (set(faces2) - {'anon-1', '-1'}) if faces2 else set()
 
-    return jaccard_similarity(set1, set2)
+    return await jaccard_similarity(set1, set2)
 
 
-def description_similarity(description1, description2):
+async def description_similarity(description1, description2):
     if not description1 or not description2:
         return 0.0
 
@@ -110,12 +109,13 @@ def description_similarity(description1, description2):
     return similarity
 
 
-def album_similarity(album_id1, album_id2):
+async def album_similarity(album_id1, album_id2):
+    root_id = await get_root_id()
     if album_id1 != root_id and album_id1 == album_id2:
         return 1
     else:
         return 0
 
 
-def added_by_similarity(added_by1, added_by2):
+async def added_by_similarity(added_by1, added_by2):
     return 1 if added_by1 == added_by2 else 0
