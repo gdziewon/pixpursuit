@@ -86,12 +86,8 @@ To set up the PixPursuit locally, you need to:
 
 To run the app locally, use the following command in the console:
     ```bash
-
     npm run dev
 
-## Introduction
-
-This documentation covers PixPursuit, an advanced platform for managing and analyzing images using machine learning technologies.
 
 ## Backend
 
@@ -116,6 +112,9 @@ Built with FastAPI, Celery and MongoDB.
 - **feedback**: Feedback history for auto_tags.
 - **feedback_history**: User's feedback history regarding specific tags.
 - **description**: Description of the image added by the user.
+- **likes**: The number of likes an image has received.
+- **liked_by**: List of users who have liked the image.
+- **views**: The number of times the image has been viewed.
 - **added_by**: The user who added the image.
 - **album_id**: ID of the album to which the image is assigned.
 
@@ -336,6 +335,109 @@ The data stored in the MongoDB database is an integral part of PixPursuit's func
 - `message`: String (confirmation message).
 
 **Error Handling**: Returns HTTP 404 if the album is not found, or HTTP 500 if relocation fails.
+
+### 13. POST `/find-similar-images`
+
+**Functionality**: Finds images similar to a given image.
+
+**Input**:
+- `image_id`: String (ID of the reference image).
+- `limit`: Integer (optional, the maximum number of similar images to return; default is 10).
+
+**Response**:
+- `similar_images`: List of similar image IDs.
+
+**Error Handling**: Returns HTTP 500 if the search for similar images fails.
+
+### 14. POST `/scrape-images`
+
+**Functionality**: Scrapes images from a specified URL into an album.
+
+**Input**:
+- `url`: String (URL to scrape images from).
+- `album_id`: String (optional, ID of the album to add scraped images to).
+
+**Response**:
+- `message`: String (confirmation message).
+- `inserted_ids`: List of String (IDs of inserted images).
+
+**Error Handling**: Returns HTTP 400 if the URL is invalid, or HTTP 500 if scraping fails.
+
+### 15. POST `/upload-zip`
+
+**Functionality**: Uploads a ZIP file and extracts its contents into an album.
+
+**Input**:
+- `file`: UploadFile (ZIP file to upload and extract).
+- `parent_id`: String (optional, ID of the parent album).
+
+**Response**:
+- `message`: String (confirmation message).
+
+**Error Handling**: Returns HTTP 500 if processing the ZIP file fails.
+
+### 16. PUT `/rename-album`
+
+**Functionality**: Renames an existing album.
+
+**Input**:
+- `album_id`: String (ID of the album to rename).
+- `new_name`: String (new name for the album).
+
+**Response**:
+- `message`: String (confirmation message).
+
+**Error Handling**: Returns HTTP 404 if the album is not found, or HTTP 500 if renaming fails.
+
+### 17. GET `/download-image/`
+
+**Functionality**: Downloads an image from a URL.
+
+**Input**:
+- `url`: String (URL of the image to download).
+
+**Response**:
+- The image file streamed to the client.
+
+**Error Handling**: Returns HTTP 400 if downloading the image fails.
+
+### 18. POST `/download-zip`
+
+**Functionality**: Creates a ZIP file containing specified albums and images and downloads it.
+
+**Input**:
+- `album_ids`: List of String (optional, IDs of albums to include in the ZIP).
+- `image_ids`: List of String (optional, IDs of images to include in the ZIP).
+
+**Response**:
+- The ZIP file streamed to the client.
+
+**Error Handling**: Returns HTTP 404 if any album or image is not found, or HTTP 500 if creating the ZIP fails.
+
+### 19. POST `/add-like`
+
+**Functionality**: Adds a like or dislike to an image.
+
+**Input**:
+- `inserted_id`: String (ID of the image).
+- `is_positive`: Boolean (true for like, false for dislike).
+
+**Response**:
+- `message`: String (confirmation message).
+
+**Error Handling**: Returns HTTP 500 if adding the like fails.
+
+### 20. POST `/add-view`
+
+**Functionality**: Increments the view count of an image.
+
+**Input**:
+- `inserted_id`: String (ID of the image).
+
+**Response**:
+- `message`: String (confirmation message).
+
+**Error Handling**: Returns HTTP 500 if adding the view fails.
 
 ## How to Run PixPursuit
 
