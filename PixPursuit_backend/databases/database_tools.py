@@ -38,6 +38,8 @@ async def save_image_to_database(data, username, album_id):
             'auto_tags': [],
             'user_faces': [],
             'auto_faces': [],
+            'backlog_faces': [],
+            'unknown_faces': 0,
             'feedback': {},
             'feedback_history': {},
             'description': "",

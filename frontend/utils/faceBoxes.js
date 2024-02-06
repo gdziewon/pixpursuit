@@ -13,7 +13,7 @@ export const BoxOverlay = ({image, boxes, originalSize, session}) => {
 
     const scaleX = originalSize.width ? displayWidth / originalSize.width : 1;
     const scaleY = originalSize.height ? displayHeight / originalSize.height : 1;
-    const scale = Math.min(scaleX, scaleY) * (0.41 * (originalSize.height / originalSize.width) + 0.375);
+    const scale = Math.min(scaleX, scaleY) * (0.47 * (originalSize.height / originalSize.width) + 0.42);
 
     const handleBoxClick = (index, e) => {
         e.stopPropagation();  // Prevents event bubbling up

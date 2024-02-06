@@ -29,6 +29,7 @@ def get_face_embeddings(image_data, filename):
         add_something_to_image('embeddings', embeddings_list, filename)
         add_something_to_image('embeddings_box', boxes_list, filename)
         add_something_to_image('user_faces',  user_faces_list, filename)
+        add_something_to_image('backlog_faces', user_faces_list, filename)
 
         faces_records = [{"face_emb": emb, 'group': ""} for emb in embeddings_list]
         insert_many_faces(faces_records)

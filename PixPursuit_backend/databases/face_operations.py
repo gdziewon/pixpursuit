@@ -28,13 +28,23 @@ async def add_names(inserted_id, anonymous_index, new_name):
         old_name = image['user_faces'][anonymous_index]
 
         image['user_faces'][anonymous_index] = new_name
-
-        await async_images_collection.update_one(
-            {"_id": inserted_id},
-            {"$set": {"user_faces": image['user_faces']}}
-        )
-
-        update_names_in_db.delay(old_name, new_name)
+        if old_name == "anon-1":
+            await async_images_collection.update_one(
+                {"_id": inserted_id},
+                {"$set": {"user_faces": image['user_faces']},
+                 "$inc": {"unknown_faces": 1}
+                 }
+            )
+        else:
+            image['backlog_faces'][anonymous_index] = new_name
+            await async_images_collection.update_one(
+                {"_id": inserted_id},  # Specify the update query here
+                {"$set": {
+                    "user_faces": image['user_faces'],
+                    "backlog_faces": image['backlog_faces']
+                }}
+            )
+            update_names_in_db.delay(old_name, new_name)
 
         logger.info(f"Successfully updated name for image: {inserted_id}")
         return True
@@ -105,14 +115,48 @@ def group_faces():
                     else:
                         updated_user_faces.append(user_face)
 
+                current_document_backlog = await async_images_collection.find_one({'_id': image['_id']})
+                current_backlog_faces = current_document_backlog.get('backlog_faces', [])
+
+                updated_backlog_faces = []
+                for idx, user_face in enumerate(current_backlog_faces):
+                    if user_face.startswith('anon'):
+                        updated_backlog_faces.append(
+                            'anon' + str(image_clusters[idx] if idx < len(image_clusters) else ''))
+                    else:
+                        updated_backlog_faces.append(user_face)
+
                 await async_images_collection.update_one(
                     {'_id': image['_id']},
                     {'$set': {
                         'auto_faces': image_clusters.tolist(),
-                        'user_faces': updated_user_faces
+                        'user_faces': updated_user_faces,
+                        'backlog_faces': updated_backlog_faces
                     }},
                     upsert=False
                 )
+
+        for image in images:
+            current_document = await async_images_collection.find_one({'_id': image['_id']})
+            unknown_faces = current_document.get('unknown_faces', 0)
+            backlog_faces = current_document.get('backlog_faces', [])
+            user_faces = current_document.get('user_faces', [])
+
+            if unknown_faces > 0:
+                for idx, user_face in enumerate(user_faces):
+                    if idx < len(backlog_faces):
+                        backlog_face = backlog_faces[idx]
+                        if user_face != backlog_face and backlog_face != "anon-1":
+                            update_names_in_db.delay(backlog_face, user_face)
+                            backlog_faces[idx] = user_face
+                            unknown_faces -= 1
+
+                # Update the document with the modified backlog_faces and updated unknown_faces
+                await async_images_collection.update_one(
+                    {'_id': image['_id']},
+                    {'$set': {'backlog_faces': backlog_faces, 'unknown_faces': unknown_faces}}
+                )
+
         embeddings, ids = await fetch_all_embeddings()
         if embeddings:  # Proceed only if there are embeddings
             clusters = cluster_embeddings(embeddings)
@@ -140,7 +184,10 @@ def update_names_in_db(old_name, new_name):
 
             update_result = await async_images_collection.update_many(
                 {"user_faces": old_name},
-                {"$set": {"user_faces.$": new_name}}
+                {"$set": {
+                    "user_faces.$": new_name,
+                    "backlog_faces.$": new_name
+                }}
             )
 
             if update_result.modified_count > 0:
