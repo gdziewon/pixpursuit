@@ -64,8 +64,10 @@ const ImageSelection = ({ item, isAlbum }) => {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${session.accessToken}`,
         };
-        const response = await axios.post('http://localhost:8000/add-tags-to-album', { album_id: albumId, tags: tags }, { headers });
-        console.log(response.data);
+        if (tags.length !== 0) {
+            const response = await axios.post('http://localhost:8000/add-tags-to-album', { album_id: albumId, tags: tags }, { headers });
+            console.log(response.data);
+        }
 
         if (albumName !== item.name && albumName !== '') {
             try {

@@ -94,7 +94,12 @@ async def add_tags(tags, inserted_id):
     if not inserted_id:
         return False
 
+    if not tags:
+        return False
+
     try:
+        tags = [tag for tag in tags if tag != '']
+
         bulk_operations = [UpdateOne({'_id': inserted_id}, {'$addToSet': {'user_tags': tag}}) for tag in tags]
         await async_images_collection.bulk_write(bulk_operations)
 
@@ -329,45 +334,58 @@ async def relocate_to_album(prev_album_id, new_album_id=None, image_ids=None):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def delete_albums(album_ids):
+async def delete_albums(album_ids, is_top_level=True):
     for album_id in album_ids:
-        album_id = to_object_id(album_id)
-        album = await get_album(album_id)
-        if not album:
+        try:
+            album_id = to_object_id(album_id)
+            album = await get_album(album_id)
+            if not album:
+                return False
+
+            image_ids = [to_object_id(image_id) for image_id in album['images']]
+            await delete_images(image_ids)
+
+            sub_album_ids = [to_object_id(sub_album_id) for sub_album_id in album['sons']]
+            await delete_albums(sub_album_ids, is_top_level=False)
+
+            if is_top_level and album['parent']:
+                parent_id = to_object_id(album['parent'])
+                await album_collection.update_one(
+                    {'_id': parent_id},
+                    {'$pull': {'sons': str(album_id)}}
+                )
+
+            await album_collection.delete_one({'_id': album_id})
+        except Exception as e:
+            logger.error(f"Error deleting album {album_id}: {e}")
             return False
 
-        await relocate_to_album(prev_album_id=album_id)
-
-        if album['parent']:
-            parent_id = to_object_id(album['parent'])
-            await album_collection.update_one(
-                {'_id': parent_id},
-                {'$pull': {'sons': str(album_id)}}
-            )
-
-        await album_collection.delete_one({'_id': album_id})
     return True
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def delete_images(image_ids):
     for image_id in image_ids:
-        image_id = to_object_id(image_id)
-        image = await get_image_document(image_id)
-        if not image:
+        try:
+            image_id = to_object_id(image_id)
+            image = await get_image_document(image_id)
+            if not image:
+                return False
+
+            await async_images_collection.delete_one({"_id": image_id})
+
+            await album_collection.update_many({}, {"$pull": {"images": str(image_id)}})
+
+            await decrement_tags_count(image['user_tags'])
+
+            logger.info(f"Removing image: {image['image_url']}")
+            await delete_image_from_space(image['image_url'])
+
+            logger.info(f"Removing thumbnail: {image['thumbnail_url']}")
+            await delete_image_from_space(image['thumbnail_url'])
+        except Exception as e:
+            logger.error(f"Error deleting image {image_id}: {e}")
             return False
-
-        await async_images_collection.delete_one({"_id": image_id})
-
-        await album_collection.update_many({}, {"$pull": {"images": str(image_id)}})
-
-        await decrement_tags_count(image['user_tags'])
-
-        logger.info(f"Removing image: {image['image_url']}")
-        await delete_image_from_space(image['image_url'])
-
-        logger.info(f"Removing thumbnail: {image['thumbnail_url']}")
-        await delete_image_from_space(image['thumbnail_url'])
 
     return True
 

@@ -63,7 +63,7 @@ async def download_images(urls, save_dir):
 
 
 async def scrape_images(url):
-    save_dir = get_tmp_dir_path()
+    save_dir = await get_tmp_dir_path()
     try:
         image_urls = await get_image_urls(url)
         if not image_urls:
@@ -117,7 +117,7 @@ async def scrape_and_save_images(url, user, album_id=None):
         logger.error(f"Failed to scrape and save images: {e}")
         raise HTTPException(status_code=500, detail="Failed to scrape and save images")
     finally:
-        cleanup_files(image_files)
+        await cleanup_files(image_files)
         shutil.rmtree(save_dir)
 
 
@@ -138,7 +138,7 @@ async def prepare_image_files(save_dir):
         raise HTTPException(status_code=500, detail="Failed to prepare image files")
 
 
-def cleanup_files(image_files):
+async def cleanup_files(image_files):
     try:
         for file in image_files:
             file.file.close()

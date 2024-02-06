@@ -21,7 +21,7 @@ def get_generated_dir_path():
     return generated_files_dir
 
 
-def get_tmp_dir_path():
+async def get_tmp_dir_path():
     current_file_path = os.path.abspath(__file__)
     unique_dir = str(uuid.uuid4())
     tmp_dir = os.path.join(os.path.dirname(current_file_path), '..', unique_dir)

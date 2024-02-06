@@ -92,7 +92,7 @@ async def upload_zip(file: UploadFile = File(...), parent_id: Optional[str] = Fo
     logger.info(f"/upload-zip - Endpoint accessed by user: {current_user['username']}")
 
     # save the zip file temporarily
-    tmp_dir = get_tmp_dir_path()
+    tmp_dir = await get_tmp_dir_path()
     temp_file = os.path.join(tmp_dir, file.filename)
     with open(temp_file, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
