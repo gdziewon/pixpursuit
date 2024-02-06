@@ -9,7 +9,7 @@ import {SelectedItemsContext} from '/utils/SelectedItemsContext';
 import axios from "axios";
 import download from 'downloadjs';
 import {useSession} from "next-auth/react";
-
+import Image from 'next/image';
 
 export default function AlbumsPage() {
     const [albumData, setAlbumData] = useState(null);
@@ -45,12 +45,8 @@ export default function AlbumsPage() {
 
     const handleDownload = async () => {
         if (selectedImageIds.length === 1 && selectedAlbumIds.length === 0) {
-            console.log('selectedImageIds:', selectedImageIds);
-            console.log('albumData.images:', albumData.images);
             const image = albumData.images.find(image => image._id.toString() === selectedImageIds[0]);
-            console.log('image:', image);
             const url = image.image_url;
-            console.log('url:', url);
             const filename = image.filename;
             try {
                 setDownloadProgress('Preparing download...');
@@ -278,6 +274,14 @@ export default function AlbumsPage() {
                 </div>
             </div>
             <div className="album-container grid-layout">
+                {session && (
+                    <Link href={`/albums/liked/`} passHref>
+                        <div className="album-item">
+                            <Image src="/liked.png" alt="Liked Images" width={200} height={200}/>
+                            <span>Liked Images</span>
+                        </div>
+                    </Link>
+                )}
                 {albumItems}
                 {imageItems}
             </div>

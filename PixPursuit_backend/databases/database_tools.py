@@ -235,10 +235,24 @@ async def add_like(is_positive, username, inserted_id):
             {'_id': inserted_id},
             {'$inc': {'likes': 1 if is_positive else -1}}
         )
-        await async_images_collection.update_one(
-            {'_id': inserted_id},
-            {'$addToSet': {'liked_by': username}} if is_positive else {'$pull': {'liked_by': username}}
-        )
+        if is_positive:
+            await user_collection.update_one(
+                {'username': username},
+                {'$addToSet': {'liked': str(inserted_id)}}
+            )
+            await async_images_collection.update_one(
+                {'_id': inserted_id},
+                {'$addToSet': {'liked_by': username}}
+            )
+        else:
+            await user_collection.update_one(
+                {'username': username},
+                {'$pull': {'liked': str(inserted_id)}}
+            )
+            await async_images_collection.update_one(
+                {'_id': inserted_id},
+                {'$pull': {'liked_by': username}}
+            )
         return update_result.matched_count > 0 and update_result.modified_count > 0
     except Exception as e:
         logger.error(f"Error updating likes: {e}")
@@ -356,6 +370,7 @@ async def delete_albums(album_ids, is_top_level=True):
                 )
 
             await album_collection.delete_one({'_id': album_id})
+            logger.info(f"Successfully deleted album: {str(album_id)}")
         except Exception as e:
             logger.error(f"Error deleting album {album_id}: {e}")
             return False
@@ -372,17 +387,21 @@ async def delete_images(image_ids):
             if not image:
                 return False
 
-            await async_images_collection.delete_one({"_id": image_id})
+            await user_collection.update_many(
+                {},
+                {'$pull': {'liked': str(image_id)}}
+            )
 
             await album_collection.update_many({}, {"$pull": {"images": str(image_id)}})
 
             await decrement_tags_count(image['user_tags'])
 
-            logger.info(f"Removing image: {image['image_url']}")
             await delete_image_from_space(image['image_url'])
 
-            logger.info(f"Removing thumbnail: {image['thumbnail_url']}")
             await delete_image_from_space(image['thumbnail_url'])
+
+            await async_images_collection.delete_one({"_id": image_id})
+            logger.info(f"Successfully deleted image: {str(image_id)}")
         except Exception as e:
             logger.error(f"Error deleting image {image_id}: {e}")
             return False

@@ -1,4 +1,3 @@
-// pages/api/albums/[albumId].js
 import { connectToDatabase } from "@/pages/api/connectMongo";
 import { ObjectId } from 'mongodb';
 import { getRootId } from "@/utils/getRootId";
