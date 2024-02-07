@@ -63,7 +63,7 @@ async def download_images(urls, save_dir):
 
 
 async def scrape_images(url):
-    save_dir = await get_tmp_dir_path()
+    save_dir = get_tmp_dir_path()
     try:
         image_urls = await get_image_urls(url)
         if not image_urls:

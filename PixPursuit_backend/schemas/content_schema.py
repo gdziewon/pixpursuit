@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 
 
@@ -7,8 +7,9 @@ class TagData(BaseModel):
     tags: List[str]
 
 
-class AlbumTagsData(BaseModel):
-    album_id: str
+class SelectedTagsData(BaseModel):
+    album_ids: Optional[List[str]] = []
+    image_ids: Optional[List[str]] = []
     tags: List[str]
 
 

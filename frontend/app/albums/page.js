@@ -10,6 +10,8 @@ import axios from "axios";
 import download from 'downloadjs';
 import {useSession} from "next-auth/react";
 import Image from 'next/image';
+import TagModal from '@/utils/TagModal';
+import ConfirmDialog from '@/utils/ConfirmDialog';
 
 export default function AlbumsPage() {
     const [albumData, setAlbumData] = useState(null);
@@ -20,6 +22,8 @@ export default function AlbumsPage() {
     const { setIsAllItemsDeselected } = useContext(SelectedItemsContext);
     const { data: session } = useSession();
     const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+    const [isTagModalOpen, setIsTagModalOpen] = useState(false);
+    const [tagInput, setTagInput] = useState('');
 
     useEffect(() => {
         const fetchData = async () => {
@@ -151,40 +155,43 @@ export default function AlbumsPage() {
         setIsAllItemsDeselected(true);
     };
 
-    const ConfirmDialog = ({ isOpen, onConfirm, onCancel }) => {
-        if (!isOpen) {
-            return null;
+    const handleTagSubmit = async () => {
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.accessToken}`,
+        };
+
+        const data = {
+            image_ids: selectedImageIds ? selectedImageIds : [],
+            album_ids: selectedAlbumIds ? selectedAlbumIds : [],
+            tags: tagInput.split(',').map(tag => tag.trim()),
+        };
+
+        try {
+            const response = await axios.post('http://localhost:8000/add-tags-to-selected', data, { headers });
+            console.log(response.data);
+        } catch (error) {
+            console.error("Failed to add tags: ", error);
         }
 
-        return (
-            <div className="fixed z-10 inset-0 overflow-y-auto">
-                <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                    <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-                        <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-                    </div>
-                    <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                    <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                        <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                            <div className="sm:flex sm:items-start">
-                                <div className="mt-3 text-center sm:mt-0 sm:text-center">
-                                    <h3 className="text-lg leading-6 font-medium text-gray-900 text-center" id="modal-title">
-                                        Are you sure you want to delete the selected items?
-                                    </h3>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                            <button type="button" className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm" onClick={onConfirm}>
-                                Delete
-                            </button>
-                            <button type="button" className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm" onClick={onCancel}>
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
+        setTagInput('');
+        setIsTagModalOpen(false);
+        setSelectedImageIds([]);
+        setSelectedAlbumIds([]);
+        setIsAllItemsDeselected(true);
+    };
+
+    const handleAddTags = () => {
+        setIsTagModalOpen(true);
+    };
+
+    const handleTagModalCancel = () => {
+        setTagInput('');
+        setIsTagModalOpen(false);
+    };
+
+    const handleTagInputChange = (e) => {
+        setTagInput(e.target.value);
     };
 
     if (!albumData || (!albumData.sons.length && !albumData.images.length)) {
@@ -206,18 +213,23 @@ export default function AlbumsPage() {
                 </div>
                 <div>
                 </div>
-                <div className="flex space-x-6">
+                <div className="flex space-x-3">
                     {selectedImageIds.length + selectedAlbumIds.length > 0 && (
                         downloadProgress === null ? (
                             <>
-                                {session && (
-                                    <button
-                                        onClick={() => setIsConfirmDialogOpen(true)}
-                                        className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center"
-                                    >
-                                        Delete selected
-                                    </button>
-                                )}
+                            {session && (
+                                <>
+                                <button
+                                    onClick={() => setIsConfirmDialogOpen(true)}
+                                    className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center"
+                                >
+                                    Delete selected
+                                </button>
+                                <button onClick={handleAddTags} className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center">
+                                    Add tags to selected
+                                </button>
+                                </>
+                        )}
                                 <ConfirmDialog
                                     isOpen={isConfirmDialogOpen}
                                     onConfirm={() => {
@@ -225,6 +237,13 @@ export default function AlbumsPage() {
                                         setIsConfirmDialogOpen(false);
                                     }}
                                     onCancel={() => setIsConfirmDialogOpen(false)}
+                                />
+                                <TagModal
+                                    isOpen={isTagModalOpen}
+                                    onSubmit={handleTagSubmit}
+                                    onCancel={handleTagModalCancel}
+                                    tagInput={tagInput}
+                                    handleTagInputChange={handleTagInputChange}
                                 />
                                 <button
                                     onClick={handleDownload}
@@ -241,7 +260,7 @@ export default function AlbumsPage() {
                         )
                     )}
                     {session && (
-                        <div className="flex space-x-6">
+                        <div className="flex space-x-3">
                             <Link href={`/gallery/upload/galeria_pk`} passHref>
                                 <button className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
                                     <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
