@@ -89,55 +89,54 @@ async def create_album(album_name, parent_id):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def add_tags(tags, inserted_id):
-    inserted_id = to_object_id(inserted_id)
-    if not inserted_id:
-        return False
+async def add_tags_to_images(tags, inserted_ids):
+    for inserted_id in inserted_ids:
+        inserted_id = to_object_id(inserted_id)
+        if not inserted_id:
+            continue
 
-    if not tags:
-        return False
+        if not tags:
+            return False
 
-    try:
-        tags = [tag for tag in tags if tag != '']
+        try:
+            tags = [tag for tag in tags if tag != '']
 
-        bulk_operations = [UpdateOne({'_id': inserted_id}, {'$addToSet': {'user_tags': tag}}) for tag in tags]
-        await async_images_collection.bulk_write(bulk_operations)
+            bulk_operations = [UpdateOne({'_id': inserted_id}, {'$addToSet': {'user_tags': tag}}) for tag in tags]
+            await async_images_collection.bulk_write(bulk_operations)
 
-        for tag in tags:
-            if not await async_tags_collection.find_one({'name': tag}):
-                await async_tags_collection.insert_one({"name": tag, "count": 1})
-            else:
-                await async_tags_collection.update_one({"name": tag}, {"$inc": {"count": 1}}, upsert=True)
+            for tag in tags:
+                if not await async_tags_collection.find_one({'name': tag}):
+                    await async_tags_collection.insert_one({"name": tag, "count": 1})
+                else:
+                    await async_tags_collection.update_one({"name": tag}, {"$inc": {"count": 1}}, upsert=True)
 
-        return True
-    except Exception as e:
-        logger.error(f"Error adding tags: {e}")
-        return False
+        except Exception as e:
+            logger.error(f"Error adding tags to image {inserted_id}: {e}")
+            continue
+
+    return True
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def add_tags_to_album(tags, album_id):
-    album_id = to_object_id(album_id)
-    if not album_id:
-        return False
+async def add_tags_to_albums(tags, album_ids):
+    for album_id in album_ids:
+        try:
+            album = await get_album(album_id)
+            if not album:
+                continue
 
-    try:
-        album = await get_album(album_id)
-        if not album:
-            return False
+            image_ids = album.get('images', [])
+            await add_tags_to_images(tags, image_ids)
 
-        image_ids = album['images']
-        for image_id in image_ids:
-            await add_tags(tags, image_id)
+            sub_album_ids = album.get('sons', [])
+            if sub_album_ids:
+                await add_tags_to_albums(sub_album_ids, tags)
 
-        sub_album_ids = album['sons']
-        for sub_album_id in sub_album_ids:
-            await add_tags_to_album(tags, sub_album_id)
+        except Exception as e:
+            logger.error(f"Error while adding tags to albums: {e}")
+            continue
 
-        return True
-    except Exception as e:
-        logger.error(f"Error while adding tags to album: {e}")
-        return False
+    return True
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))

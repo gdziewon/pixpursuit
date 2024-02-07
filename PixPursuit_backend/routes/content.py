@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from config.logging_config import setup_logging
-from databases.database_tools import add_tags, add_feedback, add_description, add_like, add_view, remove_tags_from_image, add_tags_to_album
+from databases.database_tools import add_tags_to_images, add_feedback, add_description, add_like, add_view, remove_tags_from_image, add_tags_to_albums
 from databases.face_operations import add_names
 from authentication.auth import get_current_user, User
 from tag_prediction.tag_prediction_tools import training_init
-from schemas.content_schema import TagData, FeedbackData, DescriptionData, LikeData, ViewData, RemovingTagsData, FaceData, AlbumTagsData
+from schemas.content_schema import TagData, FeedbackData, DescriptionData, LikeData, ViewData, RemovingTagsData, FaceData, SelectedTagsData
 
 router = APIRouter()
 logger = setup_logging(__name__)
@@ -16,7 +16,7 @@ async def add_user_tag_api(data: TagData, current_user: User = Depends(get_curre
 
     inserted_id = data.inserted_id
     tags = data.tags
-    success = await add_tags(tags, inserted_id)
+    success = await add_tags_to_images(tags, [inserted_id])
     if not success:
         logger.error("/add-user-tag - Failed to add tags")
         raise HTTPException(status_code=500, detail="Failed to add tags")
@@ -26,18 +26,24 @@ async def add_user_tag_api(data: TagData, current_user: User = Depends(get_curre
     return {"message": "Tags added successfully"}
 
 
-@router.post("/add-tags-to-album")
-async def add_tags_to_album_api(data: AlbumTagsData, current_user: User = Depends(get_current_user)):
-    logger.info(f"/add-tags-to-album - Endpoint accessed by user: {current_user['username']}")
+@router.post("/add-tags-to-selected")
+async def add_tags_to_album_api(data: SelectedTagsData, current_user: User = Depends(get_current_user)):
+    logger.info(f"/add-tags-to-selected - Endpoint accessed by user: {current_user['username']}")
 
-    album_id = data.album_id
+    image_ids = data.image_ids
+    album_ids = data.album_ids
     tags = data.tags
-    success = await add_tags_to_album(tags, album_id)
-    if not success:
-        logger.error("/add-tags-to-album - Failed to add tags to album")
-        raise HTTPException(status_code=500, detail="Failed to add tags to album")
+    if not image_ids and not album_ids:
+        logger.warning("/add-tags-to-selected - No image IDs or album IDs provided")
+        raise HTTPException(status_code=400, detail="No image IDs or album IDs provided")
 
-    logger.info(f"/add-tags-to-album - Successfully added tags to album: {album_id}")
+    success = await add_tags_to_images(tags, image_ids) and await add_tags_to_albums(tags, album_ids)
+
+    if not success:
+        logger.error("/add-tags-to-selected - Failed to add tags to selected items")
+        raise HTTPException(status_code=500, detail="Failed to add tags to selected items")
+
+    logger.info(f"/add-tags-to-selected - Successfully added tags to selected items")
     return {"message": "Tags added to album successfully"}
 
 
