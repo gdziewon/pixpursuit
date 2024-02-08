@@ -369,6 +369,7 @@ export default function ImagePage({ params }) {
 
 
 
+
   if (!image) {
     return <Loading />;
   }

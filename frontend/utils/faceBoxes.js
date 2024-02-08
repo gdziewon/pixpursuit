@@ -1,6 +1,6 @@
 import axios from "axios";
 import Image from "next/image";
-import {useState} from "react";
+import { useState, useEffect, useRef } from "react";
 
 export const BoxOverlay = ({image, boxes, originalSize, session}) => {
     const displayWidth = 800;  // Adjust as needed
@@ -11,9 +11,30 @@ export const BoxOverlay = ({image, boxes, originalSize, session}) => {
     const [isMouseOver, setIsMouseOver] = useState(false);
     const isLoggedIn = session && session.accessToken;
 
-    const scaleX = originalSize.width ? displayWidth / originalSize.width : 1;
-    const scaleY = originalSize.height ? displayHeight / originalSize.height : 1;
-    const scale = Math.min(scaleX, scaleY) * (0.47 * (originalSize.height / originalSize.width) + 0.42);
+    const overlayRef = useRef(null); // Ref for the BoxOverlay component itself
+    const [scaleX, setScaleX] = useState(1);
+
+    useEffect(() => {
+        const updateScale = () => {
+            if (overlayRef.current) {
+                // Assuming the BoxOverlay component's width matches its container's width
+                const width = overlayRef.current.offsetWidth;
+                const newScaleX = width / originalSize.width;
+                setScaleX(newScaleX);
+            }
+        };
+
+        updateScale(); // Update scale on mount
+
+        // Optionally, update on window resize if the layout is responsive
+        window.addEventListener('resize', updateScale);
+
+        return () => {
+            window.removeEventListener('resize', updateScale);
+        };
+    }, [originalSize.width]); // Recalculate when originalSize.width changes
+
+
 
     const handleBoxClick = (index, e) => {
         e.stopPropagation();  // Prevents event bubbling up
@@ -66,7 +87,7 @@ export const BoxOverlay = ({image, boxes, originalSize, session}) => {
     };
 
     return (
-        <div style={{ position: 'relative' }}
+        <div ref={overlayRef} style={{ position: 'relative' }}
              onMouseEnter={() => setIsMouseOver(true)}
              onMouseLeave={() => setIsMouseOver(false)}>
             <Image
@@ -84,10 +105,10 @@ export const BoxOverlay = ({image, boxes, originalSize, session}) => {
                         style={{
                             position: 'absolute',
                             border: '2px solid red',
-                            left: `${box[0] * scale}px`,
-                            top: `${box[1] * scale}px`,
-                            width: `${(box[2] - box[0]) * scale}px`,
-                            height: `${(box[3] - box[1]) * scale}px`,
+                            left: `${box[0] * scaleX}px`,
+                            top: `${box[1] * scaleX}px`,
+                            width: `${(box[2] - box[0]) * scaleX}px`,
+                            height: `${(box[3] - box[1]) * scaleX}px`,
                             cursor: 'pointer',
                         }}
                         onClick={(e) => handleBoxClick(index, e)}
