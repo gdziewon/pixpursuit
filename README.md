@@ -109,6 +109,8 @@ Built with FastAPI, Celery and MongoDB.
 - **user_faces**: Faces added by the user.
 - **auto_tags**: Tags added automatically by the TagPredictor model.
 - **auto_faces**: Faces added automatically based on embeddings.
+- **backlog_faces**: Faces added automatically based on embeddings and whether the face is recognized.
+- **unknown_faces**: The number of differences between user_faces and backlog_faces.
 - **feedback**: Feedback history for auto_tags.
 - **feedback_history**: User's feedback history regarding specific tags.
 - **description**: Description of the image added by the user.
