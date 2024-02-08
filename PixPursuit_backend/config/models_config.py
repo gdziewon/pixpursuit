@@ -32,9 +32,9 @@ def activate_object_models():
     return model
 
 
-def activate_face_models():
+def activate_face_models(thresholds=[0.6, 0.7, 0.7]):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    mtcnn = MTCNN(keep_all=True, device=device)
+    mtcnn = MTCNN(keep_all=True, thresholds=thresholds, device=device)
     resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
     logger.info("Activated pretrained FaceNet model")
     return device, mtcnn, resnet
