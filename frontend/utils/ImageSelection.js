@@ -7,14 +7,13 @@ import { CheckCircleIcon, PlusCircleIcon } from '@heroicons/react/24/solid';
 import {SelectedItemsContext} from '/utils/SelectedItemsContext';
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
-import TagModal from './TagModal';
+import RenameModal from './RenameModal';
 
 const ImageSelection = ({ item, isAlbum }) => {
     const [isSelected, setIsSelected] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
-    const [isAddTagsButtonVisible, setIsAddTagsButtonVisible] = useState(false);
-    const [isTagModalOpen, setIsTagModalOpen] = useState(false);
-    const [tagInput, setTagInput] = useState('');
+    const [isRenameButtonVisible, setIsRenameButtonVisible] = useState(false);
+    const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
     const [albumName, setAlbumName] = useState(item.name);
     const { selectedItems, selectItem, deselectItem } = useContext(SelectedItemsContext);
     const { isAllItemsDeselected, setIsAllItemsDeselected } = useContext(SelectedItemsContext);
@@ -30,13 +29,13 @@ const ImageSelection = ({ item, isAlbum }) => {
     const handleMouseEnter = () => {
         setIsHovered(true);
         if (isAlbum && session) {
-            setIsAddTagsButtonVisible(true);
+            setIsRenameButtonVisible(true);
         }
     };
 
     const handleMouseLeave = () => {
         setIsHovered(false);
-        setIsAddTagsButtonVisible(false);
+        setIsRenameButtonVisible(false);
     };
 
     const handleClick = (e) => {
@@ -47,27 +46,21 @@ const ImageSelection = ({ item, isAlbum }) => {
             } else {
                 selectItem(item._id.toString(), isAlbum);
             }
-            console.log('item._id:', item._id);
             return !prevSelected;
         });
     };
 
-    const handleTagButtonClick = () => {
-        setIsTagModalOpen(true);
+    const handleRenameButtonClick = () => {
+        setIsRenameModalOpen(true);
     };
 
-    const handleTagSubmit = async (e) => {
+    const handleRenameSubmit = async (e) => {
         e.preventDefault();
-        const tags = tagInput.split(',').map(tag => tag.trim());
         const albumId = item._id;
         const headers = {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${session.accessToken}`,
         };
-        if (tags.length !== 0) {
-            const response = await axios.post('http://localhost:8000/add-tags-to-album', { album_id: albumId, tags: tags }, { headers });
-            console.log(response.data);
-        }
 
         if (albumName !== item.name && albumName !== '') {
             try {
@@ -77,9 +70,8 @@ const ImageSelection = ({ item, isAlbum }) => {
                 console.error("Failed to rename album: ", error);
             }
         }
-        setTagInput('');
         setAlbumName(item.name);
-        setIsTagModalOpen(false);
+        setIsRenameModalOpen(false);
 
 
     };
@@ -88,9 +80,6 @@ const ImageSelection = ({ item, isAlbum }) => {
         setAlbumName(e.target.value);
     };
 
-    const handleTagInputChange = (e) => {
-        setTagInput(e.target.value);
-    };
 
     return (
         <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} className="relative">
@@ -117,13 +106,13 @@ const ImageSelection = ({ item, isAlbum }) => {
                 </button>
             )}
 
-            {isAddTagsButtonVisible && (
-                <button onClick={handleTagButtonClick} className="absolute top-0 left-0 p-1 bg-blue-500 text-white rounded text-xs">
-                    Edit album
+            {isRenameButtonVisible && (
+                <button onClick={handleRenameButtonClick} className="absolute top-0 left-0 p-1 bg-blue-500 text-white rounded text-xs">
+                    Rename album
                 </button>
             )}
 
-            <TagModal isOpen={isTagModalOpen} onSubmit={handleTagSubmit} onCancel={() => setIsTagModalOpen(false)} tagInput={tagInput} handleTagInputChange={handleTagInputChange} handleNameAlbumChange={handleNameAlbumChange} albumName={albumName} />
+            <RenameModal isOpen={isRenameModalOpen} onSubmit={handleRenameSubmit} onCancel={() => setIsRenameModalOpen(false)} handleNameAlbumChange={handleNameAlbumChange} albumName={albumName} />
         </div>
     );
 };

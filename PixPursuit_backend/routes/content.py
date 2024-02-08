@@ -27,7 +27,7 @@ async def add_user_tag_api(data: TagData, current_user: User = Depends(get_curre
 
 
 @router.post("/add-tags-to-selected")
-async def add_tags_to_album_api(data: SelectedTagsData, current_user: User = Depends(get_current_user)):
+async def add_tags_to_selected_api(data: SelectedTagsData, current_user: User = Depends(get_current_user)):
     logger.info(f"/add-tags-to-selected - Endpoint accessed by user: {current_user['username']}")
 
     image_ids = data.image_ids
@@ -44,7 +44,7 @@ async def add_tags_to_album_api(data: SelectedTagsData, current_user: User = Dep
         raise HTTPException(status_code=500, detail="Failed to add tags to selected items")
 
     logger.info(f"/add-tags-to-selected - Successfully added tags to selected items")
-    return {"message": "Tags added to album successfully"}
+    return {"message": "Tags added to selected items successfully"}
 
 
 @router.post("/feedback-on-tags")

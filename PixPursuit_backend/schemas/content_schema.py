@@ -8,8 +8,8 @@ class TagData(BaseModel):
 
 
 class SelectedTagsData(BaseModel):
-    image_ids: Optional[str] = None
-    album_ids: Optional[str] = None
+    album_ids: Optional[List[str]] = []
+    image_ids: Optional[List[str]] = []
     tags: List[str]
 
 

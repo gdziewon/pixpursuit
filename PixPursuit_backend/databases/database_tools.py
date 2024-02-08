@@ -130,7 +130,7 @@ async def add_tags_to_albums(tags, album_ids):
 
             sub_album_ids = album.get('sons', [])
             if sub_album_ids:
-                await add_tags_to_albums(sub_album_ids, tags)
+                await add_tags_to_albums(tags, sub_album_ids)
 
         except Exception as e:
             logger.error(f"Error while adding tags to albums: {e}")

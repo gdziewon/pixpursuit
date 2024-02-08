@@ -2,7 +2,8 @@
 
 import React from 'react';
 
-const TagModal = ({ isOpen, onSubmit, onCancel, tagInput, handleTagInputChange }) => {
+const RenameModal = ({ isOpen, onSubmit, onCancel, handleNameAlbumChange, albumName }) => {
+
     if (!isOpen) {
         return null;
     }
@@ -19,16 +20,16 @@ const TagModal = ({ isOpen, onSubmit, onCancel, tagInput, handleTagInputChange }
                         <div className="sm:flex sm:items-start">
                             <div className="mt-3 text-center sm:mt-0 sm:text-left">
                                 <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                                    Tags to add:
+                                    Edit name:
                                 </h3>
                                 <div className="mt-2">
                                     <input
-                                        value={tagInput}
-                                        onChange={handleTagInputChange}
+                                        value={albumName}
+                                        onChange={handleNameAlbumChange}
                                         type="text"
                                         style={{width: '400px'}}
-                                        className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block sm:text-sm border-gray-300 rounded-md text-black text-lg"
-                                        placeholder="Enter tags, separated by commas"
+                                        className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block sm:text-sm border-gray-300 rounded-md text-black text-lg mt-4"
+                                        placeholder="Enter new album name"
                                     />
                                 </div>
                             </div>
@@ -36,10 +37,13 @@ const TagModal = ({ isOpen, onSubmit, onCancel, tagInput, handleTagInputChange }
                     </div>
                     <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                         <button type="button"
-                                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm" onClick={onSubmit}>
+                                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                                onClick={onSubmit}>
                             Accept
                         </button>
-                        <button type="button" className="mt-3 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:mt-0 sm:w-auto sm:text-sm" onClick={onCancel}>
+                        <button type="button"
+                                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:mt-0 sm:w-auto sm:text-sm"
+                                onClick={onCancel}>
                             Cancel
                         </button>
                     </div>
@@ -49,4 +53,4 @@ const TagModal = ({ isOpen, onSubmit, onCancel, tagInput, handleTagInputChange }
     );
 };
 
-export default TagModal;
+export default RenameModal;
