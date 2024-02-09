@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from config.logging_config import setup_logging
 from bson.objectid import ObjectId
+from utils.constants import WEIGHTS
 
 logger = setup_logging(__name__)
 tfidf_vectorizer = TfidfVectorizer()
@@ -16,18 +17,6 @@ async def find_similar_images(image_id, limit=20):
         logger.warning(f"No input image found for image ID: {image_id}")
         return []
 
-    weights = {
-        'features': 0.4,
-        'user_tags': 0.2,
-        'user_faces': 0.15,
-        'description': 0.1,
-        'album_id': 0.05,
-        'auto_faces': 0.04,
-        'auto_tags': 0.03,
-        'detected_objects': 0.02,
-        'added_by': 0.01
-    }
-
     cursor = images_collection.find({'_id': {'$ne': ObjectId(image_id)}}, {
         'features': 1, 'user_tags': 1, 'user_faces': 1, 'description': 1,
         'album_id': 1, 'auto_faces': 1, 'auto_tags': 1, 'detected_objects': 1,
@@ -38,15 +27,15 @@ async def find_similar_images(image_id, limit=20):
         similarities = []
         async for img in cursor:
             score = 0
-            score += weights['features'] * await feature_similarity(input_image['features'], img['features'])
-            score += weights['user_tags'] * await jaccard_similarity(input_image['user_tags'], img['user_tags'])
-            score += weights['user_faces'] * await face_similarity(input_image['user_faces'], img['user_faces'])
-            score += weights['description'] * await description_similarity(input_image['description'], img['description'])
-            score += weights['album_id'] * await album_similarity(input_image['album_id'], img['album_id'])
-            score += weights['auto_faces'] * await face_similarity(input_image['auto_faces'], img['auto_faces'])
-            score += weights['auto_tags'] * await jaccard_similarity(input_image['auto_tags'], img['auto_tags'])
-            score += weights['detected_objects'] * await jaccard_similarity(input_image['detected_objects'], img['detected_objects'])
-            score += weights['added_by'] * await added_by_similarity(input_image['added_by'], img['added_by'])
+            score += WEIGHTS['features'] * await feature_similarity(input_image['features'], img['features'])
+            score += WEIGHTS['user_tags'] * await jaccard_similarity(input_image['user_tags'], img['user_tags'])
+            score += WEIGHTS['user_faces'] * await face_similarity(input_image['user_faces'], img['user_faces'])
+            score += WEIGHTS['description'] * await description_similarity(input_image['description'], img['description'])
+            score += WEIGHTS['album_id'] * await album_similarity(input_image['album_id'], img['album_id'])
+            score += WEIGHTS['auto_faces'] * await face_similarity(input_image['auto_faces'], img['auto_faces'])
+            score += WEIGHTS['auto_tags'] * await jaccard_similarity(input_image['auto_tags'], img['auto_tags'])
+            score += WEIGHTS['detected_objects'] * await jaccard_similarity(input_image['detected_objects'], img['detected_objects'])
+            score += WEIGHTS['added_by'] * await added_by_similarity(input_image['added_by'], img['added_by'])
 
             similarities.append({'_id': str(img['_id']), 'thumbnail_url': img['thumbnail_url'], 'score': score})
     except Exception as e:

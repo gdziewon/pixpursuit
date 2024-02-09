@@ -3,11 +3,12 @@ from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Form
 from config.logging_config import setup_logging
 from utils.image_similarity import find_similar_images
 from databases.database_tools import get_album, delete_images, relocate_to_album
-from authentication.auth import get_current_user, User
+from authentication.auth import get_current_user
 from data_extraction.image_processing import process_and_save_images
 from schemas.images_schema import DeleteImagesData, RelocateImagesData, SimilarImagesData, ScrapeImagesData
 from utils.image_scraper import scrape_and_save_images
 from utils.function_utils import is_allowed_url
+from schemas.auth_schema import User
 
 router = APIRouter()
 logger = setup_logging(__name__)

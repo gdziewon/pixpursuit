@@ -6,13 +6,9 @@ from celery import shared_task
 from tag_prediction.tag_prediction_model import TagPredictor
 from databases.database_tools import get_image_document
 from databases.celery_database_tools import get_image_document_sync, get_unique_tags, add_auto_tags, get_image_ids_paginated
-from utils.function_utils import get_generated_dir_path
+from utils.constants import POSITIVE_THRESHOLD, LEARNING_RATE, MODEL_FILE_PATH
 
 logger = setup_logging(__name__)
-
-MODEL_FILE_PATH = os.path.join(get_generated_dir_path(), 'tag_predictor_state.pth')
-LEARNING_RATE = float(os.getenv('LEARNING_RATE', '0.001'))
-POSITIVE_THRESHOLD = 3
 
 
 def save_model_state(model, file_path=MODEL_FILE_PATH):
@@ -111,7 +107,7 @@ def train_model(features, tag_vector):
         if features_tensor.ndim == 1:
             features_tensor = features_tensor.unsqueeze(0)
 
-        target = torch.tensor([tag_vector] if features_tensor.ndim == 1 else tag_vector, dtype=torch.float32)
+        target = torch.tensor([tag_vector] * tag_predictor.num_tags, dtype=torch.float32)
         if features_tensor.size(0) != target.size(0):
             target = target.unsqueeze(0)
 

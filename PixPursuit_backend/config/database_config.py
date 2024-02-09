@@ -2,20 +2,16 @@ import motor.motor_asyncio
 import time
 from config.logging_config import setup_logging
 import boto3
-import os
 from pymongo.mongo_client import MongoClient
-from dotenv import load_dotenv
+from utils.constants import MONGODB_URI, DO_REGION, DO_SPACE_ENDPOINT, DO_SPACE_ACCESS_KEY, DO_SPACE_SECRET_KEY
 
 logger = setup_logging(__name__)
-load_dotenv()
-
-URI = os.getenv('MONGODB_URI')
 
 
 def connect_to_mongodb_async(attempts=5, delay=3):
     for attempt in range(attempts):
         try:
-            client = motor.motor_asyncio.AsyncIOMotorClient(URI)
+            client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)
             collections = get_collections(client)
             logger.info("Successfully connected to MongoDB server - async mode")
             return collections
@@ -32,7 +28,7 @@ def connect_to_mongodb_async(attempts=5, delay=3):
 def connect_to_mongodb_sync(attempts=5, delay=3):
     for attempt in range(attempts):
         try:
-            client = MongoClient(URI)
+            client = MongoClient(MONGODB_URI)
             collections = get_collections(client)
             logger.info("Successfully connected to MongoDB server - sync mode")
             return collections
@@ -63,10 +59,10 @@ def connect_to_space():
     try:
         session = boto3.session.Session()
         client = session.client('s3',
-                                region_name='ams3',
-                                endpoint_url=os.getenv('DO_SPACE_ENDPOINT'),
-                                aws_access_key_id=os.getenv('DO_SPACE_ACCESS_KEY'),
-                                aws_secret_access_key=os.getenv('DO_SPACE_SECRET_KEY'))
+                                region_name=DO_REGION,
+                                endpoint_url=DO_SPACE_ENDPOINT,
+                                aws_access_key_id=DO_SPACE_ACCESS_KEY,
+                                aws_secret_access_key=DO_SPACE_SECRET_KEY)
     except Exception as e:
         logger.error(f"Failed to connect to Digital Ocean Space: {e}")
         return None

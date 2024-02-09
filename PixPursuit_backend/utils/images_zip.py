@@ -7,6 +7,7 @@ from config.logging_config import setup_logging
 from utils.function_utils import is_allowed_file
 from fastapi import UploadFile
 from data_extraction.image_processing import process_and_save_images
+from utils.constants import BUCKET_NAME
 
 logger = setup_logging(__name__)
 
@@ -39,9 +40,12 @@ async def add_album_to_zip(album, zipf, path, depth=0, max_depth=5):
 
 
 async def add_image_to_zip(image, zipf, path):
-    response = space_client.get_object(Bucket='pixpursuit', Key=image['filename'])
-    file_content = response['Body'].read()
-    zipf.writestr(os.path.join(path, image['filename']), file_content)
+    try:
+        response = space_client.get_object(Bucket=BUCKET_NAME, Key=image['filename'])
+        file_content = response['Body'].read()
+        zipf.writestr(os.path.join(path, image['filename']), file_content)
+    except Exception as e:
+        logger.error(f"Failed to add image: {image['filename']} to zip - {e}")
 
 
 async def process_folder(path, username, parent_id=None):

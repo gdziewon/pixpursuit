@@ -2,8 +2,8 @@ from typing import List, Tuple
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from config.logging_config import setup_logging
-
-from authentication.auth import get_current_user, User
+from schemas.auth_schema import User
+from authentication.auth import get_current_user
 from databases.sharepoint_client import SharePointClient
 
 router = APIRouter()
@@ -11,6 +11,7 @@ logger = setup_logging(__name__)
 sharepoint_client = SharePointClient()
 
 
+# TODO: Implement SharePoint endpoints, maybe???
 class CopyAlbumToSharePointData(BaseModel):
     album_id: str
     folder_name: str

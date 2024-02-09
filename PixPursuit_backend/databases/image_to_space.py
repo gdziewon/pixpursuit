@@ -5,11 +5,10 @@ from datetime import datetime
 import uuid
 from config.database_config import connect_to_space
 from config.logging_config import setup_logging
+from utils.constants import BUCKET_NAME, IMAGE_URL_PREFIX
 
 logger = setup_logging(__name__)
-
 space_client = connect_to_space()
-space_name = 'pixpursuit'
 
 
 def generate_filename(extension):
@@ -26,8 +25,8 @@ def get_content_type(image):
 
 
 def put_into_space(image_byte_arr, filename, content_type):
-    space_client.put_object(Bucket=space_name, Key=filename, Body=image_byte_arr, ContentType=content_type, ACL='public-read')
-    image_url = f'https://{space_name}.ams3.digitaloceanspaces.com/pixpursuit/{filename}'
+    space_client.put_object(Bucket=BUCKET_NAME, Key=filename, Body=image_byte_arr, ContentType=content_type, ACL='public-read')
+    image_url = f'{IMAGE_URL_PREFIX}{filename}'
     return image_url
 
 
@@ -58,7 +57,7 @@ async def save_image_to_space(image: Image):
 async def delete_image_from_space(file_url: str):
     try:
         filename = file_url.split('/')[-1]
-        space_client.delete_object(Bucket=space_name, Key=filename)
+        space_client.delete_object(Bucket=BUCKET_NAME, Key=filename)
         logger.info(f"Deleted {file_url} from DigitalOcean space")
     except Exception as e:
         logger.error(f"Error deleting from DigitalOcean space: {e}")

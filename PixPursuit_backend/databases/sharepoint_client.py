@@ -3,6 +3,7 @@ from databases.database_tools import get_image_document, save_image_to_database,
 import requests
 
 
+# TODO: Implement the SharePointClient class, maybe?
 class SharePointClient:
     def __init__(self):
         self.logger = setup_logging(__name__)

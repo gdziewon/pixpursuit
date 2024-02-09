@@ -1,21 +1,21 @@
 from celery import Celery
 from celery.schedules import crontab
-import os
-from utils.function_utils import get_generated_dir_path
+from utils.constants import (CELERY_BROKER_URL, CELERY_RESULT_BACKEND,
+                             UPDATE_AUTO_TAGS_SCHEDULE, CLUSTER_FACES_SCHEDULE, BEAT_SCHEDULE_FILE_PATH)
 
 
 def make_celery(app_name=__name__):
     celery_app = Celery(app_name,
-                        broker='redis://localhost:6379/0',
-                        backend='redis://localhost:6379/0')
+                        broker=CELERY_BROKER_URL,
+                        backend=CELERY_RESULT_BACKEND)
     celery_app.conf.beat_schedule = {
         'update-auto-tags-every-15-min': {
             'task': 'tag_prediction_tools.update_all_auto_tags',
-            'schedule': crontab(minute='*/15')
+            'schedule': crontab(minute=UPDATE_AUTO_TAGS_SCHEDULE)
         },
         'cluster-faces-every-5-min': {
             'task': 'face_operations.group_faces',
-            'schedule': crontab(minute='*/5'),
+            'schedule': crontab(minute=CLUSTER_FACES_SCHEDULE),
         },
     }
     celery_app.conf.timezone = 'CET'
@@ -23,8 +23,7 @@ def make_celery(app_name=__name__):
     celery_app.conf.task_routes = {
         '*.*': {'queue': 'main_queue'},
     }
-    beat_file_path = os.path.join(get_generated_dir_path(), 'celerybeat-schedule')
-    celery_app.conf.beat_schedule_filename = beat_file_path
+    celery_app.conf.beat_schedule_filename = BEAT_SCHEDULE_FILE_PATH
 
     return celery_app
 

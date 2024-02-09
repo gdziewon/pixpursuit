@@ -2,7 +2,7 @@ from io import BytesIO
 from bs4 import BeautifulSoup
 from config.logging_config import setup_logging
 import os
-from utils.function_utils import get_tmp_dir_path
+from utils.dirs import get_tmp_dir_path
 from urllib.parse import urlparse, parse_qs, urljoin
 from databases.database_tools import create_album
 from fastapi import UploadFile
@@ -11,9 +11,9 @@ import shutil
 from fastapi import HTTPException
 import httpx
 import asyncio
+from utils.constants import BASE_URL
 
 logger = setup_logging(__name__)
-BASE_URL = "http://www.galeria.pk.edu.pl"
 
 
 async def get_image_urls(soup):

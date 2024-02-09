@@ -244,6 +244,7 @@ async def add_view(inserted_id):
 async def add_photos_to_album(image_ids, album_id):
     album_id = to_object_id(album_id)
     if not album_id:
+        logger.error(f"Invalid album_id provided: {album_id}")
         return False
 
     if not isinstance(image_ids, list):
@@ -431,6 +432,28 @@ async def get_root_id():
 async def get_user(username: str):
     user = await user_collection.find_one({"username": username})
     return user
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
+async def create_user(email, password):
+    email = email.lower()
+    username = email.removesuffix("@pk.edu.pl")
+    user = await get_user(username)
+    if user:
+        return None
+    try:
+        user = {
+            "username": username,
+            "password": password,
+            "email": email,
+            "verified": False,
+            "liked": []
+        }
+        result = await user_collection.insert_one(user)
+        return result.inserted_id
+    except Exception as e:
+        logger.error(f"Error creating user: {e}")
+        return None
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))

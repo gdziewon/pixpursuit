@@ -1,5 +1,6 @@
 import asyncio
 from PIL.ExifTags import TAGS
+from utils.constants import METADATA_KEYS
 
 
 def get_exif_data(image):
@@ -7,7 +8,7 @@ def get_exif_data(image):
     formatted_exif_data = {}
 
     if exif_data:
-        for key in ['ImageWidth', 'ImageLength', 'DateTime']:
+        for key in METADATA_KEYS:
             tag = next((t for t, v in TAGS.items() if v == key), None)
             if tag and tag in exif_data:
                 value = exif_data[tag]

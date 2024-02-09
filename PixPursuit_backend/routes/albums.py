@@ -4,12 +4,13 @@ from zipfile import ZipFile
 from fastapi import APIRouter, Depends, HTTPException, Form
 from config.logging_config import setup_logging
 from databases.database_tools import create_album, get_album, add_photos_to_album, delete_albums, rename_album
-from authentication.auth import get_current_user, User
+from authentication.auth import get_current_user
 from schemas.albums_schema import CreateAlbumData, AddPhotosToAlbumData, DeleteAlbumsData, RenameAlbumData
 from fastapi import UploadFile, File
 from typing import Optional
-from utils.function_utils import get_tmp_dir_path
+from utils.dirs import get_tmp_dir_path
 from utils.images_zip import process_folder
+from schemas.auth_schema import User
 
 router = APIRouter()
 logger = setup_logging(__name__)
