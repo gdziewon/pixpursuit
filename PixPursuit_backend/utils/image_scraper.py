@@ -11,25 +11,27 @@ import shutil
 from fastapi import HTTPException
 import httpx
 import asyncio
-import re
 
 logger = setup_logging(__name__)
+BASE_URL = "http://www.galeria.pk.edu.pl"
 
 
-async def get_image_urls(url):
+async def get_image_urls(soup):
+    image_links = soup.find_all('a', attrs={'rel': 'lightbox-album'})
+    full_image_urls = [urljoin(BASE_URL, link['href']) for link in image_links]
+    return full_image_urls
+
+
+async def get_soup(url):
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(url)
             response.raise_for_status()
         except httpx.RequestError as e:
-            logger.error(f"Failed to get image URLs: {e}")
-            raise HTTPException(status_code=500, detail="Failed to get image URLs")
+            logger.error(f"Failed to get soup: {e}")
+            raise HTTPException(status_code=500, detail="Failed to get soup")
 
-    soup = BeautifulSoup(response.text, 'html.parser')
-    image_links = soup.find_all('a', attrs={'rel': 'lightbox-album'})
-    base_url = "http://www.galeria.pk.edu.pl"
-    full_image_urls = [urljoin(base_url, link['href']) for link in image_links]
-    return full_image_urls
+    return BeautifulSoup(response.text, 'html.parser')
 
 
 async def fetch_image(image_url, save_dir, client):
@@ -62,10 +64,10 @@ async def download_images(urls, save_dir):
         await asyncio.gather(*tasks)
 
 
-async def scrape_images(url):
+async def scrape_images(soup):
     save_dir = get_tmp_dir_path()
     try:
-        image_urls = await get_image_urls(url)
+        image_urls = await get_image_urls(soup)
         if not image_urls:
             logger.info("No images found to download.")
             return save_dir
@@ -77,22 +79,20 @@ async def scrape_images(url):
         logger.error(f"Failed to scrape images: {e}")
         raise HTTPException(status_code=500, detail="Failed to scrape images")
     else:
-        logger.info(f"Successfully scraped images from: {url}")
         return save_dir
 
 
-async def get_scraped_album_name(url):
+async def get_scraped_album_name(soup):
+    album_name = None
     try:
-        parsed_url = urlparse(url)
-        query_params = parse_qs(parsed_url.query)
-        album_name = query_params.get('album', [None])[0]
+        full_title = soup.title.string
 
-        if album_name:
-            album_name = re.sub(r'^\d+-', '', album_name)
-            album_name = album_name.replace('-', ' ')
+        parts = full_title.split("»")
+        if len(parts) > 1:
+            album_name = parts[1].strip()
+            album_name = album_name.replace("�", "").strip()
     except Exception as e:
         logger.error(f"Failed to get album name: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get album name")
 
     return album_name
 
@@ -101,10 +101,11 @@ async def scrape_and_save_images(url, user, album_id=None):
     image_files = []
     save_dir = None
     try:
-        save_dir = await scrape_images(url)
-        album_name = await get_scraped_album_name(url)
+        soup = await get_soup(url)
+        save_dir = await scrape_images(soup)
+        album_name = await get_scraped_album_name(soup)
         if album_name is None:
-            raise HTTPException(status_code=404, detail="Album name not found in URL")
+            raise HTTPException(status_code=404, detail="Album name not found in the page title.")
         album_id = await create_album(album_name, album_id)
         image_files = await prepare_image_files(save_dir)
         inserted_ids = await process_and_save_images(image_files, user, album_id)
