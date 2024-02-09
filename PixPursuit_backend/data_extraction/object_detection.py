@@ -1,6 +1,6 @@
 from config.models_config import activate_object_models
 from celery import shared_task
-from databases.database_tools import add_something_to_image
+from databases.celery_database_tools import add_something_to_image
 from io import BytesIO
 from PIL import Image
 

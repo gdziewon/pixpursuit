@@ -1,5 +1,6 @@
 import os
 import uuid
+from bson import ObjectId
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
@@ -29,3 +30,11 @@ def get_tmp_dir_path():
         os.makedirs(tmp_dir)
 
     return tmp_dir
+
+
+def to_object_id(id_str):
+    try:
+        id_obj = ObjectId(id_str)
+        return id_obj
+    except Exception as e:
+        return None

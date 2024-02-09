@@ -1,11 +1,11 @@
 import torch
 import torch.optim as optim
-from bson import ObjectId
 from config.logging_config import setup_logging
 import os
 from celery import shared_task
 from tag_prediction.tag_prediction_model import TagPredictor
-from databases.database_tools import get_image_document, get_image_document_sync, get_unique_tags, add_auto_tags, get_image_ids_paginated
+from databases.database_tools import get_image_document
+from databases.celery_database_tools import get_image_document_sync, get_unique_tags, add_auto_tags, get_image_ids_paginated
 from utils.function_utils import get_generated_dir_path
 
 logger = setup_logging(__name__)
@@ -86,7 +86,6 @@ async def training_init(inserted_id):
             features = image_document['features']
             feedback_tags = image_document.get('feedback', {})
             tags = image_document['user_tags']
-            await update_model_tags()
             tag_vector = tags_to_vector(tags, feedback_tags)
             train_model.delay(features, tag_vector)
             logger.info(f"Training initialized for image: {inserted_id}")
@@ -102,81 +101,77 @@ def predictions_to_tag_names(predictions):
 
 @shared_task(name='tag_prediction_tools.train_model')
 def train_model(features, tag_vector):
-    tag_predictor = load_model_state()
-    if not features:
-        logger.error("Image has no features")
-        return
+    try:
+        tag_predictor = load_model_state()
+        if not features or not tag_vector or not tag_predictor:
+            logger.error("Training aborted due to missing data")
+            return
 
-    if not tag_predictor:
-        logger.error("Model loading failed, training aborted.")
-        return
+        features_tensor = torch.tensor(features, dtype=torch.float32)
+        if features_tensor.ndim == 1:
+            features_tensor = features_tensor.unsqueeze(0)
 
-    logger.info("Model training started")
+        target = torch.tensor([tag_vector] if features_tensor.ndim == 1 else tag_vector, dtype=torch.float32)
+        if features_tensor.size(0) != target.size(0):
+            target = target.unsqueeze(0)
 
-    features_tensor = torch.tensor(features, dtype=torch.float32)
-    if features_tensor.ndim == 1:
-        features_tensor = features_tensor.unsqueeze(0)
+        criterion = torch.nn.BCELoss()
+        optimizer = optim.Adam(tag_predictor.parameters(), lr=LEARNING_RATE)
+        predicted_tags = tag_predictor(features_tensor)
+        loss = criterion(predicted_tags, target)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
-    target = torch.tensor([tag_vector] if features_tensor.ndim == 1 else tag_vector, dtype=torch.float32)
-
-    if features_tensor.size(0) != target.size(0):
-        target = target.unsqueeze(0)
-
-    criterion = torch.nn.BCELoss()
-    optimizer = optim.Adam(tag_predictor.parameters(), lr=LEARNING_RATE)
-
-    predicted_tags = tag_predictor(features_tensor)
-    loss = criterion(predicted_tags, target)
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-
-    save_model_state(tag_predictor)
-    logger.info("Model trained and state saved")
+        save_model_state(tag_predictor)
+        logger.info("Model trained and state saved")
+    except Exception as e:
+        logger.error(f"Error training model: {e}", exc_info=True)
 
 
 @shared_task(name='tag_prediction_tools.predict_and_update_tags')
 def predict_and_update_tags(image_ids):
-    logger.info("Predicting and updating tags")
     tag_predictor = load_model_state()
     if not tag_predictor:
         logger.error("Model loading failed, prediction aborted.")
         return
 
     for image_id in image_ids:
-        image_id_obj = ObjectId(image_id)
-        image_document = get_image_document_sync(image_id)
-        if not image_document:
-            logger.error(f"Couldn't retrieve image document: {image_id}")
+        try:
+            image_document = get_image_document_sync(image_id)
+            if not image_document:
+                logger.error(f"Couldn't retrieve image document: {image_id}")
+                continue
+
+            features = image_document['features']
+            if not features:
+                continue
+
+            features_tensor = torch.tensor(features, dtype=torch.float32)
+            if features_tensor.ndim == 1:
+                features_tensor = features_tensor.unsqueeze(0)
+
+            predicted_indices = tag_predictor.predict_tags(features_tensor)
+            predicted_tags = predictions_to_tag_names(predicted_indices)
+            add_auto_tags(image_id, predicted_tags)
+        except Exception as e:
+            logger.error(f"Error predicting and updating tags for image: {image_id} - {e}", exc_info=True)
             continue
-
-        features = image_document['features']
-        if not features:
-            continue
-
-        features_tensor = torch.tensor(features, dtype=torch.float32)
-        if features_tensor.ndim == 1:
-            features_tensor = features_tensor.unsqueeze(0)
-
-        predicted_indices = tag_predictor.predict_tags(features_tensor)
-        predicted_tags = predictions_to_tag_names(predicted_indices)
-
-        add_auto_tags(image_id_obj, predicted_tags)
 
 
 @shared_task(name='tag_prediction_tools.update_all_auto_tags')
 def update_all_auto_tags():
     try:
         logger.info("Updating all auto tags")
-        page_number = 1
         page_size = 100
+        last_id = None
         while True:
-            image_ids = get_image_ids_paginated(page_number, page_size)
+            image_ids = get_image_ids_paginated(last_id, page_size)
             if not image_ids:
                 break
 
             predict_and_update_tags.delay(image_ids)
 
-            page_number += 1
+            last_id = image_ids[-1]
     except Exception as e:
         logger.error(f"Error in update_all_auto_tags: {e}")

@@ -1,4 +1,4 @@
-from config.database_config import connect_to_mongodb
+from config.database_config import connect_to_mongodb_async
 from config.logging_config import setup_logging
 from bson import ObjectId
 from celery import shared_task
@@ -6,9 +6,11 @@ import asyncio
 import numpy as np
 from sklearn.cluster import DBSCAN
 from databases.database_tools import get_image_document
+from config.database_config import connect_to_mongodb_sync
 
 logger = setup_logging(__name__)
-async_images_collection, _, _, _, sync_faces_collection, async_faces_collection, _, _ = connect_to_mongodb()
+async_images_collection, _, async_faces_collection, _, _ = connect_to_mongodb_async()
+_, _, sync_faces_collection, _, _ = connect_to_mongodb_sync()
 
 
 async def add_names(inserted_id, anonymous_index, new_name):

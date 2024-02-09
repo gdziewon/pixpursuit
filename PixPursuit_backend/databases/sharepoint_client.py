@@ -103,7 +103,7 @@ class SharePointClient:
             if not inserted_ids:
                 return False
 
-            new_album_id = await create_album(folder_name.split('/')[-1], None)
+            new_album_id = await create_album(folder_name.split('/')[-1])
             await add_photos_to_album(inserted_ids, new_album_id)
 
             for nested_folder in folder['Folders']['results']:

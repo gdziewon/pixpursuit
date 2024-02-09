@@ -1,4 +1,4 @@
-from databases.database_tools import get_image_document, async_images_collection, get_root_id
+from databases.database_tools import get_image_document, images_collection, get_root_id
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -28,7 +28,7 @@ async def find_similar_images(image_id, limit=20):
         'added_by': 0.01
     }
 
-    cursor = async_images_collection.find({'_id': {'$ne': ObjectId(image_id)}}, {
+    cursor = images_collection.find({'_id': {'$ne': ObjectId(image_id)}}, {
         'features': 1, 'user_tags': 1, 'user_faces': 1, 'description': 1,
         'album_id': 1, 'auto_faces': 1, 'auto_tags': 1, 'detected_objects': 1,
         'added_by': 1, 'thumbnail_url': 1

@@ -1,28 +1,16 @@
-from config.database_config import connect_to_mongodb
+from config.database_config import connect_to_mongodb_async
 from config.logging_config import setup_logging
-from bson import ObjectId
 from databases.image_to_space import delete_image_from_space
 from pymongo import UpdateOne
 from tenacity import retry, stop_after_attempt, wait_fixed
+from utils.function_utils import to_object_id
 
 logger = setup_logging(__name__)
-async_images_collection, sync_images_collection, async_tags_collection, sync_tags_collection, sync_faces_collection, async_faces_collection, user_collection, album_collection = connect_to_mongodb()
+images_collection, tags_collection, faces_collection, user_collection, album_collection = connect_to_mongodb_async()
 
 
-def to_object_id(id_str):
+async def get_image_record(data, username, album_id):
     try:
-        return ObjectId(id_str)
-    except Exception as e:
-        logger.error(f"Invalid id: {e}")
-        return None
-
-
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def save_image_to_database(data, username, album_id):
-    try:
-        if not album_id:
-            album_id = await get_root_id()
-
         image_url, thumbnail_url, filename, exif_data = data
 
         image_record = {
@@ -49,13 +37,28 @@ async def save_image_to_database(data, username, album_id):
             'added_by': username,
             'album_id': str(album_id)
         }
-        result = await async_images_collection.insert_one(image_record)
+        return image_record
+    except Exception as e:
+        logger.error(f"Error getting image record: {e}")
+        return None
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
+async def save_image_to_database(data, username, album_id):
+    try:
+        if not album_id:
+            album_id = await get_root_id()
+
+        image_record = await get_image_record(data, username, album_id)
+        if not image_record:
+            return None
+
+        result = await images_collection.insert_one(image_record)
         inserted_id = str(result.inserted_id)
-        logger.info(f"Inserted_id in save_to_database: {str(inserted_id)}")
 
         await add_photos_to_album(inserted_id, album_id)
 
-        logger.info(f"Successfully saved data for image: {image_url}")
+        logger.info(f"Successfully saved data for image: {inserted_id}")
         return inserted_id
     except Exception as e:
         logger.error(f"Error saving to database: {e}")
@@ -63,9 +66,13 @@ async def save_image_to_database(data, username, album_id):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def create_album(album_name, parent_id):
+async def create_album(album_name, parent_id=None):
     if not parent_id:
         parent_id = await get_root_id()
+
+    parent_id = to_object_id(parent_id)
+    if parent_id is None:
+        return None
 
     new_album = {
         "name": album_name,
@@ -75,10 +82,6 @@ async def create_album(album_name, parent_id):
     }
     result = await album_collection.insert_one(new_album)
     new_album_id = result.inserted_id
-
-    parent_id = to_object_id(parent_id)
-    if parent_id is None:
-        return None
 
     await album_collection.update_one(
         {"_id": parent_id},
@@ -102,13 +105,9 @@ async def add_tags_to_images(tags, inserted_ids):
             tags = [tag for tag in tags if tag != '']
 
             bulk_operations = [UpdateOne({'_id': inserted_id}, {'$addToSet': {'user_tags': tag}}) for tag in tags]
-            await async_images_collection.bulk_write(bulk_operations)
+            await images_collection.bulk_write(bulk_operations)
 
-            for tag in tags:
-                if not await async_tags_collection.find_one({'name': tag}):
-                    await async_tags_collection.insert_one({"name": tag, "count": 1})
-                else:
-                    await async_tags_collection.update_one({"name": tag}, {"$inc": {"count": 1}}, upsert=True)
+            await increment_tags_count(tags)
 
         except Exception as e:
             logger.error(f"Error adding tags to image {inserted_id}: {e}")
@@ -141,11 +140,8 @@ async def add_tags_to_albums(tags, album_ids):
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def add_feedback(tag, is_positive, user, inserted_id):
-    inserted_id = to_object_id(inserted_id)
-    if not inserted_id:
-        return False
-
     try:
+        inserted_id = to_object_id(inserted_id)
         image_document = await get_image_document(inserted_id)
         if not image_document:
             logger.error(f"No image found with ID: {str(inserted_id)}")
@@ -168,37 +164,12 @@ async def add_feedback(tag, is_positive, user, inserted_id):
         user_feedback_history[tag] = is_positive
         feedback_history[user] = user_feedback_history
 
-        await async_images_collection.update_one(
+        await images_collection.update_one(
             {'_id': inserted_id},
             {'$set': {'feedback': feedback, 'feedback_history': feedback_history}}
         )
 
         logger.info(f"Feedback updated for image: {str(inserted_id)}")
-        return True
-    except Exception as e:
-        logger.error(f"Error updating feedback: {e}")
-        return False
-
-
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def add_feedback_sync(auto_tags, inserted_id):
-    inserted_id = to_object_id(inserted_id)
-    if not inserted_id:
-        return False
-
-    try:
-        image_document = sync_images_collection.find_one({'_id': inserted_id})
-        existing_feedback = image_document.get('feedback', {})
-        for tag in auto_tags:
-            existing_feedback.setdefault(tag, {"positive": 0, "negative": 0})
-
-        existing_feedback = {tag: data for tag, data in existing_feedback.items() if tag in auto_tags}
-
-        sync_images_collection.update_one(
-            {'_id': inserted_id},
-            {'$set': {'feedback': existing_feedback}}
-        )
-
         return True
     except Exception as e:
         logger.error(f"Error updating feedback: {e}")
@@ -212,7 +183,7 @@ async def add_description(description, inserted_id):
         return False
 
     try:
-        update_result = await async_images_collection.update_one(
+        update_result = await images_collection.update_one(
             {'_id': inserted_id},
             {'$set': {'description': description}}
         )
@@ -230,28 +201,22 @@ async def add_like(is_positive, username, inserted_id):
         return False
 
     try:
-        update_result = await async_images_collection.update_one(
+        update_result = await images_collection.update_one(
             {'_id': inserted_id},
             {'$inc': {'likes': 1 if is_positive else -1}}
         )
-        if is_positive:
-            await user_collection.update_one(
-                {'username': username},
-                {'$addToSet': {'liked': str(inserted_id)}}
-            )
-            await async_images_collection.update_one(
-                {'_id': inserted_id},
-                {'$addToSet': {'liked_by': username}}
-            )
-        else:
-            await user_collection.update_one(
-                {'username': username},
-                {'$pull': {'liked': str(inserted_id)}}
-            )
-            await async_images_collection.update_one(
-                {'_id': inserted_id},
-                {'$pull': {'liked_by': username}}
-            )
+
+        operation = '$addToSet' if is_positive else '$pull'
+        await user_collection.update_one(
+            {'username': username},
+            {operation: {'liked': str(inserted_id)}}
+        )
+        await images_collection.update_one(
+            {'_id': inserted_id},
+            {operation: {'liked_by': username}}
+        )
+
+        logger.info(f"Successfully added like to image: {str(inserted_id)}")
         return update_result.matched_count > 0 and update_result.modified_count > 0
     except Exception as e:
         logger.error(f"Error updating likes: {e}")
@@ -265,7 +230,7 @@ async def add_view(inserted_id):
         return False
 
     try:
-        update_result = await async_images_collection.update_one(
+        update_result = await images_collection.update_one(
             {'_id': inserted_id},
             {'$inc': {'views': 1}}
         )
@@ -273,34 +238,6 @@ async def add_view(inserted_id):
     except Exception as e:
         logger.error(f"Error updating views: {e}")
         return False
-
-
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def add_auto_tags(inserted_id, predicted_tags):
-    inserted_id = to_object_id(inserted_id)
-    if not inserted_id:
-        return
-
-    try:
-        image_document = sync_images_collection.find_one({'_id': inserted_id})
-        if not image_document:
-            logger.error(f"No document found with id: {str(inserted_id)}")
-            return
-
-        user_tags = image_document.get('user_tags', [])
-        auto_tags_to_add = [tag for tag in predicted_tags if tag not in user_tags]
-
-        if auto_tags_to_add:
-            sync_images_collection.update_one(
-                {'_id': inserted_id},
-                {'$set': {'auto_tags': auto_tags_to_add}}
-            )
-
-        if auto_tags_to_add:
-            add_feedback_sync(auto_tags_to_add, inserted_id)
-
-    except Exception as e:
-        logger.error(f"Error while adding auto tags: {e}")
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
@@ -325,24 +262,29 @@ async def add_photos_to_album(image_ids, album_id):
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def relocate_to_album(prev_album_id, new_album_id=None, image_ids=None):
-    prev_album_id = to_object_id(prev_album_id)
-    new_album_id = to_object_id(new_album_id) if new_album_id else await get_root_id()
+    try:
+        prev_album_id = to_object_id(prev_album_id)
+        new_album_id = to_object_id(new_album_id) if new_album_id else await get_root_id()
 
-    if not image_ids:
-        cursor = async_images_collection.find({'album_id': prev_album_id}, {'_id': 1})
-        image_ids = [image['_id'] for image in await cursor.to_list(length=100)]
+        if not image_ids:
+            cursor = images_collection.find({'album_id': prev_album_id}, {'_id': 1})
+            image_ids = [image['_id'] for image in await cursor.to_list(length=100)]
 
-    bulk_operations = [UpdateOne({'_id': image_id}, {'$set': {'album_id': new_album_id}}) for image_id in image_ids]
+        bulk_operations = [UpdateOne({'_id': image_id}, {'$set': {'album_id': new_album_id}}) for image_id in image_ids]
 
-    if bulk_operations:
-        await async_images_collection.bulk_write(bulk_operations)
+        if bulk_operations:
+            await images_collection.bulk_write(bulk_operations)
 
-    await add_photos_to_album(image_ids, new_album_id)
+        await add_photos_to_album(image_ids, new_album_id)
 
-    await album_collection.update_one(
-        {'_id': prev_album_id},
-        {'$pullAll': {'images': [str(image_id) for image_id in image_ids]}}
-    )
+        await album_collection.update_one(
+            {'_id': prev_album_id},
+            {'$pullAll': {'images': [str(image_id) for image_id in image_ids]}}
+        )
+    except Exception as e:
+        logger.error(f"Error relocating images: {e}")
+        return False
+
     return True
 
 
@@ -353,12 +295,13 @@ async def delete_albums(album_ids, is_top_level=True):
             album_id = to_object_id(album_id)
             album = await get_album(album_id)
             if not album:
+                logger.error(f"No album found with ID: {album_id}")
                 return False
 
-            image_ids = [to_object_id(image_id) for image_id in album['images']]
+            image_ids = album['images']
             await delete_images(image_ids)
 
-            sub_album_ids = [to_object_id(sub_album_id) for sub_album_id in album['sons']]
+            sub_album_ids = album['sons']
             await delete_albums(sub_album_ids, is_top_level=False)
 
             if is_top_level and album['parent']:
@@ -369,7 +312,7 @@ async def delete_albums(album_ids, is_top_level=True):
                 )
 
             await album_collection.delete_one({'_id': album_id})
-            logger.info(f"Successfully deleted album: {str(album_id)}")
+            logger.info(f"Successfully deleted album: {album_id}")
         except Exception as e:
             logger.error(f"Error deleting album {album_id}: {e}")
             return False
@@ -382,8 +325,9 @@ async def delete_images(image_ids):
     for image_id in image_ids:
         try:
             image_id = to_object_id(image_id)
-            image = await get_image_document(image_id)
-            if not image:
+            image_document = await get_image_document(image_id)
+            if not image_document:
+                logger.error(f"No image found with ID: {str(image_id)}")
                 return False
 
             await user_collection.update_many(
@@ -393,13 +337,12 @@ async def delete_images(image_ids):
 
             await album_collection.update_many({}, {"$pull": {"images": str(image_id)}})
 
-            await decrement_tags_count(image['user_tags'])
+            await decrement_tags_count(image_document['user_tags'])
 
-            await delete_image_from_space(image['image_url'])
+            await delete_image_from_space(image_document['image_url'])
+            await delete_image_from_space(image_document['thumbnail_url'])
+            await images_collection.delete_one({"_id": image_id})
 
-            await delete_image_from_space(image['thumbnail_url'])
-
-            await async_images_collection.delete_one({"_id": image_id})
             logger.info(f"Successfully deleted image: {str(image_id)}")
         except Exception as e:
             logger.error(f"Error deleting image {image_id}: {e}")
@@ -410,16 +353,14 @@ async def delete_images(image_ids):
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def remove_tags_from_image(image_id, tags_to_remove):
-    image_id = to_object_id(image_id)
-    if not image_id:
-        return False
-
     try:
+        image_id = to_object_id(image_id)
         image = await get_image_document(image_id)
         if not image:
+            logger.error(f"No image found with ID: {str(image_id)}")
             return False
 
-        await async_images_collection.update_one(
+        await images_collection.update_one(
             {"_id": image_id},
             {"$pull": {"user_tags": {"$in": tags_to_remove}}}
         )
@@ -431,19 +372,34 @@ async def remove_tags_from_image(image_id, tags_to_remove):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
+async def increment_tags_count(tags):
+    try:
+        for tag in tags:
+            if not await tags_collection.find_one({'name': tag}):
+                await tags_collection.insert_one({"name": tag, "count": 1})
+                from tag_prediction.tag_prediction_tools import update_model_tags
+                await update_model_tags()
+            else:
+                await tags_collection.update_one({"name": tag}, {"$inc": {"count": 1}}, upsert=True)
+
+        return True
+    except Exception as e:
+        logger.error(f"Error while incrementing tags count: {e}")
+        return False
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def decrement_tags_count(tags):
     try:
         for tag in tags:
-            await async_tags_collection.update_one(
+            await tags_collection.update_one(
                 {"name": tag},
                 {"$inc": {"count": -1}}
             )
-            tag_doc = await async_tags_collection.find_one({"name": tag})
+            tag_doc = await tags_collection.find_one({"name": tag})
             if tag_doc and tag_doc['count'] <= 0:
-                await async_tags_collection.update_one({"name": tag}, {"$set": {"name": "NULL"}})
+                await tags_collection.update_one({"name": tag}, {"$set": {"name": "NULL"}})
 
-        from tag_prediction.tag_prediction_tools import update_model_tags
-        await update_model_tags()
     except Exception as e:
         logger.error(f"Error while decrementing tags count: {e}")
         return False
@@ -472,21 +428,9 @@ async def get_root_id():
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def get_unique_tags():
-    return sync_tags_collection.distinct('name')
-
-
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def get_user(username: str):
     user = await user_collection.find_one({"username": username})
     return user
-
-
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def get_image_ids_paginated(page_number, page_size):
-    skip_count = (page_number - 1) * page_size
-    cursor = sync_images_collection.find({}, {'_id': 1}).skip(skip_count).limit(page_size)
-    return [str(document['_id']) for document in cursor]
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
@@ -496,20 +440,7 @@ async def get_image_document(inserted_id):
         return None
 
     try:
-        return await async_images_collection.find_one({'_id': inserted_id})
-    except Exception as e:
-        logger.error(f"Error retrieving image document: {e}")
-        return None
-
-
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def get_image_document_sync(inserted_id):
-    inserted_id = to_object_id(inserted_id)
-    if not inserted_id:
-        return None
-
-    try:
-        return sync_images_collection.find_one({'_id': inserted_id})
+        return await images_collection.find_one({'_id': inserted_id})
     except Exception as e:
         logger.error(f"Error retrieving image document: {e}")
         return None
@@ -526,14 +457,6 @@ async def get_album(album_id):
     except Exception as e:
         logger.error(f"Error retrieving album: {e}")
         return None
-
-
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def add_something_to_image(field_to_set, data, filename):
-    sync_images_collection.update_one(
-        {'filename': filename},
-        {'$set': {field_to_set: data}}
-    )
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
