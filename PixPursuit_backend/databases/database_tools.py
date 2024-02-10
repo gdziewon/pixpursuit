@@ -4,6 +4,7 @@ from databases.image_to_space import delete_image_from_space
 from pymongo import UpdateOne
 from tenacity import retry, stop_after_attempt, wait_fixed
 from utils.function_utils import to_object_id
+from utils.constants import EMAIL_SUFFIX
 
 logger = setup_logging(__name__)
 images_collection, tags_collection, faces_collection, user_collection, album_collection = connect_to_mongodb_async()
@@ -437,7 +438,7 @@ async def get_user(username: str):
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def create_user(email, password):
     email = email.lower()
-    username = email.removesuffix("@pk.edu.pl")
+    username = email.removesuffix(EMAIL_SUFFIX)
     user = await get_user(username)
     if user:
         return None
@@ -454,6 +455,24 @@ async def create_user(email, password):
     except Exception as e:
         logger.error(f"Error creating user: {e}")
         return None
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
+async def mark_email_as_verified(user_id: str):
+    try:
+        user_id = to_object_id(user_id)
+        if not user_id:
+            return False
+
+        result = await user_collection.find_one_and_update(
+            {"_id": user_id},
+            {"$set": {"verified": True}}
+        )
+        logger.info(f"Successfully marked email as verified for user: {result['username']}")
+        return True if result else False
+    except Exception as e:
+        logger.error(f"Error marking email as verified for user {user_id}: {e}")
+        return False
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))

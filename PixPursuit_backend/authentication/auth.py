@@ -26,6 +26,10 @@ async def authenticate_user(username: str, password: str):
     user = await get_user(username)
     if not user:
         return False
+
+    if not user['verified']:
+        return False
+
     try:
         valid_password = await verify_password(password, user['password'])
     except argon2.exceptions.InvalidHashError:
@@ -39,7 +43,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.utcnow() + timedelta(minutes=30)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY_AUTH, algorithm=ALGORITHM)
     return encoded_jwt

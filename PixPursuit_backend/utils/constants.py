@@ -5,9 +5,16 @@ from utils.dirs import get_generated_dir_path
 load_dotenv()
 
 # Auth
-SECRET_KEY_AUTH = os.environ['AUTH_SECRET_KEY']
+SECRET_KEY_AUTH = os.getenv('AUTH_SECRET_KEY')
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 120
+
+# FastMail
+MAIL_USERNAME = os.getenv('MAIL_USERNAME')
+MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
+MAIL_FROM = os.getenv('MAIL_USERNAME')
+MAIL_FROM_NAME = "PixPursuit"
+EMAIL_SUFFIX = '@pk.edu.pl'
 
 # Tag Prediction
 MODEL_FILE_PATH = os.path.join(get_generated_dir_path(), 'tag_predictor_state.pth')
