@@ -5,6 +5,7 @@ from pymongo import UpdateOne
 from tenacity import retry, stop_after_attempt, wait_fixed
 from utils.function_utils import to_object_id
 from utils.constants import EMAIL_SUFFIX
+from databases.face_operations import update_names
 
 logger = setup_logging(__name__)
 images_collection, tags_collection, faces_collection, user_collection, album_collection = connect_to_mongodb_async()
@@ -520,4 +521,48 @@ async def rename_album(name, album_id):
             return False
     except Exception as e:
         logger.error(f"Error renaming album: {e}")
+        return False
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
+async def add_names(inserted_id, anonymous_index, new_name):
+    try:
+        inserted_id = to_object_id(inserted_id)
+        if not inserted_id:
+            return False
+
+        image = await get_image_document(inserted_id)
+        if not image:
+            logger.error(f"Image not found with ID: {inserted_id}")
+            return False
+
+        if anonymous_index < 0 or anonymous_index >= len(image['user_faces']):
+            logger.error(f"Invalid anonymous index: {anonymous_index}")
+            return False
+
+        old_name = image['user_faces'][anonymous_index]
+
+        image['user_faces'][anonymous_index] = new_name
+        if old_name == "anon-1":
+            await images_collection.update_one(
+                {"_id": inserted_id},
+                {"$set": {"user_faces": image['user_faces']},
+                 "$inc": {"unknown_faces": 1}
+                 }
+            )
+        else:
+            image['backlog_faces'][anonymous_index] = new_name
+            await images_collection.update_one(
+                {"_id": inserted_id},
+                {"$set": {
+                    "user_faces": image['user_faces'],
+                    "backlog_faces": image['backlog_faces']
+                }}
+            )
+            update_names.delay(old_name, new_name)
+
+        logger.info(f"Successfully updated name for image: {inserted_id}")
+        return True
+    except Exception as e:
+        logger.error(f"Error while adding name: {e}")
         return False

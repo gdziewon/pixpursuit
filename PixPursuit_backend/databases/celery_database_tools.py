@@ -3,7 +3,7 @@ from config.logging_config import setup_logging
 from config.database_config import connect_to_mongodb_sync
 from utils.function_utils import to_object_id
 
-sync_images_collection, _, _, _, sync_tags_collection = connect_to_mongodb_sync()
+sync_images_collection, _, sync_faces_collection, _, sync_tags_collection = connect_to_mongodb_sync()
 logger = setup_logging(__name__)
 
 

@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from config.logging_config import setup_logging
-from databases.database_tools import add_tags_to_images, add_feedback, add_description, add_like, add_view, remove_tags_from_image, add_tags_to_albums
-from databases.face_operations import add_names
+from databases.database_tools import add_tags_to_images, add_feedback, add_description, add_like, add_view, remove_tags_from_image, add_tags_to_albums, add_names
 from authentication.auth import get_current_user
 from tag_prediction.tag_prediction_tools import training_init
 from schemas.content_schema import TagData, FeedbackData, DescriptionData, LikeData, ViewData, RemovingTagsData, FaceData, SelectedTagsData
