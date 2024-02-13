@@ -1,7 +1,6 @@
 from config.database_config import connect_to_mongodb_async, connect_to_mongodb_sync
 from config.logging_config import setup_logging
 from celery import shared_task
-import asyncio
 import numpy as np
 from sklearn.cluster import DBSCAN
 from tenacity import retry, stop_after_attempt, wait_fixed
@@ -25,10 +24,32 @@ def cluster_embeddings(embeddings):
 
 @shared_task(name='face_operations.group_faces')
 def group_faces():
-    async def async_task():
-        cursor = async_images_collection.find({'embeddings': {'$exists': True, '$not': {'$size': 0}}})
-        images = await cursor.to_list(length=None)
+    images = fetch_images()
+    cluster_embeddings_and_update_faces(images)
+    update_unknown_and_backlog_faces(images)
 
+    embeddings, ids = fetch_all_embeddings()
+    if not embeddings:
+        logger.info("No embeddings found to cluster.")
+        return
+
+    clusters = cluster_embeddings(embeddings)
+    update_clusters(clusters, ids)
+    logger.info("Faces have been successfully grouped.")
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
+def fetch_images():
+    try:
+        cursor = sync_images_collection.find({'embeddings': {'$exists': True, '$not': {'$size': 0}}})
+        return list(cursor)
+    except Exception as e:
+        logger.error(f"Error fetching images: {e}")
+        return []
+
+
+def cluster_embeddings_and_update_faces(images):
+    try:
         all_embeddings = [emb for image in images for emb in image['embeddings']]
 
         if not all_embeddings:
@@ -44,33 +65,52 @@ def group_faces():
             if num_embeddings > 0:
                 image_clusters = clustering.labels_[label_idx:label_idx + num_embeddings]
                 label_idx += num_embeddings
+                update_faces(image, image_clusters)
+    except Exception as e:
+        logger.error(f"Error in cluster_embeddings_and_update_faces: {e}")
+        return None
 
-                current_document = await async_images_collection.find_one({'_id': image['_id']})
-                current_user_faces = current_document.get('user_faces', [])
 
-                updated_user_faces = []
-                for idx, user_face in enumerate(current_user_faces):
-                    if user_face.startswith('anon'):
-                        updated_user_faces.append(
-                            'anon' + str(image_clusters[idx] if idx < len(image_clusters) else ''))  # These two for loops should be done in one loop
-                    else:
-                        updated_user_faces.append(user_face)
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
+def update_faces(image, image_clusters):
+    try:
+        current_document = sync_images_collection.find_one({'_id': image['_id']})
+        current_user_faces = current_document.get('user_faces', [])
+        current_backlog_faces = current_document.get('backlog_faces', [])
 
-                current_document_backlog = await async_images_collection.find_one({'_id': image['_id']})
-                current_backlog_faces = current_document_backlog.get('backlog_faces', [])
+        updated_user_faces, updated_backlog_faces = update_user_and_backlog_faces(current_user_faces, current_backlog_faces, image_clusters)
+        update_all_faces(image['_id'], image_clusters, updated_user_faces, updated_backlog_faces)
+    except Exception as e:
+        logger.error(f"Error in update_faces: {e}")
+        return None
 
-                updated_backlog_faces = []
-                for idx, user_face in enumerate(current_backlog_faces):
-                    if user_face.startswith('anon'):
-                        updated_backlog_faces.append(
-                            'anon' + str(image_clusters[idx] if idx < len(image_clusters) else ''))  # These two for loops should be done in one loop
-                    else:
-                        updated_backlog_faces.append(user_face)
 
-                update_all_faces(image['_id'], image_clusters, updated_user_faces, updated_backlog_faces)
+def update_user_and_backlog_faces(current_faces, current_backlog_faces, image_clusters):
+    try:
+        updated_faces = []
+        updated_backlog_faces = []
+        for idx, (user_face, backlog_face) in enumerate(zip(current_faces, current_backlog_faces)):
+            if user_face.startswith('anon'):
+                updated_faces.append('anon' + str(image_clusters[idx] if idx < len(image_clusters) else ''))
+            else:
+                updated_faces.append(user_face)
 
+            if backlog_face.startswith('anon'):
+                updated_backlog_faces.append('anon' + str(image_clusters[idx] if idx < len(image_clusters) else ''))
+            else:
+                updated_backlog_faces.append(backlog_face)
+
+        return updated_faces, updated_backlog_faces
+    except Exception as e:
+        logger.error(f"Error in update_user_and_backlog_faces: {e}")
+        return None
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
+def update_unknown_and_backlog_faces(images):
+    try:
         for image in images:
-            current_document = await async_images_collection.find_one({'_id': image['_id']})
+            current_document = sync_images_collection.find_one({'_id': image['_id']})
             unknown_faces = current_document.get('unknown_faces', 0)
             backlog_faces = current_document.get('backlog_faces', [])
             user_faces = current_document.get('user_faces', [])
@@ -89,18 +129,9 @@ def group_faces():
                     unknown_faces -= 1
 
             update_backlog_unknown_faces(image['_id'], unknown_faces, backlog_faces)
-
-        embeddings, ids = fetch_all_embeddings()
-        if not embeddings:
-            logger.info("No embeddings found to cluster.")
-            return
-
-        clusters = cluster_embeddings(embeddings)
-        update_clusters(clusters, ids)
-        logger.info("Faces have been successfully grouped.")
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(async_task())
+    except Exception as e:
+        logger.error(f"Error in update_unknown_and_backlog_faces: {e}")
+        return None
 
 
 @shared_task(name='face_operations.update_names')
@@ -125,7 +156,7 @@ def update_names(old_name, new_name):
             logger.info("No documents found with the old name.")
             return False
     except Exception as e:
-        logger.error(f"Error while updating names: {e}")
+        logger.error(f"Error in update_names: {e}")
         return False
 
 
