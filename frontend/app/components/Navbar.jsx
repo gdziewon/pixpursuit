@@ -47,9 +47,19 @@ export default function Navbar() {
                                 <button onClick={() => signOut()}>Log out</button>
                             </div>
                         ) : (
-                            <div className="text-white text-lg hover:text-gray-300 px-4">
-                                <button onClick={() => signIn()}>Log in</button>
-                            </div>
+                            <>
+                                <div className="text-white text-lg hover:text-gray-300 px-4">
+                                    <button onClick={() => signIn()}>Log in</button>
+                                    <span className="text-gray-500 mx-2">or</span>
+                                </div>
+                                <li>
+                                    <Link href="/register">
+                                        <div className="text-white text-lg hover:text-gray-300 px-4">
+                                            Register
+                                        </div>
+                                    </Link>
+                                </li>
+                            </>
                         )}
                     </div>
                 </div>

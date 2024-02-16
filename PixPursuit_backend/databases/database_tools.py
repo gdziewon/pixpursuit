@@ -4,7 +4,6 @@ from databases.image_to_space import delete_image_from_space
 from pymongo import UpdateOne
 from tenacity import retry, stop_after_attempt, wait_fixed
 from utils.function_utils import to_object_id
-from utils.constants import EMAIL_SUFFIX
 from databases.face_operations import update_names
 
 logger = setup_logging(__name__)
@@ -439,7 +438,7 @@ async def get_user(username: str):
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def create_user(email, password):
     email = email.lower()
-    username = email.removesuffix(EMAIL_SUFFIX)
+    username = email.split('@')[0]
     user = await get_user(username)
     if user:
         return None
@@ -452,7 +451,7 @@ async def create_user(email, password):
             "liked": []
         }
         result = await user_collection.insert_one(user)
-        return result.inserted_id
+        return result
     except Exception as e:
         logger.error(f"Error creating user: {e}")
         return None

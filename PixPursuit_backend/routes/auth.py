@@ -47,7 +47,7 @@ async def register_user(data: UserRegistration, background_tasks: BackgroundTask
         logger.error("/register - Failed to create user")
         raise HTTPException(status_code=500, detail="Failed to create user")
 
-    background_tasks.add_task(send_confirmation_email, new_user['email'], new_user['_id'])
+    background_tasks.add_task(send_confirmation_email, email, str(new_user.inserted_id))
     logger.info(f"/register - User registered successfully: {email}")
     return {"message": "User registered successfully. Please check your email to confirm registration."}
 

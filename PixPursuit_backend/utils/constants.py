@@ -12,8 +12,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 120
 # FastMail
 MAIL_USERNAME = os.getenv('MAIL_USERNAME')
 MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
+MAIL_APP_PASSWORD = os.getenv('MAIL_APP_PASSWORD')
 MAIL_FROM = os.getenv('MAIL_USERNAME')
 MAIL_FROM_NAME = "PixPursuit"
+CONFIRMATION_URL = "http://localhost:3000/verify-email?token="
 EMAIL_SUFFIX = '@pk.edu.pl'
 
 # Tag Prediction
