@@ -5,6 +5,7 @@ from pymongo import UpdateOne
 from tenacity import retry, stop_after_attempt, wait_fixed
 from utils.function_utils import to_object_id
 from databases.face_operations import update_names
+from databases.face_operations import delete_faces_associated_with_images
 
 logger = setup_logging(__name__)
 images_collection, tags_collection, faces_collection, user_collection, album_collection = connect_to_mongodb_async()
@@ -331,6 +332,8 @@ async def delete_images(image_ids):
             if not image_document:
                 logger.error(f"No image found with ID: {str(image_id)}")
                 return False
+
+            delete_faces_associated_with_images.delay([str(image_id)])
 
             await user_collection.update_many(
                 {},

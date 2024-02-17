@@ -5,6 +5,8 @@ import numpy as np
 from sklearn.cluster import DBSCAN
 from tenacity import retry, stop_after_attempt, wait_fixed
 from utils.function_utils import to_object_id
+from pymongo import DeleteOne
+from sklearn.neighbors import BallTree
 
 logger = setup_logging(__name__)
 async_images_collection, _, _, _, _ = connect_to_mongodb_async()
@@ -22,22 +24,6 @@ def cluster_embeddings(embeddings):
         return []
 
 
-@shared_task(name='face_operations.group_faces')
-def group_faces():
-    images = fetch_images()
-    cluster_embeddings_and_update_faces(images)
-    update_unknown_and_backlog_faces(images)
-
-    embeddings, ids = fetch_all_embeddings()
-    if not embeddings:
-        logger.info("No embeddings found to cluster.")
-        return
-
-    clusters = cluster_embeddings(embeddings)
-    update_clusters(clusters, ids)
-    logger.info("Faces have been successfully grouped.")
-
-
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 def fetch_images():
     try:
@@ -48,7 +34,8 @@ def fetch_images():
         return []
 
 
-def cluster_embeddings_and_update_faces(images):
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
+def process_images(images):
     try:
         all_embeddings = [emb for image in images for emb in image['embeddings']]
 
@@ -61,13 +48,31 @@ def cluster_embeddings_and_update_faces(images):
 
         label_idx = 0
         for image in images:
+            current_document = sync_images_collection.find_one({'_id': image['_id']})
+            unknown_faces = current_document.get('unknown_faces', 0)
+            backlog_faces = current_document.get('backlog_faces', [])
+            user_faces = current_document.get('user_faces', [])
+
+            if unknown_faces != 0:
+                for idx, user_face in enumerate(user_faces):
+                    if idx >= len(backlog_faces):
+                        break
+
+                    backlog_face = backlog_faces[idx]
+                    if user_face != backlog_face and backlog_face != "anon-1":
+                        update_names.delay(backlog_face, user_face)
+                        backlog_faces[idx] = user_face
+                        unknown_faces -= 1
+
+                update_backlog_unknown_faces(image['_id'], unknown_faces, backlog_faces)
+
             num_embeddings = len(image['embeddings'])
             if num_embeddings > 0:
                 image_clusters = clustering.labels_[label_idx:label_idx + num_embeddings]
                 label_idx += num_embeddings
                 update_faces(image, image_clusters)
     except Exception as e:
-        logger.error(f"Error in cluster_embeddings_and_update_faces: {e}")
+        logger.error(f"Error in process_images: {e}")
         return None
 
 
@@ -104,60 +109,6 @@ def update_user_and_backlog_faces(current_faces, current_backlog_faces, image_cl
     except Exception as e:
         logger.error(f"Error in update_user_and_backlog_faces: {e}")
         return None
-
-
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def update_unknown_and_backlog_faces(images):
-    try:
-        for image in images:
-            current_document = sync_images_collection.find_one({'_id': image['_id']})
-            unknown_faces = current_document.get('unknown_faces', 0)
-            backlog_faces = current_document.get('backlog_faces', [])
-            user_faces = current_document.get('user_faces', [])
-
-            if unknown_faces == 0:
-                continue
-
-            for idx, user_face in enumerate(user_faces):
-                if idx >= len(backlog_faces):
-                    break
-
-                backlog_face = backlog_faces[idx]
-                if user_face != backlog_face and backlog_face != "anon-1":
-                    update_names.delay(backlog_face, user_face)
-                    backlog_faces[idx] = user_face
-                    unknown_faces -= 1
-
-            update_backlog_unknown_faces(image['_id'], unknown_faces, backlog_faces)
-    except Exception as e:
-        logger.error(f"Error in update_unknown_and_backlog_faces: {e}")
-        return None
-
-
-@shared_task(name='face_operations.update_names')
-def update_names(old_name, new_name):
-    try:
-        if not all(isinstance(name, str) for name in [old_name, new_name]):
-            logger.error("Names must be strings")
-            return False
-
-        update_result = sync_images_collection.update_many(
-            {"user_faces": old_name},
-            {"$set": {
-                "user_faces.$": new_name,
-                "backlog_faces.$": new_name
-            }}
-        )
-
-        if update_result.modified_count > 0:
-            logger.info(f"Successfully updated {update_result.modified_count} documents.")
-            return True
-        else:
-            logger.info("No documents found with the old name.")
-            return False
-    except Exception as e:
-        logger.error(f"Error in update_names: {e}")
-        return False
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
@@ -226,3 +177,79 @@ def update_all_faces(image_id, image_clusters, updated_user_faces, updated_backl
     except Exception as e:
         logger.error(f"Error updating all faces: {e}")
         return False
+
+
+@shared_task(name='face_operations.group_faces')
+def group_faces():
+    images = fetch_images()
+    process_images(images)
+
+    embeddings, ids = fetch_all_embeddings()
+    if not embeddings:
+        logger.info("No embeddings found to cluster.")
+        return
+
+    clusters = cluster_embeddings(embeddings)
+    update_clusters(clusters, ids)
+    logger.info("Faces have been successfully grouped.")
+
+
+@shared_task(name='face_operations.update_names')
+def update_names(old_name, new_name):
+    try:
+        if not all(isinstance(name, str) for name in [old_name, new_name]):
+            logger.error("Names must be strings")
+            return False
+
+        update_result = sync_images_collection.update_many(
+            {"user_faces": old_name},
+            {"$set": {
+                "user_faces.$": new_name,
+                "backlog_faces.$": new_name
+            }}
+        )
+
+        if update_result.modified_count > 0:
+            logger.info(f"Successfully updated {update_result.modified_count} documents.")
+            return True
+        else:
+            logger.info("No documents found with the old name.")
+            return False
+    except Exception as e:
+        logger.error(f"Error in update_names: {e}")
+        return False
+
+
+@shared_task(name='face_operations.delete_faces_associated_with_images')
+def delete_faces_associated_with_images(image_ids):
+    threshold = 0.01
+    delete_operations = []
+
+    image_embeddings = {}
+    for image_id in image_ids:
+        image_id = to_object_id(image_id)
+        image_doc = sync_images_collection.find_one({'_id': image_id})
+        if image_doc is not None:
+            image_embeddings[image_id] = image_doc.get('embeddings', [])
+
+    face_docs = list(sync_faces_collection.find({}))
+    face_embeddings = [doc.get('face_emb', []) for doc in face_docs]
+
+    tree = BallTree(face_embeddings)
+
+    for image_id, embeddings in image_embeddings.items():
+        for emb in embeddings:
+            indices = tree.query_radius([emb], r=threshold)
+
+            for index in indices[0]:
+                delete_operations.append(DeleteOne({'_id': face_docs[index]['_id']}))
+
+    if delete_operations:
+        try:
+            delete_result = sync_faces_collection.bulk_write(delete_operations)
+            logger.info(f"Successfully deleted {delete_result.deleted_count} faces.")
+        except Exception as e:
+            logger.error(f"Error performing bulk delete operation: {e}")
+            return False
+
+    return True
