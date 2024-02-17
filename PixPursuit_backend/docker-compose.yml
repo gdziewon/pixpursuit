@@ -1,0 +1,29 @@
+version: '3'
+services:
+  web:
+    build: .
+    command: uvicorn app:app --reload
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+  worker:
+    build: .
+    command: celery -A app.celery worker --loglevel=info --queues=main_queue -P solo
+    volumes:
+      - .:/app
+    depends_on:
+      - web
+      - redis
+  beat:
+    build: .
+    command: celery -A app.celery beat -l info
+    volumes:
+      - .:/app
+    depends_on:
+      - web
+      - redis
+  redis:
+    image: "redis:alpine"
