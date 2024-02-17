@@ -25,7 +25,7 @@ const AddAlbumForm = ({ params }) => {
         };
 
         try {
-            const response = await axios.post('http://localhost:8000/create-album', albumData, {
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/create-album`, albumData, {
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${session.accessToken}`,

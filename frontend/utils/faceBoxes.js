@@ -62,7 +62,7 @@ export const BoxOverlay = ({image, boxes, originalSize, session}) => {
                 name: boxText,
             };
 
-            const response = await axios.post('http://localhost:8000/add-user-face', faceData, {
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/add-user-face`, faceData, {
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${session.accessToken}`,

@@ -23,7 +23,7 @@ export default function VerifyEmail() {
 
         const verifyEmail = async () => {
             try {
-                const response = await axios.get(`http://localhost:8000/verify-email?token=${token}`);
+                const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/verify-email?token=${token}`);
                 setMessage(response.data.message);
             } catch (error) {
                 setMessage(error.response?.data?.detail || 'An error occurred during email verification.');

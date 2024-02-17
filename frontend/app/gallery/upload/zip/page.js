@@ -30,7 +30,7 @@ const UploadZipForm = () => {
         setIsLoading(true);
 
         try {
-            const response = await axios.post('http://localhost:8000/upload-zip', formData, {
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/upload-zip`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     Authorization: `Bearer ${session.accessToken}`,

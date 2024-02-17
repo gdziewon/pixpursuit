@@ -35,7 +35,7 @@ export default function LikedImagesPage() {
             const filename = image.filename;
             try {
                 setDownloadProgress('Preparing download...');
-                const response = await fetch(`http://localhost:8000/download-image?url=${encodeURIComponent(url)}`);
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/download-image?url=${encodeURIComponent(url)}`);
                 if (response.ok) {
                     const blob = await response.blob();
                     download(blob, filename, response.headers.get('Content-Type'));
@@ -53,7 +53,7 @@ export default function LikedImagesPage() {
             };
             try {
                 setDownloadProgress('Preparing download...');
-                const response = await axios.post('http://localhost:8000/download-zip', data, {
+                const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/download-zip`, data, {
                     headers: {
                         'Content-Type': 'application/json',
                     },

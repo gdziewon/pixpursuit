@@ -37,7 +37,7 @@ const UploadToAlbumForm = ({ params }) => {
         formData.append('album_id', albumId.toString());
 
         try {
-            const response = await axios.post('http://localhost:8000/process-images', formData, {
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/process-images`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     Authorization: `Bearer ${session.accessToken}`,

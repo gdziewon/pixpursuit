@@ -56,7 +56,7 @@ export default function ImagePage({ params }) {
           inserted_id: id,
         };
         console.log('Adding view for image id:', id);
-        const response = await axios.post('http://localhost:8000/add-view', viewData, {
+        const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/add-view`, viewData, {
           headers: {
             'Content-Type': 'application/json',
           },
@@ -81,7 +81,7 @@ export default function ImagePage({ params }) {
     const fetchSimilarImages = async () => {
       try {
         setSimilarImagesLoading(true); // Start loading
-        const response = await axios.post('http://localhost:8000/find-similar-images', {
+        const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/find-similar-images`, {
           image_id: id,
           limit: 10,
         });
@@ -103,7 +103,7 @@ export default function ImagePage({ params }) {
 
   async function downloadImage(url, filename) {
     try {
-      const response = await fetch(`http://localhost:8000/download-image?url=${encodeURIComponent(url)}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/download-image?url=${encodeURIComponent(url)}`);
       if (!response.ok) alert('Failed to download image');
 
       const reader = response.body.getReader();
@@ -205,7 +205,7 @@ export default function ImagePage({ params }) {
         tags: [newTag],
       };
 
-      const response = await axios.post('http://localhost:8000/add-user-tag', tagData, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/add-user-tag`, tagData, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.accessToken}`,
@@ -232,7 +232,7 @@ export default function ImagePage({ params }) {
         is_positive: isPositive,
       };
 
-      const response = await axios.post('http://localhost:8000/add-like', faceData, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/add-like`, faceData, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.accessToken}`,
@@ -258,7 +258,7 @@ export default function ImagePage({ params }) {
     };
 
     try {
-      const response = await axios.post('http://localhost:8000/add-description', descriptionData, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/add-description`, descriptionData, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.accessToken}`,
@@ -286,7 +286,7 @@ export default function ImagePage({ params }) {
         tags: [tagToRemove],
       };
 
-      const response = await axios.post('http://localhost:8000/remove-tags', tagData, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/remove-tags`, tagData, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.accessToken}`,
@@ -316,7 +316,7 @@ export default function ImagePage({ params }) {
         is_positive: isPositive
       };
 
-      const response = await axios.post('http://localhost:8000/feedback-on-tags', feedbackData, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/feedback-on-tags`, feedbackData, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.accessToken}`,

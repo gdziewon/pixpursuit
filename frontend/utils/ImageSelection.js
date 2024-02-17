@@ -64,7 +64,7 @@ const ImageSelection = ({ item, isAlbum }) => {
 
         if (albumName !== item.name && albumName !== '') {
             try {
-                const renameResponse = await axios.put('http://localhost:8000/rename-album', { album_id: albumId, new_name: albumName }, { headers });
+                const renameResponse = await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/rename-album`, { album_id: albumId, new_name: albumName }, { headers });
                 console.log(renameResponse.data);
             } catch (error) {
                 console.error("Failed to rename album: ", error);

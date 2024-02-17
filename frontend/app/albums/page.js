@@ -54,7 +54,7 @@ export default function AlbumsPage() {
             const filename = image.filename;
             try {
                 setDownloadProgress('Preparing download...');
-                const response = await fetch(`http://localhost:8000/download-image?url=${encodeURIComponent(url)}`);
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/download-image?url=${encodeURIComponent(url)}`);
                 if (response.ok) {
                     const blob = await response.blob();
                     download(blob, filename, response.headers.get('Content-Type'));
@@ -73,7 +73,7 @@ export default function AlbumsPage() {
             };
             try {
                 setDownloadProgress('Preparing download...');
-                const response = await axios.post('http://localhost:8000/download-zip', data, {
+                const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/download-zip`, data, {
                     headers: {
                         'Content-Type': 'application/json',
                     },
@@ -119,7 +119,7 @@ export default function AlbumsPage() {
 
         if (image_ids.length > 0) {
             try {
-                const response = await axios.delete('http://localhost:8000/delete-images', { data: { image_ids }, headers });
+                const response = await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/delete-images`, { data: { image_ids }, headers });
                 if (response.status === 200) {
                     console.log(response.data.message);
                     setAlbumData(prevState => ({
@@ -137,7 +137,7 @@ export default function AlbumsPage() {
 
         if (album_ids.length > 0) {
             try {
-                const response = await axios.delete('http://localhost:8000/delete-albums', { data: { album_ids }, headers });
+                const response = await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/delete-albums`, { data: { album_ids }, headers });
                 if (response.status === 200) {
                     console.log(response.data.message);
                     setAlbumData(prevState => ({
@@ -168,7 +168,7 @@ export default function AlbumsPage() {
         };
 
         try {
-            const response = await axios.post('http://localhost:8000/add-tags-to-selected', data, { headers });
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/add-tags-to-selected`, data, { headers });
             console.log(response.data);
         } catch (error) {
             console.error("Failed to add tags: ", error);

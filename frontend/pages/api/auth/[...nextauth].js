@@ -10,7 +10,7 @@ export default NextAuth({
                 password: { label: "Password", type: "password" }
             },
             authorize: async (credentials) => {
-                const res = await fetch('http://localhost:8000/token', {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/token`, {
                     method: 'POST',
                     body: new URLSearchParams(credentials),
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
