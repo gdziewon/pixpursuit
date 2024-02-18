@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from config.logging_config import setup_logging
 from databases.database_tools import add_tags_to_images, add_feedback, add_description, add_like, add_view, remove_tags_from_image, add_tags_to_albums, add_names
 from authentication.auth import get_current_user
-from tag_prediction.tag_prediction_tools import training_init
+from tag_prediction.tag_prediction_tools import training_init, train_init_albums
 from schemas.content_schema import TagData, FeedbackData, DescriptionData, LikeData, ViewData, RemovingTagsData, FaceData, SelectedTagsData
 from schemas.auth_schema import User
 
@@ -22,7 +22,7 @@ async def add_user_tag_api(data: TagData, current_user: User = Depends(get_curre
         raise HTTPException(status_code=500, detail="Failed to add tags")
 
     logger.info(f"/add-user-tags - Successfully added tags to image: {inserted_id}")
-    await training_init(inserted_id)
+    await training_init([inserted_id])
     return {"message": "Tags added successfully"}
 
 
@@ -44,6 +44,8 @@ async def add_tags_to_selected_api(data: SelectedTagsData, current_user: User = 
         raise HTTPException(status_code=500, detail="Failed to add tags to selected items")
 
     logger.info(f"/add-tags-to-selected - Successfully added tags to selected items")
+    await training_init(image_ids)
+    await train_init_albums(album_ids)
     return {"message": "Tags added to selected items successfully"}
 
 
@@ -59,7 +61,7 @@ async def feedback_on_tags_api(data: FeedbackData, current_user: User = Depends(
         logger.error("/feedback-on-tags - Failed to add feedback")
         raise HTTPException(status_code=500, detail="Failed to add feedback")
 
-    await training_init(inserted_id)
+    await training_init([inserted_id])
     logger.info(f"/feedback-on-tags - Successfully added feedback to image: {inserted_id}")
     return {"message": "Feedback added successfully"}
 
@@ -122,7 +124,7 @@ async def remove_tags_api(data: RemovingTagsData, current_user: User = Depends(g
         raise HTTPException(status_code=500, detail="Failed to add photos to the album")
 
     logger.info(f"remove-tags - Successfully removed tags from image: {image_id}")
-    await training_init(image_id)
+    await training_init([image_id])
     return {"message": "Tags removed successfully"}
 
 

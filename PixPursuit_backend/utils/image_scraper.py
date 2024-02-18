@@ -110,7 +110,7 @@ async def scrape_and_save_images(url, user, album_id=None):
         image_files = await prepare_image_files(save_dir)
         inserted_ids = await process_and_save_images(image_files, user, album_id)
 
-        return inserted_ids
+        return inserted_ids, album_id
     except HTTPException as e:
         logger.error(f"Failed to scrape and save images: {e.detail}")
         raise

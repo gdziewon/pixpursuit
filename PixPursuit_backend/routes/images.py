@@ -76,6 +76,13 @@ async def relocate_images_api(data: RelocateImagesData, current_user: User = Dep
 async def find_similar_images_api(data: SimilarImagesData):
     image_id = data.image_id
     limit = data.limit
+    if not image_id:
+        logger.warning("/find-similar-images - No image ID provided")
+        raise HTTPException(status_code=400, detail="No image ID provided")
+
+    if limit < 1:
+        logger.warning("/find-similar-images - Invalid limit")
+        raise HTTPException(status_code=400, detail="Invalid limit")
 
     try:
         similar_images = await find_similar_images(image_id, limit)
@@ -96,11 +103,11 @@ async def scrape_images_api(data: ScrapeImagesData, current_user: User = Depends
         logger.warning(f"/scrape-images - Invalid URL: {url}")
         raise HTTPException(status_code=400, detail="Invalid URL")
 
-    inserted_ids = await scrape_and_save_images(url, current_user['username'], album_id)
+    inserted_ids, album_id = await scrape_and_save_images(url, current_user['username'], album_id)
     if not inserted_ids:
         logger.error("/scrape-images - Failed to scrape and save images")
         raise HTTPException(status_code=500, detail="Failed to scrape and save images")
 
     logger.info(f"/scrape-images - Successfully scraped and saved images: {inserted_ids}")
 
-    return {"message": "Images scraped successfully", "inserted_ids": inserted_ids}
+    return {"message": "Images scraped successfully", "inserted_ids": inserted_ids, "album_id": str(album_id)}

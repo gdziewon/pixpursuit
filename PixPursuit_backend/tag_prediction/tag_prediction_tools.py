@@ -6,6 +6,7 @@ from celery import shared_task
 from tag_prediction.tag_prediction_model import TagPredictor
 from databases.database_tools import get_image_document
 from databases.celery_database_tools import get_image_document_sync, get_unique_tags, add_auto_tags, get_image_ids_paginated
+from databases.database_tools import get_album
 from utils.constants import POSITIVE_THRESHOLD, LEARNING_RATE, MODEL_FILE_PATH
 
 logger = setup_logging(__name__)
@@ -75,18 +76,38 @@ def tags_to_vector(tags, feedback):
         return []
 
 
-async def training_init(inserted_id):
-    try:
-        image_document = await get_image_document(inserted_id)
-        if image_document:
-            features = image_document['features']
-            feedback_tags = image_document.get('feedback', {})
-            tags = image_document['user_tags']
-            tag_vector = tags_to_vector(tags, feedback_tags)
-            train_model.delay(features, tag_vector)
-            logger.info(f"Training initialized for image: {inserted_id}")
-    except Exception as e:
-        logger.error(f"Error during training initialization: {e}", exc_info=True)
+async def training_init(inserted_ids):
+    for inserted_id in inserted_ids:
+        try:
+            image_document = await get_image_document(inserted_id)
+            if image_document:
+                features = image_document['features']
+                feedback_tags = image_document.get('feedback', {})
+                tags = image_document['user_tags']
+                tag_vector = tags_to_vector(tags, feedback_tags)
+                train_model.delay(features, tag_vector)
+                logger.info(f"Training initialized for image: {inserted_id}")
+        except Exception as e:
+            logger.error(f"Error during training initialization: {e}", exc_info=True)
+
+
+async def train_init_albums(album_ids):
+    for album_id in album_ids:
+        try:
+            album = await get_album(album_id)
+            if not album:
+                continue
+
+            image_ids = album.get('images', [])
+            await training_init(image_ids)
+
+            sub_album_ids = album.get('sons', [])
+            if sub_album_ids:
+                await train_init_albums(sub_album_ids)
+
+        except Exception as e:
+            logger.error(f"Error while training images in albums: {e}")
+            continue
 
 
 def predictions_to_tag_names(predictions):

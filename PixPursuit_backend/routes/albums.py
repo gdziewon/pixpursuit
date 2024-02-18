@@ -112,7 +112,7 @@ async def upload_zip(file: UploadFile = File(...), parent_id: Optional[str] = Fo
     shutil.rmtree(tmp_dir)
 
     logger.info(f"/upload-zip - Successfully processed zip file: {file.filename}")
-    return {"message": "Zip file processed successfully"}
+    return {"message": "Zip file processed successfully", 'album_id': str(album_id)}
 
 
 @router.put("/rename-album")

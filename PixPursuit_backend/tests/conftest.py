@@ -2,17 +2,14 @@ import pytest
 from httpx import AsyncClient
 import sys
 from pathlib import Path
-import dotenv
-from app import app
-import os
 import asyncio
-
 sys.path.append(str(Path(__file__).resolve().parents[1]))
-dotenv.load_dotenv()
-TEST_USERNAME = os.getenv("TEST_USERNAME")
-TEST_PASSWORD = os.getenv("TEST_PASSWORD")
-TEST_ALBUM_ID = os.getenv("TEST_ALBUM_ID")
-TEST_IMAGE_ID = os.getenv("TEST_IMAGE_ID")
+from app import app
+
+TEST_USERNAME = 'testuser'
+TEST_PASSWORD = 'testpassword'
+TEST_ALBUM_ID = '65cbcec9ef7a4c1d9eb2dab1'
+TEST_IMAGE_ID = '65cbced6ef7a4c1d9eb2daba'
 
 
 @pytest.fixture(scope="session")
