@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from config.celery_config import celery
 from fastapi.middleware.cors import CORSMiddleware
-from routes import albums, content, download, images, auth, sharepoint
+from routes import albums, content, download, images, auth
 
 app = FastAPI()
 
@@ -19,7 +19,6 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(images.router)
 app.include_router(albums.router)
-app.include_router(sharepoint.router)
 app.include_router(content.router)
 app.include_router(download.router)
 
