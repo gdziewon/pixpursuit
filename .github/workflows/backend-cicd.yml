@@ -1,0 +1,56 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'PixPursuit_backend/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: PixPursuit_backend
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Run tests
+      run: pytest
+
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    defaults:
+      run:
+        working-directory: PixPursuit_backend
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Build and push Docker image
+      run: |
+        docker build -t gdziewon/pixpursuit:${{ github.sha }} .
+        echo ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }} | docker login --username gdziewon --password-stdin
+        docker push gdziewon/pixpursuit:${{ github.sha }}
+
+    - name: Deploy to server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SERVER_IP }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          cd /root/pixpursuit/PixPursuit_backend
+          docker-compose pull
+          docker-compose up -d --force-recreate
