@@ -20,7 +20,12 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = await authenticate_user(form_data.username, form_data.password)
+    username = form_data.username
+    password = form_data.password
+    if '@' in username:
+        username = username.split('@')[0]
+
+    user = await authenticate_user(username, password)
     if not user:
         logger.warning("/token - Incorrect username or password")
         raise HTTPException(
