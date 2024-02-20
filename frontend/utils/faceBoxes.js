@@ -38,6 +38,11 @@ export const BoxOverlay = ({image, boxes, originalSize, session}) => {
 
     const handleBoxClick = (index, e) => {
         e.stopPropagation();  // Prevents event bubbling up
+        if (index < 0 || index >= image.user_faces.length) {
+            console.error(`Invalid index: ${index}`);
+            alert('An error occurred. Please try again.');
+            return;
+        }
         setEditableBoxIndex(index);
         const userFaceAtIndex = image.user_faces[index];
         setBoxText(userFaceAtIndex);
@@ -76,13 +81,18 @@ export const BoxOverlay = ({image, boxes, originalSize, session}) => {
                 alert('Failed to add name to face');
             }
         } catch (error) {
-            alert('Error adding name to face:', error);
+            alert(error);
         }
 
         setEditableBoxIndex(null);
     };
 
     const handleMouseDownOnPlusButton = (event) => {
+        if (!event) {
+            console.error('Invalid event');
+            alert('An error occurred. Please try again.');
+            return;
+        }
         event.preventDefault();
     };
 
