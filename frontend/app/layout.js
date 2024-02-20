@@ -13,19 +13,23 @@ export const metadata = {
 };
 
 export default function RootLayout({ children, session }) {
-
-  return (
-      <NextAuthProvider session={session}>
-        <SelectedItemsProvider>
-    <html lang="en">
-      <body className={`${inter.className} bg-gray-900 text-white`}>
-        <main className="max-w-6xl mx-auto">
-          <Navbar router={router} />
-          {children}
-        </main>
-      </body>
-    </html>
-        </SelectedItemsProvider>
-      </NextAuthProvider>
-  );
+  try {
+    return (
+        <NextAuthProvider session={session}>
+          <SelectedItemsProvider>
+            <html lang="en">
+            <body className={`${inter.className} bg-gray-900 text-white`}>
+            <main className="max-w-6xl mx-auto">
+              <Navbar router={router} />
+              {children}
+            </main>
+            </body>
+            </html>
+          </SelectedItemsProvider>
+        </NextAuthProvider>
+    );
+  } catch (error) {
+    console.error("Error rendering RootLayout:", error);
+    return <div>Error occurred while rendering. Please try again.</div>;
+  }
 }

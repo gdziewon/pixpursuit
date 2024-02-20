@@ -18,15 +18,27 @@ const UploadToAlbumForm = ({ params }) => {
     const [showResizeFields, setShowResizeFields] = useState({})
 
     const handleImageChange = (e) => {
-        setImages([...Array.from(e.target.files)]);
+        try {
+            setImages([...Array.from(e.target.files)]);
+        } catch (error) {
+            alert("An error occurred while changing the image: " + error.message);
+        }
     };
 
     const handleButtonClick = () => {
-        fileInputRef.current.click();
+        try {
+            fileInputRef.current.click();
+        } catch (error) {
+            alert("An error occurred while handling the button click: " + error.message);
+        }
     };
 
     const handleRemoveImage = (index) => {
-        setImages(images.filter((_, i) => i !== index));
+        try {
+            setImages(images.filter((_, i) => i !== index));
+        } catch (error) {
+            alert("An error occurred while removing the image: " + error.message);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -57,56 +69,68 @@ const UploadToAlbumForm = ({ params }) => {
     };
 
     const handleResizeImage = async (img, index) => {
-        const newWidth = resizeValues[index]?.width;
-        const newHeight = resizeValues[index]?.height;
+        try {
+            const newWidth = resizeValues[index]?.width;
+            const newHeight = resizeValues[index]?.height;
 
-        if (!newWidth || !newHeight) {
-            alert('Please enter width and height');
-            return;
-        }
-        const image = new window.Image();
-        image.src = URL.createObjectURL(img);
-        await new Promise((resolve) => {
-            image.onload = resolve;
-        });
-
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = newWidth;
-        canvas.height = newHeight;
-        ctx.drawImage(image, 0, 0, newWidth, newHeight);
-
-        canvas.toBlob((blob) => {
-            setImages(images.map((img, i) => (i === index ? blob : img)));
-            setResizeValues({
-                ...resizeValues,
-                [index]: { width: newWidth, height: newHeight },
+            if (!newWidth || !newHeight) {
+                alert('Please enter width and height');
+                return;
+            }
+            const image = new window.Image();
+            image.src = URL.createObjectURL(img);
+            await new Promise((resolve) => {
+                image.onload = resolve;
             });
-            setShowResizeFields({ ...showResizeFields, [index]: false });
-        }, 'image/jpeg');
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+            ctx.drawImage(image, 0, 0, newWidth, newHeight);
+
+            canvas.toBlob((blob) => {
+                setImages(images.map((img, i) => (i === index ? blob : img)));
+                setResizeValues({
+                    ...resizeValues,
+                    [index]: { width: newWidth, height: newHeight },
+                });
+                setShowResizeFields({ ...showResizeFields, [index]: false });
+            }, 'image/jpeg');
+        } catch (error) {
+            alert("Image resize failed due to an error: " + error.message);
+        }
     };
 
     const handleResizeInputChange = (index, dimension, value) => {
-        setResizeValues({
-            ...resizeValues,
-            [index]: { ...resizeValues[index], [dimension]: value },
-        });
+        try {
+            setResizeValues({
+                ...resizeValues,
+                [index]: { ...resizeValues[index], [dimension]: value },
+            });
+        } catch (error) {
+            alert("An error occurred while resizing the image input change: " + error.message);
+        }
     };
 
     const handleResizeButtonClick = async (img, index) => {
-        if (showResizeFields[index]) {
-            await handleResizeImage(img, index);
-        } else {
-            const image = new window.Image();
-            image.src = URL.createObjectURL(img);
-            image.onload = () => {
-                setResizeValues({
-                    ...resizeValues,
-                    [index]: { width: image.naturalWidth, height: image.naturalHeight },
-                });
-            };
+        try {
+            if (showResizeFields[index]) {
+                await handleResizeImage(img, index);
+            } else {
+                const image = new window.Image();
+                image.src = URL.createObjectURL(img);
+                image.onload = () => {
+                    setResizeValues({
+                        ...resizeValues,
+                        [index]: { width: image.naturalWidth, height: image.naturalHeight },
+                    });
+                };
+            }
+            setShowResizeFields({ ...showResizeFields, [index]: !showResizeFields[index] });
+        } catch (error) {
+            alert("An error occurred while resizing the image: " + error.message);
         }
-        setShowResizeFields({ ...showResizeFields, [index]: !showResizeFields[index] });
     };
 
     return (

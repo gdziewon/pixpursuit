@@ -32,7 +32,13 @@ export default function Register() {
             setPassword('');
             setConfirmPassword('');
         } catch (error) {
-            setMessage(error.response.data.detail || 'An error occurred');
+            if (error.response) {
+                setMessage(error.response.data.detail);
+            } else if (error.request) {
+                setMessage('An error occurred, please try again');
+            } else {
+                setMessage('An error occurred');
+            }
         } finally {
             setLoading(false);
         }

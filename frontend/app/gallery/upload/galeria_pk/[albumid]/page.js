@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 
 export default function GaleriaPKUploadPage({params}) {
     const [url, setUrl] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
     const { data: session } = useSession();
     const albumId = params.albumid;
 
@@ -28,8 +29,7 @@ export default function GaleriaPKUploadPage({params}) {
                 alert('Failed to scrape images');
             }
         } catch (error) {
-            console.error('Error scraping images:', error);
-            alert('Failed to scrape images');
+            setErrorMessage('Error scraping images: ' + error.message);
         }
     };
 
@@ -46,6 +46,7 @@ export default function GaleriaPKUploadPage({params}) {
                                         <input type="text" name="url" id="url" style={{ color: 'black' }} value={url} onChange={(e) => setUrl(e.target.value)} className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md" placeholder="Enter URL" />
                                     </div>
                                 </div>
+                                {errorMessage && <p className="text-red-500">{errorMessage}</p>}
                             </div>
                             <div className="px-4 py-3 bg-gray-50 text-right sm:px-6">
                                 <button type="button" onClick={handleUpload}

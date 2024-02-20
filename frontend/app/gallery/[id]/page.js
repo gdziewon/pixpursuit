@@ -31,19 +31,23 @@ export default function ImagePage({ params }) {
 
   useEffect(() => {
     const fetchImage = async () => {
-      const imageData = await getSingleImage(id);
-      setImage(imageData);
-      setLikes(imageData.likes);
-      setIsLikedByUser(session && session.user ? imageData.liked_by.includes(session.user.name) : false);
-      setEditedDescription(imageData.description);
-      const img = new window.Image();
-      img.onload = () => {
-        setOriginalSize({ width: img.naturalWidth, height: img.naturalHeight });
-      };
-      img.src = imageData.image_url;
+      try {
+        const imageData = await getSingleImage(id);
+        setImage(imageData);
+        setLikes(imageData.likes);
+        setIsLikedByUser(session && session.user ? imageData.liked_by.includes(session.user.name) : false);
+        setEditedDescription(imageData.description);
+        const img = new window.Image();
+        img.onload = () => {
+          setOriginalSize({ width: img.naturalWidth, height: img.naturalHeight });
+        };
+        img.src = imageData.image_url;
 
-      if (session && session.user && imageData.feedback_history && imageData.feedback_history[session.user.name]) {
-        setAutoTagsFeedback(imageData.feedback_history[session.user.name]);
+        if (session && session.user && imageData.feedback_history && imageData.feedback_history[session.user.name]) {
+          setAutoTagsFeedback(imageData.feedback_history[session.user.name]);
+        }
+      } catch (error) {
+        console.error('Error fetching image:', error);
       }
     };
     fetchImage();

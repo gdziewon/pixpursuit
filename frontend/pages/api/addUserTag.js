@@ -27,6 +27,12 @@ export default async function handler(req, res) {
     }
   } catch (error) {
     console.error("Error adding tag:", error);
-    return res.status(500).json({ message: "Failed to add tag" });
+    if (error.name === 'MongoNetworkError') {
+      return res.status(500).json({ message: "Failed to connect to the database" });
+    } else if (error.name === 'MongoWriteConcernError') {
+      return res.status(500).json({ message: "Failed to write to the database" });
+    } else {
+      return res.status(500).json({ message: "Failed to add tag" });
+    }
   }
 }

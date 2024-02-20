@@ -42,7 +42,12 @@ export default function AlbumsPage() {
             }
         };
 
-        fetchData();
+        try {
+            fetchData();
+        } catch (error) {
+            console.error(`Error in fetchData: ${error.message}`);
+        }
+
         setSelectedImageIds([]);
         setSelectedAlbumIds([]);
     }, [albumId, setSelectedImageIds, setSelectedAlbumIds]);
@@ -64,7 +69,9 @@ export default function AlbumsPage() {
                     setDownloadProgress(null);
                 }
             } catch (error) {
-                alert('Download failed');
+                console.error(`Error in handleDownload: ${error.message}`);
+                alert(`Error in handleDownload: ${error.message}`);
+                setDownloadProgress(null);
             }
         } else {
             const data = {
@@ -97,8 +104,8 @@ export default function AlbumsPage() {
                     setDownloadProgress(null);
                 }
             } catch (error) {
-                console.error(error);
-                alert('Download failed');
+                console.error(`Error in handleDownload: ${error.message}`);
+                alert(`Error in handleDownload: ${error.message}`);
                 setDownloadProgress(null);
             }
         }
@@ -131,7 +138,8 @@ export default function AlbumsPage() {
                     console.error('Failed to delete images');
                 }
             } catch (error) {
-                console.error('Error deleting images:', error);
+                console.error(`Error in handleDelete: ${error.message}`);
+                alert(`Error in handleDelete: ${error.message}`);
             }
         }
 
@@ -149,7 +157,8 @@ export default function AlbumsPage() {
                     console.error('Failed to delete albums');
                 }
             } catch (error) {
-                console.error('Error deleting albums:', error);
+                console.error(`Error in handleDelete: ${error.message}`);
+                alert(`Error in handleDelete: ${error.message}`);
             }
         }
         setIsAllItemsDeselected(true);
@@ -171,7 +180,7 @@ export default function AlbumsPage() {
             const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/add-tags-to-selected`, data, { headers });
             console.log(response.data);
         } catch (error) {
-            console.error("Failed to add tags: ", error);
+            console.error(`Error in handleTagSubmit: ${error.message}`);
         }
 
         setTagInput('');

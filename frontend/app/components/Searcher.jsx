@@ -10,6 +10,7 @@ export default function Searcher({ search }) {
   const [text, setText] = useState(search);
   const [query] = useDebounce(text, 500);
   const [suggestions, setSuggestions] = useState([]); // State for suggestions
+  const [error, setError] = useState(null);
 
   const initialRender = useRef(true);
 
@@ -37,9 +38,13 @@ export default function Searcher({ search }) {
         setSuggestions(data);
       } else {
         console.error("Failed to fetch search suggestions");
+        setSuggestions([]); // Clear suggestions on fetch failure
+        setError("Failed to fetch search suggestions");
       }
     } catch (error) {
       console.error("Error fetching search suggestions:", error);
+      setSuggestions([]); // Clear suggestions on error
+      setError(error.toString());
     }
   };
 
@@ -79,6 +84,7 @@ export default function Searcher({ search }) {
           ))}
         </ul>
       )}
+      {error && <div className="text-red-500">{error}</div>}
     </div>
   );
 }

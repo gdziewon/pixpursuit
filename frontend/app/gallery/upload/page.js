@@ -55,33 +55,38 @@ const UploadForm = () => {
     };
 
     const handleResizeImage = async (img, index) => {
-        const newWidth = resizeValues[index]?.width;
-        const newHeight = resizeValues[index]?.height;
+        try {
+            const newWidth = resizeValues[index]?.width;
+            const newHeight = resizeValues[index]?.height;
 
-        if (!newWidth || !newHeight) {
-            alert('Please enter width and height');
-            return;
-        }
-        const image = new window.Image();
-        image.src = URL.createObjectURL(img);
-        await new Promise((resolve) => {
-            image.onload = resolve;
-        });
-
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = newWidth;
-        canvas.height = newHeight;
-        ctx.drawImage(image, 0, 0, newWidth, newHeight);
-
-        canvas.toBlob((blob) => {
-            setImages(images.map((img, i) => (i === index ? blob : img)));
-            setResizeValues({
-                ...resizeValues,
-                [index]: { width: newWidth, height: newHeight },
+            if (!newWidth || !newHeight) {
+                alert('Please enter width and height');
+                return;
+            }
+            const image = new window.Image();
+            image.src = URL.createObjectURL(img);
+            await new Promise((resolve) => {
+                image.onload = resolve;
             });
-            setShowResizeFields({ ...showResizeFields, [index]: false });
-        }, 'image/jpeg');
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+            ctx.drawImage(image, 0, 0, newWidth, newHeight);
+
+            canvas.toBlob((blob) => {
+                setImages(images.map((img, i) => (i === index ? blob : img)));
+                setResizeValues({
+                    ...resizeValues,
+                    [index]: { width: newWidth, height: newHeight },
+                });
+                setShowResizeFields({ ...showResizeFields, [index]: false });
+            }, 'image/jpeg');
+        } catch (error) {
+            console.error(error);
+            alert("An error occurred while resizing the image");
+        }
     };
 
     const handleResizeInputChange = (index, dimension, value) => {

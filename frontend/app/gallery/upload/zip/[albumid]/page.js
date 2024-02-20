@@ -14,6 +14,7 @@ const UploadZipForm = ({params}) => {
     const albumId = params.albumid;
     const [uploadedFile, setUploadedFile] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
 
     const handleButtonClick = () => {
         fileInputRef.current.click();
@@ -42,6 +43,7 @@ const UploadZipForm = ({params}) => {
             console.log(response.data);
         } catch (error) {
             console.error(error);
+            setErrorMessage(error.message);
         } finally {
             setIsLoading(false);
         }
@@ -52,6 +54,7 @@ const UploadZipForm = ({params}) => {
             {isLoading ? <Loading /> : (
                 <>
                     {successMessage && <div className="alert alert-success">{successMessage}</div>}
+                    {errorMessage && <div className="alert alert-danger">{errorMessage}</div>}
                     <form onSubmit={handleSubmit} className="flex items-center">
                         <input
                             type="file"

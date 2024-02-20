@@ -9,10 +9,20 @@ export default async function handler(req, res) {
 
   const { id } = req.query;
 
+  if (!id) {
+    return res.status(400).json({ message: "Missing id in query parameters" });
+  }
+
   const db = await connectToDatabase();
 
+  let objectId;
   try {
-    const objectId = new ObjectId(id);
+    objectId = new ObjectId(id);
+  } catch (error) {
+    return res.status(400).json({ message: "Invalid id format" });
+  }
+
+  try {
     const image = await db.collection("images").findOne({ _id: objectId });
 
     if (!image) {
@@ -22,6 +32,6 @@ export default async function handler(req, res) {
     return res.json(image);
   } catch (error) {
     console.error("Error fetching image:", error);
-    return res.status(500).end();
+    return res.status(500).json({ message: `Server error: ${error.message}` });
   }
 }

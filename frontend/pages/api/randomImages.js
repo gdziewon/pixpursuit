@@ -8,11 +8,21 @@ export default async function handler(req, res) {
 
   try {
     const db = await connectToDatabase();
+    if (!db) {
+      console.error("Error connecting to database");
+      return res.status(500).json({ error: "Failed to connect to database" });
+    }
 
-    const randomImage = await db
-      .collection("images")
-      .aggregate([{ $sample: { size: 1 } }])
-      .toArray();
+    let randomImage;
+    try {
+      randomImage = await db
+          .collection("images")
+          .aggregate([{ $sample: { size: 1 } }])
+          .toArray();
+    } catch (error) {
+      console.error("Error fetching random image:", error);
+      return res.status(500).json({ error: "Failed to fetch random image" });
+    }
 
     if (randomImage.length > 0) {
       return res.status(200).json(randomImage[0]);
@@ -20,7 +30,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: "No random image found" });
     }
   } catch (error) {
-    console.error("Error fetching random image:", error);
-    return res.status(500).json({ error: "Failed to fetch random image" });
+    console.error("Unexpected error:", error);
+    return res.status(500).json({ error: "Unexpected error occurred" });
   }
 }

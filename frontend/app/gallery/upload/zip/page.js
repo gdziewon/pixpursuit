@@ -11,6 +11,7 @@ const UploadZipForm = () => {
     const { data: session } = useSession();
     const fileInputRef = useRef(null);
     const [successMessage, setSuccessMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
     const [uploadedFile, setUploadedFile] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -39,6 +40,7 @@ const UploadZipForm = () => {
             setSuccessMessage('Zip file uploaded successfully!');
             console.log(response.data);
         } catch (error) {
+            setErrorMessage(error.message);
             console.error(error);
         } finally {
             setIsLoading(false);
@@ -50,6 +52,7 @@ const UploadZipForm = () => {
             {isLoading ? <Loading /> : (
                 <>
                     {successMessage && <div className="alert alert-success">{successMessage}</div>}
+                    {errorMessage && <div className="alert alert-danger">{errorMessage}</div>}
                     <form onSubmit={handleSubmit} className="flex items-center">
                         <input
                             type="file"

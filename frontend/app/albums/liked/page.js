@@ -12,12 +12,17 @@ export default function LikedImagesPage() {
     const { data: session } = useSession();
     const { selectedImageIds, setSelectedImageIds, setIsAllItemsDeselected,  } = useContext(SelectedItemsContext);
     const [downloadProgress, setDownloadProgress] = useState(null);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchLikedImages = async () => {
-            if (session && session.user) {
-                const response = await axios.get(`/api/liked/${session.user.name}`);
-                setLikedImages(response.data);
+            try {
+                if (session && session.user) {
+                    const response = await axios.get(`/api/liked/${session.user.name}`);
+                    setLikedImages(response.data);
+                }
+            } catch (error) {
+                setError('Failed to fetch liked images');
             }
         };
 
@@ -46,6 +51,8 @@ export default function LikedImagesPage() {
                 }
             } catch (error) {
                 alert('Download failed');
+                setDownloadProgress(null);
+                setError('Failed to download image');
             }
         } else {
             const data = {
@@ -80,6 +87,7 @@ export default function LikedImagesPage() {
                 console.error(error);
                 alert('Download failed');
                 setDownloadProgress(null);
+                setError('Failed to download zip');
             }
         }
         setSelectedImageIds([]);
@@ -88,6 +96,7 @@ export default function LikedImagesPage() {
 
     return (
         <div className="container">
+            {error && <div className="error">{error}</div>}
             <div className="flex justify-between items-center mb-4">
                 <h1 className="text-3xl font-bold">Liked Images</h1>
                 {selectedImageIds.length > 0 && (

@@ -10,17 +10,23 @@ export default NextAuth({
                 password: { label: "Password", type: "password" }
             },
             authorize: async (credentials) => {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/token`, {
-                    method: 'POST',
-                    body: new URLSearchParams(credentials),
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-                });
+                try {
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/token`, {
+                        method: 'POST',
+                        body: new URLSearchParams(credentials),
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                    });
 
-                const user = await res.json();
+                    const user = await res.json();
 
-                if (res.ok && user) {
-                    return user;
-                } else {
+                    if (res.ok && user) {
+                        return user;
+                    } else {
+                        console.error('Authorization failed');
+                        return null;
+                    }
+                } catch (error) {
+                    console.error(error);
                     return null;
                 }
             }
@@ -31,20 +37,28 @@ export default NextAuth({
     },
     callbacks: {
         async jwt({ token, user }) {
-
-            if (user) {
-                token.accessToken = user.access_token;
-                token.username = user.username;
+            try {
+                if (user) {
+                    token.accessToken = user.access_token;
+                    token.username = user.username;
+                }
+                return token;
+            } catch (error) {
+                console.error(error);
+                return token;
             }
-            return token;
-        }
-        ,
+        },
         async session({ session, token }) {
-            if (session?.user) {
-                session.accessToken = token.accessToken;
-                session.user.name = token.username;
+            try {
+                if (session?.user) {
+                    session.accessToken = token.accessToken;
+                    session.user.name = token.username;
+                }
+                return session;
+            } catch (error) {
+                console.error(error);
+                return session;
             }
-            return session;
         }
     }
 })

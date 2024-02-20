@@ -11,6 +11,11 @@ export default function GaleriaPKUploadPage() {
     const handleUpload = async (e) => {
         e.preventDefault();
 
+        if (!session || !session.accessToken) {
+            alert('Session or access token is missing');
+            return;
+        }
+
         try {
             const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/scrape-images`, {
                 url: url
@@ -27,7 +32,11 @@ export default function GaleriaPKUploadPage() {
             }
         } catch (error) {
             console.error('Error scraping images:', error);
-            alert('Failed to scrape images');
+            if (error.response && error.response.data && error.response.data.message) {
+                alert('Failed to scrape images: ' + error.response.data.message);
+            } else {
+                alert('Failed to scrape images');
+            }
         }
     };
 

@@ -20,6 +20,12 @@ export default async function handler(req, res) {
         res.status(200).json(likedImages);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Error fetching liked images" });
+        if (error instanceof TypeError) {
+            res.status(400).json({ message: "Bad Request" });
+        } else if (error instanceof RangeError) {
+            res.status(416).json({ message: "Requested Range Not Satisfiable" });
+        } else {
+            res.status(500).json({ message: "Internal Server Error" });
+        }
     }
 }

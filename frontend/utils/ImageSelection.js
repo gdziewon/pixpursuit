@@ -18,6 +18,7 @@ const ImageSelection = ({ item, isAlbum }) => {
     const { selectedItems, selectItem, deselectItem } = useContext(SelectedItemsContext);
     const { isAllItemsDeselected, setIsAllItemsDeselected } = useContext(SelectedItemsContext);
     const { data: session } = useSession();
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         if (isAllItemsDeselected) {
@@ -66,8 +67,10 @@ const ImageSelection = ({ item, isAlbum }) => {
             try {
                 const renameResponse = await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/rename-album`, { album_id: albumId, new_name: albumName }, { headers });
                 console.log(renameResponse.data);
+                setError(null); // clear any previous error
             } catch (error) {
                 console.error("Failed to rename album: ", error);
+                setError("Failed to rename album"); // set the error state
             }
         }
         setAlbumName(item.name);
@@ -83,6 +86,7 @@ const ImageSelection = ({ item, isAlbum }) => {
 
     return (
         <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} className="relative">
+            {error && <div className="error">{error}</div>}
             {(isAlbum) ? (
                 <Link href={`/albums/${item._id}`} passHref>
                     <div className="album-item">

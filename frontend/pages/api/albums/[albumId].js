@@ -52,6 +52,6 @@ export default async function handler(req, res) {
         res.status(200).json(responseData);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Error fetching album data" });
+        res.status(500).json({ message: error.message });
     }
 }

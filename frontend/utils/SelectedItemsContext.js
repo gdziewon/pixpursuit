@@ -10,28 +10,38 @@ export const SelectedItemsProvider = ({ children }) => {
     const [isAllItemsDeselected, setIsAllItemsDeselected] = useState(false);
 
     const selectItem = (id, isAlbum) => {
-        if (isAlbum) {
-            setSelectedAlbumIds((prevItems) => {
-                if (!prevItems.includes(id)) {
-                    return [...prevItems, id];
-                }
-                return prevItems;
-            });
-        } else {
-            setSelectedImageIds((prevItems) => {
-                if (!prevItems.includes(id)) {
-                    return [...prevItems, id];
-                }
-                return prevItems;
-            });
+        try {
+            if (isAlbum) {
+                setSelectedAlbumIds((prevItems) => {
+                    if (!prevItems.includes(id)) {
+                        return [...prevItems, id];
+                    }
+                    return prevItems;
+                });
+            } else {
+                setSelectedImageIds((prevItems) => {
+                    if (!prevItems.includes(id)) {
+                        return [...prevItems, id];
+                    }
+                    return prevItems;
+                });
+            }
+        } catch (error) {
+            console.error(`Error selecting item: ${error}`);
+            throw error;
         }
     };
 
     const deselectItem = (id, isAlbum) => {
-        if (isAlbum) {
-            setSelectedAlbumIds((prevItems) => prevItems.filter((itemId) => itemId !== id));
-        } else {
-            setSelectedImageIds((prevItems) => prevItems.filter((itemId) => itemId !== id));
+        try {
+            if (isAlbum) {
+                setSelectedAlbumIds((prevItems) => prevItems.filter((itemId) => itemId !== id));
+            } else {
+                setSelectedImageIds((prevItems) => prevItems.filter((itemId) => itemId !== id));
+            }
+        } catch (error) {
+            console.error(`Error deselecting item: ${error}`);
+            throw error;
         }
     };
 

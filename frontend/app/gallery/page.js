@@ -17,7 +17,19 @@ export default async function Gallery({ searchParams }) {
   let search = searchParams.search || undefined;
   let sort = searchParams.sort || "asc";
 
-  const images = await getImages({ limit, page, query: search, sort });
+  let images;
+  try {
+    images = await getImages({ limit, page, query: search, sort });
+  } catch (error) {
+    console.error(error);
+    return (
+        <section className="py-24">
+          <div className="container">
+            <h1 className="text-3xl font-bold">An error occurred while fetching images.</h1>
+          </div>
+        </section>
+    );
+  }
 
   return (
     <section className="py-24">

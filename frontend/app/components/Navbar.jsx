@@ -11,6 +11,22 @@ config.autoAddCss = false;
 export default function Navbar() {
     const { data: session } = useSession();
 
+    const handleSignIn = async () => {
+        try {
+            await signIn();
+        } catch (error) {
+            console.error('Error signing in:', error);
+        }
+    };
+
+    const handleSignOut = async () => {
+        try {
+            await signOut();
+        } catch (error) {
+            console.error('Error signing out:', error);
+        }
+    };
+
     return (
         <nav className="bg-gray-900 p-6">
             {session?.user && (
@@ -44,16 +60,16 @@ export default function Navbar() {
                     <div className="login-section">
                         {session?.user ? (
                             <div className="text-white text-lg hover:text-gray-300 px-4">
-                                <button onClick={() => signOut()}>Log out</button>
+                                <button onClick={handleSignOut}>Log out</button>
                             </div>
                         ) : (
                             <>
                                 <div className="text-white text-lg hover:text-gray-300 px-4">
-                                    <button onClick={() => signIn()}>Log in</button>
+                                    <button onClick={handleSignIn}>Log in</button>
                                     <span className="text-gray-500 mx-2">or</span>
                                 </div>
                                 <li>
-                                    <Link href="/register">
+                                <Link href="/register">
                                         <div className="text-white text-lg hover:text-gray-300 px-4">
                                             Register
                                         </div>

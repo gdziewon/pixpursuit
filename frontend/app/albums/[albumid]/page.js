@@ -23,7 +23,7 @@ export default function SubAlbumPage({ params}) {
     const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
     const [isTagModalOpen, setIsTagModalOpen] = useState(false);
     const [tagInput, setTagInput] = useState('');
-
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -38,6 +38,7 @@ export default function SubAlbumPage({ params}) {
                 }
             } catch (error) {
                 console.error(`Error fetching data: ${error.message}`);
+                setError(`Error fetching data: ${error.message}`);
             }
         };
 
@@ -70,6 +71,8 @@ export default function SubAlbumPage({ params}) {
                 }
             } catch (error) {
                 alert('Download failed');
+                setError('Download failed');
+                setDownloadProgress(null);
             }
         } else {
             const data = {
@@ -138,6 +141,7 @@ export default function SubAlbumPage({ params}) {
                 }
             } catch (error) {
                 console.error('Error deleting images:', error);
+                setError('Error deleting images');
             }
         }
 
@@ -160,6 +164,7 @@ export default function SubAlbumPage({ params}) {
         }
         setIsAllItemsDeselected(true);
     };
+
 
     const handleTagSubmit = async () => {
         const headers = {
@@ -227,6 +232,11 @@ export default function SubAlbumPage({ params}) {
 
     return (
         <div className="container">
+            {error && (
+                <div className="alert alert-danger" role="alert">
+                    Error: {error}
+                </div>
+            )}
             <div className="mb-12 flex items-center justify-between gap-x-16">
                 <div className="flex space-x-6">
                     <Link href={parentLinkHref} passHref>

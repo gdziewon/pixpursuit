@@ -32,7 +32,12 @@ export default function VerifyEmail() {
             }
         };
 
-        verifyEmail();
+        try {
+            verifyEmail();
+        } catch (error) {
+            setMessage('An unexpected error occurred.');
+            setLoading(false);
+        }
     }, [router, router.isReady]);
 
     return (
