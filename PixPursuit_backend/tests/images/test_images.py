@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 from tests.conftest import TEST_ALBUM_ID, TEST_IMAGE_ID
 
-test_image_path = Path(__file__).parent / 'test.jpg'
+test_image_path = Path(__file__).parent / 'test.jpg'  # comment for test
 
 
 @pytest.mark.asyncio
