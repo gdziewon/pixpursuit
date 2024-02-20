@@ -3,11 +3,18 @@ from httpx import AsyncClient
 import sys
 from pathlib import Path
 import asyncio
+import dotenv
+import os
+
+dotenv_path = Path(__file__).resolve().parents[1] / '.env'
+dotenv.load_dotenv(dotenv_path=dotenv_path)
+
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 from app import app
 
-TEST_USERNAME = 'testuser'
-TEST_PASSWORD = 'testpassword'
+TEST_USERNAME = os.getenv('TEST_USERNAME')
+TEST_PASSWORD = os.getenv('TEST_PASSWORD')
+TEST_EMAIL = os.getenv('TEST_EMAIL')
 TEST_ALBUM_ID = '65cbcec9ef7a4c1d9eb2dab1'
 TEST_IMAGE_ID = '65cbced6ef7a4c1d9eb2daba'
 

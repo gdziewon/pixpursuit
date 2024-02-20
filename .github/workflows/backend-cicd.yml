@@ -38,6 +38,9 @@ jobs:
         MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
         MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
         MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+        TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
+        TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+        TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
 
   deploy:
     needs: build-and-test
