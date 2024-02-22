@@ -71,9 +71,9 @@ async def save_image_to_database(data, username, album_id):
 async def create_album(album_name, parent_id=None):
     if not parent_id:
         parent_id = await get_root_id()
-
     parent_id = to_object_id(parent_id)
-    if parent_id is None:
+
+    if not parent_id:
         return None
 
     new_album = {
@@ -413,7 +413,7 @@ async def decrement_tags_count(tags):
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def get_root_id():
     try:
-        root_album = await album_collection.find_one({"name": "root"})
+        root_album = await album_collection.find_one({"name": "root", "parent": None})
         if not root_album:
             root_album = {
                 "name": "root",

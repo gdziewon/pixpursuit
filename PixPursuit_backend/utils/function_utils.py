@@ -1,5 +1,8 @@
 from bson import ObjectId
 from utils.constants import ALLOWED_EXTENSIONS, PK_GALLERY_URL
+from config.logging_config import setup_logging
+
+logger = setup_logging(__name__)
 
 
 def is_allowed_file(filename):
@@ -16,4 +19,5 @@ def to_object_id(id_str):
         id_obj = ObjectId(id_str)
         return id_obj
     except Exception as e:
+        logger.error(f"Failed to convert {id_str} to ObjectId: {e}")
         return None

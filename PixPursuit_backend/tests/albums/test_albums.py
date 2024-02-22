@@ -9,12 +9,12 @@ test_zip_path = Path(__file__).parent / 'test.zip'
 
 
 @pytest.mark.asyncio
-async def test_create_and_delete_album(async_client: AsyncClient, token: str):
+async def test_create_and_delete_album(async_client: AsyncClient, token: str, parent_id=None):
     create_headers = {"Authorization": f"Bearer {token}"}
     unique_album_name = f"Test Album for Deletion {uuid4()}"
     create_data = {
         "album_name": unique_album_name,
-        "parent_id": TEST_ALBUM_ID,
+        "parent_id": parent_id,
         "image_ids": []
     }
     create_response = await async_client.post("/create-album", headers=create_headers, json=create_data)
@@ -31,6 +31,16 @@ async def test_create_and_delete_album(async_client: AsyncClient, token: str):
     )
     assert delete_response.status_code == 200
     assert delete_response.json()["message"] == "Albums deleted successfully"
+
+
+@pytest.mark.asyncio
+async def test_create_and_delete_album_no_parent(async_client: AsyncClient, token: str):
+    await test_create_and_delete_album(async_client, token)
+
+
+@pytest.mark.asyncio
+async def test_create_and_delete_album_with_parent(async_client: AsyncClient, token: str):
+    await test_create_and_delete_album(async_client, token, TEST_ALBUM_ID)
 
 
 @pytest.mark.asyncio

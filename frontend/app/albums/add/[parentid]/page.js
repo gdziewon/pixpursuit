@@ -11,6 +11,7 @@ const AddAlbumForm = ({ params }) => {
     const [albumName, setAlbumName] = useState('');
     const parentAlbumId = params.parentid;
     const { data: session } = useSession();
+    console.log(parentAlbumId)
 
     const handleAlbumNameChange = (e) => {
         setAlbumName(e.target.value);
@@ -20,8 +21,7 @@ const AddAlbumForm = ({ params }) => {
         e.preventDefault();
         const albumData = {
             album_name: albumName,
-            parent_id: parentAlbumId,
-            image_ids: [] // Ignoring image IDs for now
+            parent_id: parentAlbumId !== 'root' ? parentAlbumId : null,
         };
 
         try {
@@ -34,7 +34,7 @@ const AddAlbumForm = ({ params }) => {
 
             if (response.status === 200) {
                 alert("Album created successfully");
-                window.location.href = `/albums/${parentAlbumId}`;
+                window.location.href = `/albums/${parentAlbumId !== 'root' ? parentAlbumId : ""}`;
             } else {
                 alert("Failed to create album");
             }
@@ -46,7 +46,7 @@ const AddAlbumForm = ({ params }) => {
     return (
         <section className="add-album-form">
             <div className="navigation-button">
-                <Link href={`/albums/${parentAlbumId}`} passHref>
+                <Link href={`/albums/${parentAlbumId !== 'root' ? parentAlbumId : ""}`} passHref>
                     <button className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center">
                         <ArrowLeftStartOnRectangleIcon className="h-5 w-5 mr-2"/>
                         Go back

@@ -1,4 +1,4 @@
-from config.database_config import connect_to_mongodb_async, connect_to_mongodb_sync
+from config.database_config import connect_to_mongodb_sync
 from config.logging_config import setup_logging
 from celery import shared_task
 import numpy as np
@@ -9,7 +9,6 @@ from pymongo import DeleteOne
 from sklearn.neighbors import BallTree
 
 logger = setup_logging(__name__)
-async_images_collection, _, _, _, _ = connect_to_mongodb_async()
 sync_images_collection, _, sync_faces_collection, _, _ = connect_to_mongodb_sync()
 
 
