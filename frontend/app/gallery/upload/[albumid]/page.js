@@ -16,12 +16,15 @@ const UploadToAlbumForm = ({ params }) => {
     const fileInputRef = useRef(null);
     const [resizeValues, setResizeValues] = useState({});
     const [showResizeFields, setShowResizeFields] = useState({})
+    const [error, setError] = useState(null);
+    const [success, setSuccess] = useState(null)
 
     const handleImageChange = (e) => {
         try {
             setImages([...Array.from(e.target.files)]);
+            setError(null);
         } catch (error) {
-            alert("An error occurred while changing the image: " + error.message);
+            setError("An error occurred while changing the image: " + error.message);
         }
     };
 
@@ -29,7 +32,7 @@ const UploadToAlbumForm = ({ params }) => {
         try {
             fileInputRef.current.click();
         } catch (error) {
-            alert("An error occurred while handling the button click: " + error.message);
+            setError("An error occurred while handling the button click: " + error.message);
         }
     };
 
@@ -37,12 +40,18 @@ const UploadToAlbumForm = ({ params }) => {
         try {
             setImages(images.filter((_, i) => i !== index));
         } catch (error) {
-            alert("An error occurred while removing the image: " + error.message);
+            setError("An error occurred while removing the image: " + error.message);
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (images.length === 0) {
+            setError('You have not selected images to upload');
+            return;
+        }
+
         setIsLoading(true);
         const formData = new FormData();
         images.forEach((img) => formData.append('images', img));
@@ -55,12 +64,16 @@ const UploadToAlbumForm = ({ params }) => {
                     Authorization: `Bearer ${session.accessToken}`,
                 },
             });
-            alert(response.status === 200 ? "Images uploaded successfully" : "Upload failed");
+            if (response.status === 200) {
+                setSuccess("Images uploaded successfully");
+            } else {
+                setError("Upload failed");
+            }
         } catch (error) {
             if (error.response && error.response.status === 401) {
                 signIn();
             } else {
-                alert("Upload failed");
+                setError("Upload failed");
             }
         } finally {
             setIsLoading(false);
@@ -74,7 +87,7 @@ const UploadToAlbumForm = ({ params }) => {
             const newHeight = resizeValues[index]?.height;
 
             if (!newWidth || !newHeight) {
-                alert('Please enter width and height');
+                setError('Please enter width and height');
                 return;
             }
             const image = new window.Image();
@@ -98,7 +111,7 @@ const UploadToAlbumForm = ({ params }) => {
                 setShowResizeFields({ ...showResizeFields, [index]: false });
             }, 'image/jpeg');
         } catch (error) {
-            alert("Image resize failed due to an error: " + error.message);
+            setError("Image resize failed due to an error: " + error.message);
         }
     };
 
@@ -109,7 +122,7 @@ const UploadToAlbumForm = ({ params }) => {
                 [index]: { ...resizeValues[index], [dimension]: value },
             });
         } catch (error) {
-            alert("An error occurred while resizing the image input change: " + error.message);
+            setError("An error occurred while resizing the image input change: " + error.message);
         }
     };
 
@@ -129,13 +142,15 @@ const UploadToAlbumForm = ({ params }) => {
             }
             setShowResizeFields({ ...showResizeFields, [index]: !showResizeFields[index] });
         } catch (error) {
-            alert("An error occurred while resizing the image: " + error.message);
+            setError("An error occurred while resizing the image: " + error.message);
         }
     };
 
     return (
         <section className="fa-upload">
             {isLoading && <Loading />}
+            {error && <div className="alert alert-danger">{error}</div>}
+            {success && <div className="alert alert-success">{success}</div>}
             <form onSubmit={handleSubmit} className="flex items-center">
                 <input
                     type="file"

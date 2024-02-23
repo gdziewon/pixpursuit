@@ -6,13 +6,16 @@ export async function getImages({ limit, page, query, sort }) {
 
     const skip = limit * (page - 1);
     const pipeline = [
-      { $skip: skip },
-      { $limit: limit },
       {
         $sort: {
-          "metadata.DateTime": sort === "asc" ? 1 : -1,
+          ...(sort === "desc" ? { "metadata.DateTime": -1 } :
+              sort === "mostPopular" ? { views: -1 } :
+                  sort === "leastPopular" ? { views: 1 } :
+                      sort === "asc" ? { "metadata.DateTime": 1 } : {}),
         },
       },
+      { $skip: skip },
+      { $limit: limit },
     ];
 
     if (query) {

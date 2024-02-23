@@ -15,6 +15,8 @@ const UploadForm = () => {
     const fileInputRef = useRef(null);
     const [resizeValues, setResizeValues] = useState({});
     const [showResizeFields, setShowResizeFields] = useState({})
+    const [errorMessage, setErrorMessage] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
 
     const handleButtonClick = () => {
         fileInputRef.current.click();
@@ -22,6 +24,7 @@ const UploadForm = () => {
 
     const handleImageChange = (e) => {
         setImages([...images, ...Array.from(e.target.files)]);
+        setErrorMessage(null);
     };
 
     const handleRemoveImage = (index) => {
@@ -30,6 +33,12 @@ const UploadForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (images.length === 0) {
+            setErrorMessage('You have not selected images to upload');
+            return;
+        }
+
         setIsLoading(true);
         const formData = new FormData();
         images.forEach((img) => formData.append('images', img));
@@ -41,12 +50,16 @@ const UploadForm = () => {
                     Authorization: `Bearer ${session.accessToken}`,
                 },
             });
-            alert(response.status === 200 ? "Images uploaded successfully" : "Upload failed");
+            if (response.status === 200) {
+                setSuccessMessage("Images uploaded successfully");
+            } else {
+                setErrorMessage("Upload failed");
+            }
         } catch (error) {
             if (error.response && error.response.status === 401) {
                 signIn();
             } else {
-                alert("Upload failed");
+                setErrorMessage("Upload failed");
             }
         } finally {
             setIsLoading(false);
@@ -60,7 +73,7 @@ const UploadForm = () => {
             const newHeight = resizeValues[index]?.height;
 
             if (!newWidth || !newHeight) {
-                alert('Please enter width and height');
+                setErrorMessage('Please enter width and height');
                 return;
             }
             const image = new window.Image();
@@ -85,7 +98,7 @@ const UploadForm = () => {
             }, 'image/jpeg');
         } catch (error) {
             console.error(error);
-            alert("An error occurred while resizing the image");
+            setErrorMessage("An error occurred while resizing the image");
         }
     };
 
@@ -115,6 +128,8 @@ const UploadForm = () => {
     return (
         <section className="fa-upload">
             {isLoading && <Loading />}
+            {successMessage && <p>{successMessage}</p>}
+            {errorMessage && <p>{errorMessage}</p>}
             <form onSubmit={handleSubmit} className="flex items-center">
                 <input
                     type="file"

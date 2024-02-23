@@ -21,11 +21,21 @@ const UploadZipForm = () => {
 
     const handleImageChange = (e) => {
         setUploadedFile(e.target.files[0]);
+        setErrorMessage(null);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         const formData = new FormData();
+        const file = fileInputRef.current.files[0];
+
+        setSuccessMessage('');
+        setErrorMessage('');
+
+        if (!file) {
+            setErrorMessage('You have not selected a zip for uploading');
+            return;
+        }
         formData.append('file', fileInputRef.current.files[0]);
 
         setIsLoading(true);
