@@ -3,14 +3,14 @@
 import React, { useEffect, useState, useContext } from 'react';
 import Link from 'next/link';
 import "/styles/album_layout_styles.css"
-import { ArrowLeftStartOnRectangleIcon, FolderArrowDownIcon, FolderPlusIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftStartOnRectangleIcon, FolderArrowDownIcon, FolderPlusIcon } from "@heroicons/react/24/outline";
 import ImageSelection from '/utils/ImageSelection';
 import axios from "axios";
 import { SelectedItemsContext } from '/utils/SelectedItemsContext';
 import download from 'downloadjs';
 import {useSession} from "next-auth/react";
-import ConfirmDialog from "/utils/ConfirmDialog";
-import TagModal from "/utils/TagModal";
+import {ChevronDownIcon, ChevronUpIcon} from "@heroicons/react/24/solid";
+import DropdownMenu from "@/utils/DropdownMenu";
 
 export default function SubAlbumPage({ params}) {
     const [albumData, setAlbumData] = useState(null);
@@ -24,6 +24,11 @@ export default function SubAlbumPage({ params}) {
     const [isTagModalOpen, setIsTagModalOpen] = useState(false);
     const [tagInput, setTagInput] = useState('');
     const [error, setError] = useState(null);
+    const [isActionsOpen, setIsActionsOpen] = useState(false);
+
+    const handleActionsClick = () => {
+        setIsActionsOpen(!isActionsOpen);
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -249,56 +254,41 @@ export default function SubAlbumPage({ params}) {
                 <div>
                 </div>
                 <div className="flex space-x-6">
-                    {selectedImageIds.length + selectedAlbumIds.length > 0 && (
-                        downloadProgress === null ? (
+                    <div className="relative">
+                        {selectedImageIds.length + selectedAlbumIds.length > 0 && (
                             <>
-                            {session && (
-                                <>
                                 <button
-                                    onClick={() => setIsConfirmDialogOpen(true)}
-                                    className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center"
+                                    onClick={handleActionsClick}
+                                    className="rounded border bg-gray-100 px-3 py-1 text-xs text-gray-800 flex items-center"
                                 >
-                                    Delete selected
+                                    Actions
+                                    {isActionsOpen ? <ChevronUpIcon className="h-5 w-5 ml-2"/> :
+                                        <ChevronDownIcon className="h-5 w-5 ml-2"/>}
                                 </button>
-                                <button onClick={handleAddTags}
-                            className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center">
-                            Add tags to selected
-                            </button>
-                                </>
-                        )}
-                                <ConfirmDialog
-                                    isOpen={isConfirmDialogOpen}
-                                    onConfirm={() => {
-                                        handleDelete();
-                                        setIsConfirmDialogOpen(false);
-                                    }}
-                                    onCancel={() => setIsConfirmDialogOpen(false)}
-                                />
-                                <TagModal
-                                    isOpen={isTagModalOpen}
-                                    onSubmit={handleTagSubmit}
-                                    onCancel={handleTagModalCancel}
+                                <DropdownMenu
+                                    isActionsOpen={isActionsOpen}
+                                    handleActionsClick={handleActionsClick}
+                                    handleAddTags={handleAddTags}
+                                    handleDownload={handleDownload}
+                                    handleTagSubmit={handleTagSubmit}
+                                    handleTagModalCancel={handleTagModalCancel}
                                     tagInput={tagInput}
                                     handleTagInputChange={handleTagInputChange}
+                                    downloadProgress={downloadProgress}
+                                    isConfirmDialogOpen={isConfirmDialogOpen}
+                                    setIsConfirmDialogOpen={setIsConfirmDialogOpen}
+                                    handleDelete={handleDelete}
+                                    isTagModalOpen={isTagModalOpen}
+                                    setIsTagModalOpen={setIsTagModalOpen}
                                 />
-                                <button
-                                    onClick={handleDownload}
-                                    className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center"
-                                >
-                                    <ArrowDownTrayIcon className="h-5 w-5 mr-2"/>
-                                    Download selected
-                                </button>
                             </>
-                        ) : (
-                            <div>
-                                {downloadProgress}
-                            </div>
-                        )
-                    )}
+                        )}
+                    </div>
                     {session && (
                         <div className="flex space-x-6">
                             <Link href={`/gallery/upload/galeria_pk/${albumId}`} passHref>
-                                <button className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
+                                <button
+                                    className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
                                     <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
                                     Upload from GaleriaPK
                                 </button>

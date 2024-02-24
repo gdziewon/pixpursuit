@@ -3,15 +3,18 @@
 import React, { useState, useEffect, useContext } from 'react';
 import Link from 'next/link';
 import "/styles/album_layout_styles.css"
-import {FolderArrowDownIcon, FolderPlusIcon, ArrowDownTrayIcon} from "@heroicons/react/24/outline";
+import {FolderArrowDownIcon, FolderPlusIcon} from "@heroicons/react/24/outline";
 import ImageSelection from '/utils/ImageSelection';
 import {SelectedItemsContext} from '/utils/SelectedItemsContext';
 import axios from "axios";
 import download from 'downloadjs';
 import {useSession} from "next-auth/react";
 import Image from 'next/image';
-import TagModal from '@/utils/TagModal';
-import ConfirmDialog from '@/utils/ConfirmDialog';
+import DropdownMenu from '@/utils/DropdownMenu';
+import {
+    ChevronUpIcon,
+    ChevronDownIcon,
+} from "@heroicons/react/24/solid";
 
 export default function AlbumsPage() {
     const [albumData, setAlbumData] = useState(null);
@@ -24,6 +27,11 @@ export default function AlbumsPage() {
     const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
     const [isTagModalOpen, setIsTagModalOpen] = useState(false);
     const [tagInput, setTagInput] = useState('');
+    const [isActionsOpen, setIsActionsOpen] = useState(false);
+
+    const handleActionsClick = () => {
+        setIsActionsOpen(!isActionsOpen);
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -114,6 +122,7 @@ export default function AlbumsPage() {
         setIsAllItemsDeselected(true);
     };
 
+
     const handleDelete = async () => {
         const image_ids = selectedImageIds;
         const album_ids = selectedAlbumIds;
@@ -190,6 +199,7 @@ export default function AlbumsPage() {
         setIsAllItemsDeselected(true);
     };
 
+
     const handleAddTags = () => {
         setIsTagModalOpen(true);
     };
@@ -223,51 +233,36 @@ export default function AlbumsPage() {
                 <div>
                 </div>
                 <div className="flex space-x-3">
-                    {selectedImageIds.length + selectedAlbumIds.length > 0 && (
-                        downloadProgress === null ? (
+                    <div className="relative">
+                        {selectedImageIds.length + selectedAlbumIds.length > 0 && (
                             <>
-                            {session && (
-                                <>
                                 <button
-                                    onClick={() => setIsConfirmDialogOpen(true)}
-                                    className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center"
+                                    onClick={handleActionsClick}
+                                    className="rounded border bg-gray-100 px-3 py-1 text-xs text-gray-800 flex items-center"
                                 >
-                                    Delete selected
+                                    Actions
+                                    {isActionsOpen ? <ChevronUpIcon className="h-5 w-5 ml-2"/> :
+                                        <ChevronDownIcon className="h-5 w-5 ml-2"/>}
                                 </button>
-                                <button onClick={handleAddTags} className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center">
-                                    Add tags to selected
-                                </button>
-                                </>
-                        )}
-                                <ConfirmDialog
-                                    isOpen={isConfirmDialogOpen}
-                                    onConfirm={() => {
-                                        handleDelete();
-                                        setIsConfirmDialogOpen(false);
-                                    }}
-                                    onCancel={() => setIsConfirmDialogOpen(false)}
-                                />
-                                <TagModal
-                                    isOpen={isTagModalOpen}
-                                    onSubmit={handleTagSubmit}
-                                    onCancel={handleTagModalCancel}
+                                <DropdownMenu
+                                    isActionsOpen={isActionsOpen}
+                                    handleActionsClick={handleActionsClick}
+                                    handleAddTags={handleAddTags}
+                                    handleDownload={handleDownload}
+                                    handleTagSubmit={handleTagSubmit}
+                                    handleTagModalCancel={handleTagModalCancel}
                                     tagInput={tagInput}
                                     handleTagInputChange={handleTagInputChange}
+                                    downloadProgress={downloadProgress}
+                                    isConfirmDialogOpen={isConfirmDialogOpen}
+                                    setIsConfirmDialogOpen={setIsConfirmDialogOpen}
+                                    handleDelete={handleDelete}
+                                    isTagModalOpen={isTagModalOpen}
+                                    setIsTagModalOpen={setIsTagModalOpen}
                                 />
-                                <button
-                                    onClick={handleDownload}
-                                    className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center"
-                                >
-                                    <ArrowDownTrayIcon className="h-5 w-5 mr-2"/>
-                                    Download selected
-                                </button>
                             </>
-                        ) : (
-                            <div>
-                                {downloadProgress}
-                            </div>
-                        )
-                    )}
+                        )}
+                    </div>
                     {session && (
                         <div className="flex space-x-3">
                             <Link href={`/gallery/upload/galeria_pk`} passHref>
