@@ -1,25 +1,41 @@
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from config.logging_config import setup_logging
 from utils.images_zip import generate_zip_file
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from schemas.download_schema import ZipData
+from utils.dirs import get_tmp_dir_path
+import os
+from urllib.parse import unquote, urlparse
 
 router = APIRouter()
 logger = setup_logging(__name__)
 
 
 @router.get("/download-image/")
-async def download_image(url: str):
+async def download_image(url: str, background_tasks: BackgroundTasks):
+    decoded_url = unquote(url)
+
+    parsed_url = urlparse(decoded_url)
+    path = parsed_url.path
+    filename = path.split('/')[-1]
+
     async with httpx.AsyncClient() as client:
-        response = await client.get(url, follow_redirects=True)
+        response = await client.get(decoded_url, follow_redirects=True)
         response.raise_for_status()
 
-        async def iterfile():
-            async for chunk in response.aiter_bytes():
-                yield chunk
+        temp_path = f"{get_tmp_dir_path()}/{filename}"
+        with open(temp_path, "wb") as f:
+            f.write(response.content)
 
-        return StreamingResponse(iterfile(), media_type=response.headers['Content-Type'])
+        def cleanup_file(path: str):
+            if os.path.exists(path):
+                os.remove(path)
+
+        background_tasks.add_task(cleanup_file, temp_path)
+
+        return FileResponse(path=temp_path, media_type='application/octet-stream', filename=filename,
+                            headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 
 @router.post("/download-zip")
