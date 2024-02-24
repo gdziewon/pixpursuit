@@ -182,11 +182,11 @@ def predict_and_update_tags(image_ids):
 
 @shared_task(name='tag_prediction_tools.update_all_auto_tags')
 def update_all_auto_tags():
-    try:
-        logger.info("Updating all auto tags")
-        page_size = 100
-        last_id = None
-        while True:
+    logger.info("Updating all auto tags")
+    page_size = 100
+    last_id = None
+    while True:
+        try:
             image_ids = get_image_ids_paginated(last_id, page_size)
             if not image_ids:
                 break
@@ -194,5 +194,6 @@ def update_all_auto_tags():
             predict_and_update_tags.delay(image_ids)
 
             last_id = image_ids[-1]
-    except Exception as e:
-        logger.error(f"Error in update_all_auto_tags: {e}")
+        except Exception as e:
+            logger.error(f"Error updating all auto tags: {e}", exc_info=True)
+            break

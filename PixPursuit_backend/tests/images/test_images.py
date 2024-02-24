@@ -93,7 +93,7 @@ async def test_find_similar_images_invalid_limit(async_client: AsyncClient, toke
     headers = {"Authorization": f"Bearer {token}"}
     response = await async_client.post("/find-similar-images", json=data, headers=headers)
     assert response.status_code == 400
-    assert response.json() == {"detail": "Invalid limit"}
+    assert response.json() == {"detail": "Invalid request parameters"}
 
 
 @pytest.mark.asyncio

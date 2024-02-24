@@ -1,4 +1,5 @@
 from io import BytesIO
+from zipfile import ZipFile, ZIP_DEFLATED
 from databases.image_to_space import space_client
 from databases.database_tools import get_album, get_image_document, get_root_id, create_album
 import os
@@ -54,19 +55,43 @@ async def process_folder(path, username, parent_id=None):
 
     image_files = []
     for item in os.listdir(path):
-        item_path = os.path.join(path, item)
-        if os.path.isdir(item_path):
-            logger.info(f"Processing sub-directory: {item_path}")
-            album_id = await create_album(item, parent_id)
-            logger.info(f"Created album: {album_id}")
-            await process_folder(item_path, username, album_id)
-        elif os.path.isfile(item_path) and is_allowed_file(item_path):
-            logger.info(f"Processing file: {item_path}")
-            with open(item_path, 'rb') as file:
-                contents = file.read()
-            upload_file = UploadFile(filename=item, file=BytesIO(contents))
-            image_files.append(upload_file)
+        try:
+            item_path = os.path.join(path, item)
+            if os.path.isdir(item_path):
+                logger.info(f"Processing sub-directory: {item_path}")
+                album_id = await create_album(item, parent_id)
+                logger.info(f"Created album: {album_id}")
+                await process_folder(item_path, username, album_id)
+            elif os.path.isfile(item_path) and is_allowed_file(item_path):
+                logger.info(f"Processing file: {item_path}")
+                with open(item_path, 'rb') as file:
+                    contents = file.read()
+                upload_file = UploadFile(filename=item, file=BytesIO(contents))
+                image_files.append(upload_file)
+        except Exception as e:
+            logger.error(f"Failed to process item: {item} - {e}")
 
     inserted_ids = await process_and_save_images(image_files, username, parent_id)
 
     return inserted_ids
+
+
+async def generate_zip_file(album_ids, image_ids) -> BytesIO:
+    zip_buffer = BytesIO()
+    with ZipFile(zip_buffer, 'w', ZIP_DEFLATED) as zipf:
+        for album_id in album_ids:
+            album = await get_album(album_id)
+            if not album:
+                raise ValueError(f"Album {album_id} not found")
+            await add_album_to_zip(album, zipf, "")
+
+        for image_id in image_ids:
+            image = await get_image_document(image_id)
+            if not image:
+                raise ValueError(f"Image {image_id} not found")
+            response = space_client.get_object(Bucket='pixpursuit', Key=image['filename'])
+            file_content = response['Body'].read()
+            zipf.writestr(image['filename'], file_content)
+
+    zip_buffer.seek(0)
+    return zip_buffer

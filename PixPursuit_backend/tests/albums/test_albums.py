@@ -53,7 +53,7 @@ async def test_delete_album_invalid_id(async_client: AsyncClient, token: str):
         json={"album_ids": ["invalid_id"]}
     )
     assert response.status_code == 404
-    assert response.json()["detail"] == "Album not found"
+    assert response.json()["detail"] == "Album not found: invalid_id"
 
 
 @pytest.mark.asyncio

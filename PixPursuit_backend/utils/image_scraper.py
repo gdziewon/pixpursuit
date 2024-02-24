@@ -17,9 +17,13 @@ logger = setup_logging(__name__)
 
 
 async def get_image_urls(soup):
-    image_links = soup.find_all('a', attrs={'rel': 'lightbox-album'})
-    full_image_urls = [urljoin(BASE_URL, link['href']) for link in image_links]
-    return full_image_urls
+    try:
+        image_links = soup.find_all('a', attrs={'rel': 'lightbox-album'})
+        full_image_urls = [urljoin(BASE_URL, link['href']) for link in image_links]
+        return full_image_urls
+    except Exception as e:
+        logger.error(f"Failed to get image URLs: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get image URLs")
 
 
 async def get_soup(url):
@@ -53,7 +57,7 @@ async def fetch_image(image_url, save_dir, client):
 
         with open(file_path, 'wb') as file:
             file.write(img_response.content)
-        logger.info(f"Downloaded {image_url} to {file_path}")
+        logger.info(f"Successfully downloaded {image_url}")
     except httpx.RequestError as e:
         logger.error(f"Failed to download image {image_url}: {e}")
 

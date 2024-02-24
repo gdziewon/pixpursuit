@@ -1,12 +1,12 @@
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from databases.database_tools import get_user
 from argon2 import PasswordHasher
 import argon2.exceptions
 from config.logging_config import setup_logging
-from schemas.auth_schema import TokenData
+from schemas.auth_schema import TokenData, User
 from utils.constants import SECRET_KEY_AUTH, ALGORITHM
 
 logger = setup_logging(__name__)
@@ -49,7 +49,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     return encoded_jwt
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -66,4 +66,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     user = await get_user(username=token_data.username)
     if user is None:
         raise credentials_exception
-    return user
+    user_model = User(**user)
+    request.state.username = user_model.username
+    return user_model

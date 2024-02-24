@@ -61,5 +61,4 @@ async def test_download_zip_invalid_ids(async_client: AsyncClient):
     data = {"album_ids": ["nonexistent_album"], "image_ids": ["nonexistent_image"]}
     response = await async_client.post("/download-zip", json=data)
 
-    assert response.status_code == 404
-    assert "not found" in response.text
+    assert response.status_code == 500

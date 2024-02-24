@@ -50,31 +50,35 @@ async def feature_similarity(features1, features2):
     if not features1 or not features2:
         return 0.0
 
-    features1 = np.array(features1)
-    features2 = np.array(features2)
+    try:
+        features1 = np.array(features1)
+        features2 = np.array(features2)
 
-    features1 = features1.reshape(1, -1)
-    features2 = features2.reshape(1, -1)
+        features1 = features1.reshape(1, -1)
+        features2 = features2.reshape(1, -1)
 
-    similarity = cosine_similarity(features1, features2)[0][0]
-    return similarity
+        similarity = cosine_similarity(features1, features2)[0][0]
+        return similarity
+    except Exception as e:
+        logger.error(f"Error during feature similarity computation: {e}")
+        return 0.0
 
 
 async def jaccard_similarity(set1, set2):
     if not set1 or not set2:
         return 0.0
 
-    set1 = set(set1)
-    set2 = set(set2)
+    try:
+        set1 = set(set1)
+        set2 = set(set2)
+        intersection = set1.intersection(set2)
+        union = set1.union(set2)
 
-    intersection = set1.intersection(set2)
-    union = set1.union(set2)
-
-    if not union:
-        return 1.0
-
-    similarity = len(intersection) / len(union)
-    return similarity
+        similarity = len(intersection) / len(union)
+        return similarity
+    except Exception as e:
+        logger.error(f"Error during Jaccard similarity computation: {e}")
+        return 0.0
 
 
 async def face_similarity(faces1, faces2):
@@ -88,14 +92,17 @@ async def description_similarity(description1, description2):
     if not description1 or not description2:
         return 0.0
 
-    descriptions = [description1, description2]
+    try:
+        descriptions = [description1, description2]
+        if all(tfidf_vectorizer.build_analyzer()(desc) == [] for desc in descriptions):
+            return 0.0
 
-    if all(tfidf_vectorizer.build_analyzer()(desc) == [] for desc in descriptions):
+        tfidf_matrix = tfidf_vectorizer.fit_transform(descriptions)
+        similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
+        return similarity
+    except Exception as e:
+        logger.error(f"Error during description similarity computation: {e}")
         return 0.0
-
-    tfidf_matrix = tfidf_vectorizer.fit_transform(descriptions)
-    similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
-    return similarity
 
 
 async def album_similarity(album_id1, album_id2):

@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from config.celery_config import celery
 from fastapi.middleware.cors import CORSMiddleware
 from routes import albums, content, download, images, auth
+from routes.middleware import LoggingMiddleware
 
 app = FastAPI()
 
@@ -21,6 +22,7 @@ app.include_router(images.router)
 app.include_router(albums.router)
 app.include_router(content.router)
 app.include_router(download.router)
+app.add_middleware(LoggingMiddleware)
 
 if __name__ == "__main__":
     import uvicorn
