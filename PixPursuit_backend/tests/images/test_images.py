@@ -73,8 +73,7 @@ async def test_delete_images_no_image_ids(async_client: AsyncClient, token: str)
 @pytest.mark.asyncio
 async def test_find_similar_images(async_client: AsyncClient, token: str):
     data = {"image_id": TEST_IMAGE_ID, "limit": 5}
-    headers = {"Authorization": f"Bearer {token}"}
-    response = await async_client.post("/find-similar-images", json=data, headers=headers)
+    response = await async_client.post("/find-similar-images", json=data)
 
     assert response.status_code == 200
     assert "similar_images" in response.json()

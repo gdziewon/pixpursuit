@@ -52,7 +52,7 @@ async def relocate_images_api(data: RelocateImagesData, current_user: User = Dep
 
 
 @router.post("/find-similar-images")
-async def find_similar_images_api(data: SimilarImagesData, current_user: User = Depends(get_current_user)):
+async def find_similar_images_api(data: SimilarImagesData):
     if not data.image_id or data.limit < 1:
         raise HTTPException(status_code=400, detail="Invalid request parameters")
 
