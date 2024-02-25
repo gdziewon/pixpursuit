@@ -1,30 +1,30 @@
 'use client';
 
 import React, { useEffect, useState, useContext } from 'react';
-import Link from 'next/link';
 import "/styles/album_layout_styles.css"
-import { ArrowLeftStartOnRectangleIcon, FolderArrowDownIcon, FolderPlusIcon } from "@heroicons/react/24/outline";
 import ImageSelection from '/utils/ImageSelection';
 import axios from "axios";
 import { SelectedItemsContext } from '/utils/SelectedItemsContext';
 import download from 'downloadjs';
 import {useSession} from "next-auth/react";
-import {ChevronDownIcon, ChevronUpIcon} from "@heroicons/react/24/solid";
-import DropdownMenu from "@/utils/DropdownMenu";
+import Loading from "@/app/loading";
+import {AlbumButtons} from "@/utils/AlbumButtons";
 
 export default function SubAlbumPage({ params}) {
     const [albumData, setAlbumData] = useState(null);
     const albumId = params.albumid;
-    const { selectedImageIds, selectedAlbumIds } = useContext(SelectedItemsContext);
+    const {selectedImageIds, selectedAlbumIds} = useContext(SelectedItemsContext);
     const [downloadProgress, setDownloadProgress] = useState(null);
-    const { setSelectedImageIds, setSelectedAlbumIds } = useContext(SelectedItemsContext);
-    const { setIsAllItemsDeselected } = useContext(SelectedItemsContext);
-    const { data: session } = useSession();
+    const {setSelectedImageIds, setSelectedAlbumIds} = useContext(SelectedItemsContext);
+    const {setIsAllItemsDeselected} = useContext(SelectedItemsContext);
+    const {data: session} = useSession();
     const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
     const [isTagModalOpen, setIsTagModalOpen] = useState(false);
     const [tagInput, setTagInput] = useState('');
     const [error, setError] = useState(null);
     const [isActionsOpen, setIsActionsOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+
 
     const handleActionsClick = () => {
         setIsActionsOpen(!isActionsOpen);
@@ -38,6 +38,7 @@ export default function SubAlbumPage({ params}) {
                 if (response.ok) {
                     const data = await response.json();
                     setAlbumData(data);
+                    setIsLoading(false);
                 } else {
                     console.error(`Error fetching data: ${response.statusText}`);
                 }
@@ -52,6 +53,7 @@ export default function SubAlbumPage({ params}) {
         setSelectedAlbumIds([]);
     }, [albumId, setSelectedImageIds, setSelectedAlbumIds]);
 
+
     const parentLinkHref = albumData?.parentIsRoot ? '/albums' : `/albums/${albumData?.parentAlbumId}`;
 
     useEffect(() => {
@@ -59,6 +61,10 @@ export default function SubAlbumPage({ params}) {
             setIsActionsOpen(false);
         }
     }, [selectedImageIds, selectedAlbumIds]);
+
+    if (isLoading) {
+        return <Loading/>;
+    }
 
     const handleDownload = async () => {
         if (selectedImageIds.length === 1 && selectedAlbumIds.length === 0) {
@@ -139,7 +145,10 @@ export default function SubAlbumPage({ params}) {
 
         if (image_ids.length > 0) {
             try {
-                const response = await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/delete-images`, { data: { image_ids }, headers });
+                const response = await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/delete-images`, {
+                    data: {image_ids},
+                    headers
+                });
                 if (response.status === 200) {
                     console.log(response.data.message);
                     setAlbumData(prevState => ({
@@ -158,7 +167,10 @@ export default function SubAlbumPage({ params}) {
 
         if (album_ids.length > 0) {
             try {
-                const response = await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/delete-albums`, { data: { album_ids }, headers });
+                const response = await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/delete-albums`, {
+                    data: {album_ids},
+                    headers
+                });
                 if (response.status === 200) {
                     console.log(response.data.message);
                     setAlbumData(prevState => ({
@@ -190,7 +202,7 @@ export default function SubAlbumPage({ params}) {
         };
 
         try {
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/add-tags-to-selected`, data, { headers });
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/add-tags-to-selected`, data, {headers});
             console.log(response.data);
         } catch (error) {
             console.error("Failed to add tags: ", error);
@@ -215,30 +227,30 @@ export default function SubAlbumPage({ params}) {
     const handleTagInputChange = (e) => {
         setTagInput(e.target.value);
     };
+    if (!albumData) {
+        return <Loading/>;
+    }
 
-    if (!albumData || (!albumData.sons.length && !albumData.images.length)) {
+    if ((!albumData.sons.length && !albumData.images.length)) {
+        const parentLinkHref = albumData?.parentIsRoot ? '/albums' : `/albums/${albumData?.parentAlbumId}`;
         return <div>
-            <div className="mb-12 flex items-center justify-between gap-x-16">
-                <div className="flex space-x-6">
-                    <Link href={parentLinkHref} passHref>
-                        <button
-                            className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center">
-                            <ArrowLeftStartOnRectangleIcon className="h-5 w-5 mr-2"/>
-                            Previous album
-                        </button>
-                    </Link>
-                </div>
-                <div>
-                </div>
-            </div>
+            <AlbumButtons albumId={albumId} parentLinkHref={parentLinkHref} session={session} selectedImageIds={selectedImageIds}
+                          selectedAlbumIds={selectedAlbumIds} isActionsOpen={isActionsOpen}
+                          handleActionsClick={handleActionsClick} handleAddTags={handleAddTags}
+                          handleDownload={handleDownload} handleTagSubmit={handleTagSubmit}
+                          handleTagModalCancel={handleTagModalCancel} tagInput={tagInput}
+                          handleTagInputChange={handleTagInputChange} downloadProgress={downloadProgress}
+                          isConfirmDialogOpen={isConfirmDialogOpen} setIsConfirmDialogOpen={setIsConfirmDialogOpen}
+                          handleDelete={handleDelete} isTagModalOpen={isTagModalOpen}
+                          setIsTagModalOpen={setIsTagModalOpen}/>
             No albums or images found.</div>;
     }
 
     const albumItems = albumData.sons.map((album, index) => (
-        <ImageSelection key={index} item={album} isAlbum={true} />
+        <ImageSelection key={index} item={album} isAlbum={true}/>
     ));
     const imageItems = albumData.images.map((image, idx) => (
-        <ImageSelection key={idx} item={image} isAlbum={false} />
+        <ImageSelection key={idx} item={image} isAlbum={false}/>
     ));
 
     return (
@@ -248,82 +260,15 @@ export default function SubAlbumPage({ params}) {
                     Error: {error}
                 </div>
             )}
-            <div className="mb-12 flex items-center justify-between gap-x-16">
-                <div className="flex space-x-6">
-                    <Link href={parentLinkHref} passHref>
-                        <button className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center">
-                            <ArrowLeftStartOnRectangleIcon className="h-5 w-5 mr-2"/>
-                            Previous album
-                        </button>
-                    </Link>
-                </div>
-                <div>
-                </div>
-                <div className="flex space-x-6">
-                    <div className="relative">
-                        {selectedImageIds.length + selectedAlbumIds.length > 0 && (
-                            <>
-                                <button
-                                    onClick={handleActionsClick}
-                                    className="rounded border bg-gray-100 px-3 py-1 text-xs text-gray-800 flex items-center"
-                                >
-                                    Actions
-                                    {isActionsOpen ? <ChevronUpIcon className="h-5 w-5 ml-2"/> :
-                                        <ChevronDownIcon className="h-5 w-5 ml-2"/>}
-                                </button>
-                                <DropdownMenu
-                                    isActionsOpen={isActionsOpen}
-                                    handleActionsClick={handleActionsClick}
-                                    handleAddTags={handleAddTags}
-                                    handleDownload={handleDownload}
-                                    handleTagSubmit={handleTagSubmit}
-                                    handleTagModalCancel={handleTagModalCancel}
-                                    tagInput={tagInput}
-                                    handleTagInputChange={handleTagInputChange}
-                                    downloadProgress={downloadProgress}
-                                    isConfirmDialogOpen={isConfirmDialogOpen}
-                                    setIsConfirmDialogOpen={setIsConfirmDialogOpen}
-                                    handleDelete={handleDelete}
-                                    isTagModalOpen={isTagModalOpen}
-                                    setIsTagModalOpen={setIsTagModalOpen}
-                                />
-                            </>
-                        )}
-                    </div>
-                    {session && (
-                        <div className="flex space-x-6">
-                            <Link href={`/gallery/upload/galeria_pk/${albumId}`} passHref>
-                                <button
-                                    className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
-                                    <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
-                                    Upload from GaleriaPK
-                                </button>
-                            </Link>
-                            <Link href={`/gallery/upload/zip/${albumId}`} passHref>
-                                <button
-                                    className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
-                                    <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
-                                    Upload zip here
-                                </button>
-                            </Link>
-                            <Link href={`/gallery/upload/${albumId}`} passHref>
-                                <button
-                                    className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
-                                    <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
-                                    Upload images here
-                                </button>
-                            </Link>
-                            <Link href={`/albums/add/${albumId}`} passHref>
-                                <button
-                                    className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
-                                    <FolderPlusIcon className="h-5 w-5 mr-2"/>
-                                    Add album
-                                </button>
-                            </Link>
-                        </div>
-                    )}
-                </div>
-            </div>
+            <AlbumButtons albumId={albumId} parentLinkHref={parentLinkHref} session={session}
+                          selectedImageIds={selectedImageIds} selectedAlbumIds={selectedAlbumIds}
+                          isActionsOpen={isActionsOpen} handleActionsClick={handleActionsClick}
+                          handleAddTags={handleAddTags} handleDownload={handleDownload}
+                          handleTagSubmit={handleTagSubmit} handleTagModalCancel={handleTagModalCancel}
+                          tagInput={tagInput} handleTagInputChange={handleTagInputChange}
+                          downloadProgress={downloadProgress} isConfirmDialogOpen={isConfirmDialogOpen}
+                          setIsConfirmDialogOpen={setIsConfirmDialogOpen} handleDelete={handleDelete}
+                          isTagModalOpen={isTagModalOpen} setIsTagModalOpen={setIsTagModalOpen}/>
             <div className="album-container grid-layout">
                 {albumItems}
                 {imageItems}

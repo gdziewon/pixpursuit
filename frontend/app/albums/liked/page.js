@@ -35,7 +35,7 @@ export default function LikedImagesPage() {
 
     const handleDownload = async () => {
         if (selectedImageIds.length === 1) {
-            const image = likedImages.images.find(image => image._id.toString() === selectedImageIds[0]);
+            const image = likedImages.find(image => image._id.toString() === selectedImageIds[0]);
             const url = image.image_url;
             const filename = image.filename;
             try {
@@ -98,13 +98,15 @@ export default function LikedImagesPage() {
         <div className="container">
             {error && <div className="error">{error}</div>}
             <div className="flex justify-between items-center mb-4">
+                <meta httpEquiv="Content-Security-Policy" content="upgrade-insecure-requests"/>
                 <h1 className="text-3xl font-bold">Liked Images</h1>
                 {selectedImageIds.length > 0 && (
                     <div>
                         {downloadProgress ? (
                             <div>{downloadProgress}</div>
                         ) : (
-                            <button onClick={handleDownload} className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800">
+                            <button onClick={handleDownload}
+                                    className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800">
                                 Download Selected
                             </button>
                         )}

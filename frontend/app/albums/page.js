@@ -15,6 +15,7 @@ import {
     ChevronUpIcon,
     ChevronDownIcon,
 } from "@heroicons/react/24/solid";
+import Loading from "@/app/loading";
 
 export default function AlbumsPage() {
     const [albumData, setAlbumData] = useState(null);
@@ -28,6 +29,7 @@ export default function AlbumsPage() {
     const [isTagModalOpen, setIsTagModalOpen] = useState(false);
     const [tagInput, setTagInput] = useState('');
     const [isActionsOpen, setIsActionsOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     const handleActionsClick = () => {
         setIsActionsOpen(!isActionsOpen);
@@ -42,6 +44,7 @@ export default function AlbumsPage() {
                 if (response.ok) {
                     const data = await response.json();
                     setAlbumData(data);
+                    setIsLoading(false);
                 } else {
                     console.error(`Error fetching data: ${response.statusText}`);
                 }
@@ -65,6 +68,10 @@ export default function AlbumsPage() {
             setIsActionsOpen(false);
         }
     }, [selectedImageIds, selectedAlbumIds]);
+
+    if (isLoading) {
+        return <Loading />;
+    }
 
     const handleDownload = async () => {
         if (selectedImageIds.length === 1 && selectedAlbumIds.length === 0) {
