@@ -11,9 +11,17 @@ services:
     depends_on:
       - redis
 
-  worker:
+  worker_main:
     image: gdziewon/pixpursuit:latest
     command: celery -A app.celery worker --loglevel=info --queues=main_queue -P solo
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+  worker_beat:
+    image: gdziewon/pixpursuit:latest
+    command: celery -A app.celery worker --loglevel=info --queues=beat_queue -P solo
     env_file:
       - .env
     depends_on:

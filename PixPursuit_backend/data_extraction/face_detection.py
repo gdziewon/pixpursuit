@@ -9,7 +9,7 @@ from utils.constants import DETECTION_THRESHOLD
 device, mtcnn, resnet = activate_face_models(thresholds=DETECTION_THRESHOLD)
 
 
-@shared_task(name='face_detection.get_face_embeddings')
+@shared_task(name='face_detection.get_face_embeddings.main', queue='main_queue')
 def get_face_embeddings(image_data, filename):
     image = Image.open(BytesIO(image_data))
     image = image.convert("RGB")

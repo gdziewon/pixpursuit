@@ -7,7 +7,7 @@ from PIL import Image
 model = activate_object_models()
 
 
-@shared_task(name='object_detection.detect_objects')
+@shared_task(name='object_detection.detect_objects.main', queue='main_queue')
 def detect_objects(image_data, filename):
     image = Image.open(BytesIO(image_data))
     image = image.convert("RGB")

@@ -8,7 +8,7 @@ from PIL import Image
 resnet, transform = activate_feature_models()
 
 
-@shared_task(name='feature_extraction.extract_features')
+@shared_task(name='feature_extraction.extract_features.main', queue='main_queue')
 def extract_features(image_data, filename):
     image = Image.open(BytesIO(image_data))
     image = image.convert("RGB")

@@ -178,7 +178,7 @@ def update_all_faces(image_id, image_clusters, updated_user_faces, updated_backl
         return False
 
 
-@shared_task(name='face_operations.group_faces')
+@shared_task(name='face_operations.group_faces.beat', queue='beat_queue')
 def group_faces():
     images = fetch_images()
     process_images(images)
@@ -193,7 +193,7 @@ def group_faces():
     logger.info("Faces have been successfully grouped.")
 
 
-@shared_task(name='face_operations.update_names')
+@shared_task(name='face_operations.update_names.main', queue='main_queue')
 def update_names(old_name, new_name):
     try:
         if not all(isinstance(name, str) for name in [old_name, new_name]):
@@ -219,7 +219,7 @@ def update_names(old_name, new_name):
         return False
 
 
-@shared_task(name='face_operations.delete_faces_associated_with_images')
+@shared_task(name='face_operations.delete_faces_associated_with_images.main', queue='main_queue')
 def delete_faces_associated_with_images(image_ids):
     threshold = 0.01
     delete_operations = []

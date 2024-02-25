@@ -116,7 +116,7 @@ def predictions_to_tag_names(predictions):
     return [index_to_tag[idx] for idx in predictions if idx in index_to_tag and index_to_tag[idx] != 'NULL']
 
 
-@shared_task(name='tag_prediction_tools.train_model')
+@shared_task(name='tag_prediction_tools.train_model.main', queue='main_queue')
 def train_model(features, tag_vector):
     try:
         tag_predictor = load_model_state()
@@ -147,7 +147,7 @@ def train_model(features, tag_vector):
         logger.error(f"Error training model: {e}", exc_info=True)
 
 
-@shared_task(name='tag_prediction_tools.predict_and_update_tags')
+@shared_task(name='tag_prediction_tools.predict_and_update_tags.main', queue='main_queue')
 def predict_and_update_tags(image_ids):
     tag_predictor = load_model_state()
     if not tag_predictor:
@@ -180,7 +180,7 @@ def predict_and_update_tags(image_ids):
             continue
 
 
-@shared_task(name='tag_prediction_tools.update_all_auto_tags')
+@shared_task(name='tag_prediction_tools.update_all_auto_tags.beat', queue='beat_queue')
 def update_all_auto_tags():
     logger.info("Updating all auto tags")
     page_size = 100

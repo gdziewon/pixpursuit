@@ -10,18 +10,19 @@ def make_celery(app_name=__name__):
                         backend=CELERY_RESULT_BACKEND)
     celery_app.conf.beat_schedule = {
         'update-auto-tags-every-15-min': {
-            'task': 'tag_prediction_tools.update_all_auto_tags',
+            'task': 'tag_prediction_tools.update_all_auto_tags.beat',
             'schedule': crontab(minute=UPDATE_AUTO_TAGS_SCHEDULE)
         },
         'cluster-faces-every-5-min': {
-            'task': 'face_operations.group_faces',
+            'task': 'face_operations.group_faces.beat',
             'schedule': crontab(minute=CLUSTER_FACES_SCHEDULE),
         },
     }
     celery_app.conf.timezone = 'CET'
     celery_app.conf.task_default_queue = 'default'
     celery_app.conf.task_routes = {
-        '*.*': {'queue': 'main_queue'},
+        '*.main': {'queue': 'main_queue'},
+        '*.beat': {'queue': 'beat_queue'}
     }
     celery_app.conf.beat_schedule_filename = BEAT_SCHEDULE_FILE_PATH
 
