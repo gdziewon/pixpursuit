@@ -54,6 +54,12 @@ export default function SubAlbumPage({ params}) {
 
     const parentLinkHref = albumData?.parentIsRoot ? '/albums' : `/albums/${albumData?.parentAlbumId}`;
 
+    useEffect(() => {
+        if (selectedImageIds.length === 0 && selectedAlbumIds.length === 0) {
+            setIsActionsOpen(false);
+        }
+    }, [selectedImageIds, selectedAlbumIds]);
+
     const handleDownload = async () => {
         if (selectedImageIds.length === 1 && selectedAlbumIds.length === 0) {
             console.log('selectedImageIds:', selectedImageIds);

@@ -6,7 +6,6 @@ import Searcher from "@/app/components/Searcher";
 import { getImages } from "@/utils/getImages";
 import clsx from "clsx";
 import {
-  CloudArrowUpIcon,
   ChevronUpIcon,
   ChevronDownIcon,
 } from "@heroicons/react/24/solid";
@@ -150,21 +149,6 @@ export default async function Gallery({ searchParams }) {
           </div>
         </div>
         <div className="mb-12 flex justify-end space-x-6">
-          <Link href="/gallery/upload/zip">
-            <button
-                type="button"
-                className="rounded border bg-blue-500 px-3 py-1 text-xs text-white"
-            >
-              Upload Zip{" "}
-              <CloudArrowUpIcon className="inline-block w-4 h-4"/>
-            </button>
-          </Link>
-          <Link href="/gallery/upload">
-            <h2 className="rounded border bg-blue-500 px-3 py-1 text-xs text-white">
-              Upload Images{" "}
-              <CloudArrowUpIcon className="inline-block w-4 h-4"/>
-            </h2>
-          </Link>
             <div className="relative">
                 <Link
                     href={{

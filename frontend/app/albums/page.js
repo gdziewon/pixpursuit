@@ -60,6 +60,12 @@ export default function AlbumsPage() {
         setSelectedAlbumIds([]);
     }, [albumId, setSelectedImageIds, setSelectedAlbumIds]);
 
+    useEffect(() => {
+        if (selectedImageIds.length === 0 && selectedAlbumIds.length === 0) {
+            setIsActionsOpen(false);
+        }
+    }, [selectedImageIds, selectedAlbumIds]);
+
     const handleDownload = async () => {
         if (selectedImageIds.length === 1 && selectedAlbumIds.length === 0) {
             const image = albumData.images.find(image => image._id.toString() === selectedImageIds[0]);

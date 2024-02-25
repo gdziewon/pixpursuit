@@ -40,16 +40,37 @@ export async function getAlbums(albumId = 'root', thumbnailLimit = 50) {
     return combinedData;
 }
 
+export async function getRandomImages(albumId, count) {
+    const db = await connectToDatabase();
+    const album = await db.collection("albums").findOne({ _id: new ObjectId(albumId) });
+
+    if (!album) {
+        throw new Error('Album not found');
+    }
+
+    const imageIds = album.images.map(id => new ObjectId(id));
+    const images = await db.collection("images").aggregate([
+        { $match: { _id: { $in: imageIds } } },
+        { $sample: { size: parseInt(count) } }
+    ]).toArray();
+
+    return images;
+}
+
 export default async function handler(req, res) {
-    let { albumId } = req.query;
+    const { albumId, randomImages, count } = req.query;
 
     try {
-        const albumData = await getAlbums(albumId);
-        const responseData = {
-            ...albumData,
-        };
-
-        res.status(200).json(responseData);
+        if (randomImages) {
+            const images = await getRandomImages(albumId, count);
+            res.status(200).json(images);
+        } else {
+            const albumData = await getAlbums(albumId);
+            const responseData = {
+                ...albumData,
+            };
+            res.status(200).json(responseData);
+        }
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: error.message });
