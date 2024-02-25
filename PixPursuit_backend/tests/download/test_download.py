@@ -24,12 +24,12 @@ async def test_download_image_success(mock_get, async_client):
 @pytest.mark.asyncio
 @patch('httpx.AsyncClient.get')
 async def test_download_image_invalid_url(mock_get, async_client: AsyncClient):
-    mock_request = Request(method="GET", url=URL("http://example.com/invalid_image.jpg"))
+    mock_request = Request(method="GET", url=URL("https://example.com/invalid_image.jpg"))
 
     mock_response = MagicMock(status_code=404)
     mock_get.side_effect = HTTPStatusError(message="Not Found", request=mock_request, response=mock_response)
 
-    url = "http://example.com/invalid_image.jpg"
+    url = "https://example.com/invalid_image.jpg"
     try:
         response = await async_client.get(f"/download-image/?url={url}")
     except HTTPStatusError as e:

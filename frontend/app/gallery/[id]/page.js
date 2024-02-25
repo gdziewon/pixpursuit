@@ -108,6 +108,9 @@ export default function ImagePage({ params }) {
   async function downloadImage(url, filename) {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/download-image?url=${encodeURIComponent(url)}`);
+      if (location.protocol !== "https:") {
+        location.protocol = "https:";
+      }
       if (!response.ok) alert('Failed to download image');
 
       const reader = response.body.getReader();
@@ -403,6 +406,7 @@ export default function ImagePage({ params }) {
               <div className="flex items-center">
                 <p className="ml-2">{likes}</p>
                 {renderHeartIcon()}
+                <meta httpEquiv="Content-Security-Policy" content="upgrade-insecure-requests"/>
                 <ArrowDownTrayIcon
                     className="h-6 w-6 text-blue-500 hover:text-blue-700 cursor-pointer ml-2"
                     onClick={() => downloadImage(image.image_url, image.filename)}
@@ -411,7 +415,7 @@ export default function ImagePage({ params }) {
             </div>
           </div>
           <div className="w-1/2 pl-6">
-            <h1 className="text-3xl font-bold text-teal-100 dark:text-white mb-4">
+          <h1 className="text-3xl font-bold text-teal-100 dark:text-white mb-4">
               Photo description:
             </h1>
             {renderDescription()}

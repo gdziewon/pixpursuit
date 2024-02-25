@@ -11,7 +11,7 @@ celery.autodiscover_tasks(['tag_prediction.tag_prediction_tools', 'databases.fac
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://www.pixpursuit.rocks", "https://pixpursuit.rocks"],
+    allow_origins=["http://localhost:3000", "https://www.pixpursuit.rocks", "https://pixpursuit.rocks", "https://api.pixpursuit.rocks"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
