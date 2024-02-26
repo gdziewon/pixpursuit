@@ -54,7 +54,7 @@ async def update_model_tags():
         logger.error(f"Error updating model tags: {e}", exc_info=True)
 
 
-def tags_to_vector(tags, feedback):
+async def tags_to_vector(tags, feedback):
     try:
         unique_tags = get_unique_tags()
         tag_vector = [0] * len(unique_tags)
@@ -70,6 +70,8 @@ def tags_to_vector(tags, feedback):
                 if net_feedback >= POSITIVE_THRESHOLD:
                     tag_vector[tag_dict[tag]] = 1
 
+        await update_model_tags()
+
         return tag_vector
     except Exception as e:
         logger.error(f"Error converting tags to vector: {e}", exc_info=True)
@@ -84,7 +86,7 @@ async def training_init(inserted_ids):
                 features = image_document['features']
                 feedback_tags = image_document.get('feedback', {})
                 tags = image_document['user_tags']
-                tag_vector = tags_to_vector(tags, feedback_tags)
+                tag_vector = await tags_to_vector(tags, feedback_tags)
                 train_model.delay(features, tag_vector)
                 logger.info(f"Training initialized for image: {inserted_id}")
         except Exception as e:

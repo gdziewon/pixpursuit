@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from utils.constants import TAG_PREDICTION_THRESHOLD
 
 
 class TagPredictor(nn.Module):
@@ -33,5 +34,5 @@ class TagPredictor(nn.Module):
         self.eval()
         with torch.no_grad():
             predictions = self.forward(features)
-            high_confidence_tags = (predictions > 0.65).nonzero(as_tuple=True)[1]
+            high_confidence_tags = (predictions > TAG_PREDICTION_THRESHOLD).nonzero(as_tuple=True)[1]
             return high_confidence_tags.tolist()

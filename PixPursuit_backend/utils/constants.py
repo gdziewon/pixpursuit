@@ -22,6 +22,7 @@ EMAIL_SUFFIX = '@pk.edu.pl'
 MODEL_FILE_PATH = os.path.join(get_generated_dir_path(), 'tag_predictor_state.pth')
 LEARNING_RATE = float(os.getenv('LEARNING_RATE', '0.001'))
 POSITIVE_THRESHOLD = 2
+TAG_PREDICTION_THRESHOLD = 0.4
 
 # yolov8
 YOLO_MODEL_PATH = os.path.join(get_generated_dir_path(), 'yolov8n.pt')
