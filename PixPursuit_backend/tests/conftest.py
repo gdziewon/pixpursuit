@@ -15,8 +15,8 @@ from app import app
 TEST_USERNAME = os.getenv('TEST_USERNAME')
 TEST_PASSWORD = os.getenv('TEST_PASSWORD')
 TEST_EMAIL = os.getenv('TEST_EMAIL')
-TEST_ALBUM_ID = '65cbcec9ef7a4c1d9eb2dab1'
-TEST_IMAGE_ID = '65cbced6ef7a4c1d9eb2daba'
+TEST_ALBUM_ID = '65dccfa53de1104f3836d48b'
+TEST_IMAGE_ID = '65dccfb33de1104f3836d48c'
 
 
 @pytest.fixture(scope="session")

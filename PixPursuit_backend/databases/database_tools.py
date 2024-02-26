@@ -302,7 +302,11 @@ async def delete_albums(album_ids, is_top_level=True):
                 return False
 
             image_ids = album['images']
-            await delete_images(image_ids)
+            for image_id in image_ids:
+                delete_image_result = await delete_images([image_id])
+                if not delete_image_result:
+                    logger.error(f"Error deleting image {image_id} in album {album_id}")
+                    continue
 
             sub_album_ids = album['sons']
             await delete_albums(sub_album_ids, is_top_level=False)

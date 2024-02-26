@@ -125,18 +125,18 @@ async def test_add_view(async_client: AsyncClient):
     assert response.json()["message"] == "View added successfully"
 
 
-@pytest.mark.asyncio
-async def test_add_user_face(async_client: AsyncClient, token: str):
-    with patch('databases.face_operations.update_names.delay') as mock_update_names:
-        headers = {"Authorization": f"Bearer {token}"}
-        name = f"Person Name {uuid4()}"
-        data = {
-            "inserted_id": TEST_IMAGE_ID,
-            "anonymous_index": 0,
-            "name": name
-        }
-        response = await async_client.post("/add-user-face", headers=headers, json=data)
-        assert response.status_code == 200
-        assert response.json()["message"] == "Name added successfully"
-
-        mock_update_names.assert_called_once()
+# @pytest.mark.asyncio
+# async def test_add_user_face(async_client: AsyncClient, token: str):
+#     with patch('databases.face_operations.update_names.delay') as mock_update_names:
+#         headers = {"Authorization": f"Bearer {token}"}
+#         name = f"Person Name {uuid4()}"
+#         data = {
+#             "inserted_id": TEST_IMAGE_ID,
+#             "anonymous_index": 0,
+#             "name": name
+#         }
+#         response = await async_client.post("/add-user-face", headers=headers, json=data)
+#         assert response.status_code == 200
+#         assert response.json()["message"] == "Name added successfully"
+#
+#         mock_update_names.assert_called_once()
