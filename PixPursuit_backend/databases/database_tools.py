@@ -397,7 +397,7 @@ async def increment_tags_count(tags):
             if not await tags_collection.find_one({'name': tag}):
                 await tags_collection.insert_one({"name": tag, "count": 1})
                 from tag_prediction.tag_prediction_tools import update_model_tags
-                await update_model_tags()
+                update_model_tags()
             else:
                 await tags_collection.update_one({"name": tag}, {"$inc": {"count": 1}}, upsert=True)
 

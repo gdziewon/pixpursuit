@@ -41,7 +41,7 @@ def load_model_state(file_path=MODEL_FILE_PATH, input_size=1000, hidden_size=512
     return model
 
 
-async def update_model_tags():
+def update_model_tags():
     try:
         tag_predictor = load_model_state()
         unique_tags = get_unique_tags()
@@ -70,7 +70,7 @@ async def tags_to_vector(tags, feedback):
                 if net_feedback >= POSITIVE_THRESHOLD:
                     tag_vector[tag_dict[tag]] = 1
 
-        await update_model_tags()
+        update_model_tags()
 
         return tag_vector
     except Exception as e:
@@ -126,7 +126,7 @@ def train_model(features, tag_vector):
         return
 
     logger.info("Model training started")
-
+    update_model_tags()
     features_tensor = torch.tensor(features, dtype=torch.float32)
     if features_tensor.ndim == 1:
         features_tensor = features_tensor.unsqueeze(0)
@@ -158,6 +158,7 @@ def predict_and_update_tags(image_ids):
         logger.error("Model loading failed, prediction aborted.")
         return
 
+    update_model_tags()
     for image_id in image_ids:
         try:
             image_document = get_image_document_sync(image_id)
