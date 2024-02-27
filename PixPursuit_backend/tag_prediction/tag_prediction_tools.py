@@ -118,35 +118,37 @@ def predictions_to_tag_names(predictions):
     return [index_to_tag[idx] for idx in predictions if idx in index_to_tag and index_to_tag[idx] != 'NULL']
 
 
-@shared_task(name='tag_prediction_tools.train_model.main', queue='main_queue')
+@shared_task(name='tag_prediction_tools.train_model')
 def train_model(features, tag_vector):
+    tag_predictor = load_model_state()
+    if not features or not tag_predictor:
+        logger.error("Training aborted due to missing data or model")
+        return
+
+    logger.info("Model training started")
+
+    features_tensor = torch.tensor(features, dtype=torch.float32)
+    if features_tensor.ndim == 1:
+        features_tensor = features_tensor.unsqueeze(0)
+
+    target = torch.tensor([tag_vector], dtype=torch.float32)
+    if target.ndim == 1:
+        target = target.unsqueeze(0)
+
     try:
-        tag_predictor = load_model_state()
-        if not features or not tag_vector or not tag_predictor:
-            logger.error("Training aborted due to missing data")
-            return
-
-        features_tensor = torch.tensor(features, dtype=torch.float32)
-        if features_tensor.ndim == 1:
-            features_tensor = features_tensor.unsqueeze(0)
-
-        target = torch.tensor([tag_vector], dtype=torch.float32)
-        if target.ndim == 1:
-            target = target.unsqueeze(0)
-
         criterion = torch.nn.BCELoss()
         optimizer = optim.Adam(tag_predictor.parameters(), lr=LEARNING_RATE)
-
         optimizer.zero_grad()
         predicted_tags = tag_predictor(features_tensor)
         loss = criterion(predicted_tags, target)
         loss.backward()
         optimizer.step()
-
-        save_model_state(tag_predictor)
-        logger.info("Model trained and state saved")
     except Exception as e:
         logger.error(f"Error training model: {e}", exc_info=True)
+        return
+
+    save_model_state(tag_predictor)
+    logger.info("Model trained and state saved")
 
 
 @shared_task(name='tag_prediction_tools.predict_and_update_tags.main', queue='main_queue')
@@ -170,9 +172,6 @@ def predict_and_update_tags(image_ids):
             features_tensor = torch.tensor(features, dtype=torch.float32)
             if features_tensor.ndim == 1:
                 features_tensor = features_tensor.unsqueeze(0)
-                features_tensor = features_tensor.unsqueeze(-1).unsqueeze(-1)
-            elif features_tensor.ndim == 2:
-                features_tensor = features_tensor.unsqueeze(1)
 
             predicted_indices = tag_predictor.predict_tags(features_tensor)
             predicted_tags = predictions_to_tag_names(predicted_indices)

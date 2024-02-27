@@ -18,21 +18,12 @@ class TagPredictor(nn.Module):
         self.in3 = nn.InstanceNorm1d(num_tags)
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        if x.ndim < 3:
-            x = x.unsqueeze(-1)
-        x = self.in1(x)
+        x = F.relu(self.in1(self.fc1(x)))
         x = self.dropout1(x)
-        x = F.relu(self.fc2(x))
-        if x.ndim < 3:
-            x = x.unsqueeze(-1)
-        x = self.in2(x)
+        x = F.relu(self.in2(self.fc2(x)))
         x = self.dropout2(x)
-        x = torch.sigmoid(self.fc3(x))
-        if x.ndim < 3:
-            x = x.unsqueeze(-1)
-        x = self.in3(x)
-        return x.squeeze(-1)
+        x = torch.sigmoid(self.in3(self.fc3(x)))
+        return x
 
     def update_output_layer(self, new_num_tags):
         self.fc3 = nn.Linear(self.fc2.out_features, new_num_tags)

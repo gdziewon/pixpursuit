@@ -103,7 +103,8 @@ async def test_scrape_images(async_client: AsyncClient, token: str):
     with patch('data_extraction.face_detection.get_face_embeddings.delay') as mock_get_face_embeddings, \
             patch('data_extraction.object_detection.detect_objects.delay') as mock_detect_objects, \
             patch('data_extraction.feature_extraction.extract_features.delay') as mock_extract_features, \
-            patch('tag_prediction.tag_prediction_tools.predict_and_update_tags.delay') as mock_predict_and_update_tags:
+            patch('tag_prediction.tag_prediction_tools.predict_and_update_tags.delay') as mock_predict_and_update_tags, \
+            patch('databases.face_operations.delete_faces_associated_with_images.delay') as mock_delete_faces:
         response = await async_client.post("/scrape-images", json=data, headers=headers)
 
         assert response.status_code == 200
@@ -122,6 +123,7 @@ async def test_scrape_images(async_client: AsyncClient, token: str):
         assert mock_get_face_embeddings.call_count == expected_calls
         assert mock_detect_objects.call_count == expected_calls
         assert mock_extract_features.call_count == expected_calls
+        assert mock_delete_faces.call_count == expected_calls
         mock_predict_and_update_tags.assert_called_once_with(response.json()["inserted_ids"])
 
 

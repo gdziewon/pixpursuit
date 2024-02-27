@@ -48,8 +48,12 @@ async def get_image_record(data, username, album_id):
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def save_image_to_database(data, username, album_id):
     try:
-        if not album_id:
+        if not album_id or album_id == "root":
             album_id = await get_root_id()
+        else:
+            album_id = to_object_id(album_id)
+            if not album_id:
+                return None
 
         image_record = await get_image_record(data, username, album_id)
         if not image_record:
@@ -293,23 +297,27 @@ async def relocate_to_album(prev_album_id, new_album_id=None, image_ids=None):
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def delete_albums(album_ids, is_top_level=True):
+    all_deleted_successfully = True
     for album_id in album_ids:
         try:
             album_id = to_object_id(album_id)
             album = await get_album(album_id)
             if not album:
                 logger.error(f"No album found with ID: {album_id}")
-                return False
+                all_deleted_successfully = False
+                continue
 
             image_ids = album['images']
             for image_id in image_ids:
                 delete_image_result = await delete_images([image_id])
                 if not delete_image_result:
                     logger.error(f"Error deleting image {image_id} in album {album_id}")
+                    all_deleted_successfully = False
                     continue
 
             sub_album_ids = album['sons']
-            await delete_albums(sub_album_ids, is_top_level=False)
+            sub_delete_success = await delete_albums(sub_album_ids, is_top_level=False)
+            all_deleted_successfully = all_deleted_successfully and sub_delete_success
 
             if is_top_level and album['parent']:
                 parent_id = to_object_id(album['parent'])
@@ -322,20 +330,22 @@ async def delete_albums(album_ids, is_top_level=True):
             logger.info(f"Successfully deleted album: {album_id}")
         except Exception as e:
             logger.error(f"Error deleting album {album_id}: {e}")
-            return False
+            all_deleted_successfully = False
 
-    return True
+    return all_deleted_successfully
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def delete_images(image_ids):
+    all_deleted_successfully = True
     for image_id in image_ids:
         try:
             image_id = to_object_id(image_id)
             image_document = await get_image_document(image_id)
             if not image_document:
                 logger.error(f"No image found with ID: {str(image_id)}")
-                return False
+                all_deleted_successfully = False
+                continue
 
             delete_faces_associated_with_images.delay([str(image_id)])
 
@@ -355,9 +365,9 @@ async def delete_images(image_ids):
             logger.info(f"Successfully deleted image: {str(image_id)}")
         except Exception as e:
             logger.error(f"Error deleting image {image_id}: {e}")
-            return False
+            all_deleted_successfully = False
 
-    return True
+    return all_deleted_successfully
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))

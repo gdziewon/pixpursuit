@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 from httpx import AsyncClient
 from pathlib import Path
@@ -61,7 +63,8 @@ async def test_upload_zip(async_client: AsyncClient, token: str):
     with patch('data_extraction.face_detection.get_face_embeddings.delay') as mock_get_face_embeddings, \
             patch('data_extraction.object_detection.detect_objects.delay') as mock_detect_objects, \
             patch('data_extraction.feature_extraction.extract_features.delay') as mock_extract_features, \
-            patch('tag_prediction.tag_prediction_tools.predict_and_update_tags.delay') as mock_predict_and_update_tags:
+            patch('tag_prediction.tag_prediction_tools.predict_and_update_tags.delay') as mock_predict_and_update_tags, \
+            patch('databases.face_operations.delete_faces_associated_with_images.delay') as mock_delete_faces:
 
         expected_calls = 2
         headers = {"Authorization": f"Bearer {token}"}
@@ -70,6 +73,8 @@ async def test_upload_zip(async_client: AsyncClient, token: str):
         response = await async_client.post("/upload-zip", headers=headers, files=files, data=data)
         assert response.status_code == 200
         assert "Zip file processed successfully" in response.json()["message"]
+
+        await asyncio.sleep(1)
 
         album_id = response.json()["album_id"]
         delete_response = await async_client.request(
@@ -85,6 +90,7 @@ async def test_upload_zip(async_client: AsyncClient, token: str):
         assert mock_detect_objects.call_count == expected_calls
         assert mock_extract_features.call_count == expected_calls
         assert mock_predict_and_update_tags.call_count == expected_calls
+        assert mock_delete_faces.call_count == expected_calls
 
 
 @pytest.mark.asyncio
