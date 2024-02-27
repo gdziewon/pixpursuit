@@ -44,7 +44,9 @@ def get_image_ids_paginated(last_id=None, page_size=100):
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 def get_unique_tags():
-    return sync_tags_collection.distinct('name')
+    documents = sync_tags_collection.find({}, {'name': 1})
+    names = [doc['name'] for doc in documents]
+    return names
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
