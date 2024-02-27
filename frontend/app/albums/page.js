@@ -79,7 +79,7 @@ export default function AlbumsPage() {
             const url = image.image_url;
             const filename = image.filename;
             try {
-                setDownloadProgress('Preparing download...');
+                setDownloadProgress('Downloading...');
                 const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/download-image?url=${encodeURIComponent(url)}`);
                 if (response.ok) {
                     const blob = await response.blob();
@@ -100,7 +100,7 @@ export default function AlbumsPage() {
                 image_ids: selectedImageIds
             };
             try {
-                setDownloadProgress('Preparing download...');
+                setDownloadProgress('Downloading...');
                 const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/download-zip`, data, {
                     headers: {
                         'Content-Type': 'application/json',
