@@ -118,7 +118,7 @@ def predictions_to_tag_names(predictions):
     return [index_to_tag[idx] for idx in predictions if idx in index_to_tag and index_to_tag[idx] != 'NULL']
 
 
-@shared_task(name='tag_prediction_tools.train_model')
+@shared_task(name='tag_prediction_tools.train_model.main', queue='main_queue')
 def train_model(features, tag_vector):
     tag_predictor = load_model_state()
     if not features or not tag_predictor:
