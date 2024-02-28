@@ -1,3 +1,5 @@
+"use client";
+
 import { Suspense } from "react";
 import Image from "next/legacy/image";
 import Link from "next/link";
@@ -9,32 +11,35 @@ import {
   ChevronUpIcon,
   ChevronDownIcon,
 } from "@heroicons/react/24/solid";
+import { useEffect, useState } from "react";
 
-export default async function Gallery({ searchParams }) {
-  let page = parseInt(searchParams.page, 10) || 1;
-  let limit = parseInt(searchParams.limit, 10) || 12;
-  let search = searchParams.search || undefined;
-  let dropdown = searchParams.dropdown || "hidden";
+export default function Gallery({ searchParams }) {
+    let page = parseInt(searchParams.page, 10) || (typeof window !== 'undefined' ? parseInt(localStorage.getItem('page'), 10) : null) || 1;
+    let limit = parseInt(searchParams.limit, 10) || 12;
+    let search = searchParams.search || undefined;
+    let dropdown = searchParams.dropdown || "hidden";
     let sort = searchParams.sort || (typeof window !== 'undefined' ? localStorage.getItem('sort') : null) || "desc";
 
     // Save sort option to local storage
     if (typeof window !== 'undefined') {
         localStorage.setItem('sort', sort);
+        localStorage.setItem('page', page.toString());
     }
 
-  let images;
-  try {
-    images = await getImages({ limit, page, query: search, sort });
-  } catch (error) {
-    console.error(error);
-    return (
-        <section className="py-24">
-          <div className="container">
-            <h1 className="text-3xl font-bold">An error occurred while fetching images.</h1>
-          </div>
-        </section>
-    );
-  }
+    const [images, setImages] = useState([]);
+
+    useEffect(() => {
+        const fetchImages = async () => {
+            try {
+                const fetchedImages = await getImages({ limit, page, query: search, sort });
+                setImages(fetchedImages);
+            } catch (error) {
+                console.error(error);
+            }
+        };
+
+        fetchImages();
+    }, [limit, page, search, sort]);
 
     const renderDropdownMenu = () => {
         if (dropdown === "visible") {
@@ -169,33 +174,33 @@ export default async function Gallery({ searchParams }) {
                 {renderDropdownMenu()}
             </div>
         </div>
-          <Suspense fallback={<Loading/>}>
-              <div className="grid grid-cols-4 gap-8">
-                  {images.map((image, index) => (
-                      <Suspense fallback={<Loading/>} key={index}>
-                          <Link
-                              href={`/gallery/${image._id.toString()}`}
-                              className="relative rounded-md overflow-hidden group"
-                          >
-                              <Image
-                                  src={image.thumbnail_url}
-                                  alt={image.description}
-                                  width={300}
-                                  height={300}
-                                  layout={"responsive"}
-                                  className="transition duration-500 ease-in-out transform hover:scale-105"
-                    />
-                    <div
-                        className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-500 ease-in-out">
-                      <p className="text-white text-center">
-                        {image.description}
-                      </p>
-                    </div>
-                  </Link>
-                </Suspense>
-            ))}
-          </div>
-        </Suspense>
+            <Suspense fallback={<Loading/>}>
+                <div className="grid grid-cols-4 gap-8">
+                    {Array.isArray(images) && images.map((image, index) => (
+                        <Suspense fallback={<Loading/>} key={index}>
+                            <Link
+                                href={`/gallery/${image._id.toString()}`}
+                                className="relative rounded-md overflow-hidden group"
+                            >
+                                <Image
+                                    src={image.thumbnail_url}
+                                    alt={image.description}
+                                    width={300}
+                                    height={300}
+                                    layout={"responsive"}
+                                    className="transition duration-500 ease-in-out transform hover:scale-105"
+                                />
+                                <div
+                                    className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-500 ease-in-out">
+                                    <p className="text-white text-center">
+                                        {image.description}
+                                    </p>
+                                </div>
+                            </Link>
+                        </Suspense>
+                    ))}
+                </div>
+            </Suspense>
       </div>
     </section>
   );
