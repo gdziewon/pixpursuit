@@ -70,8 +70,6 @@ async def tags_to_vector(tags, feedback):
                 if net_feedback >= POSITIVE_THRESHOLD:
                     tag_vector[tag_dict[tag]] = 1
 
-        update_model_tags()
-
         return tag_vector
     except Exception as e:
         logger.error(f"Error converting tags to vector: {e}", exc_info=True)
@@ -126,7 +124,11 @@ def train_model(features, tag_vector):
         return
 
     logger.info("Model training started")
-    update_model_tags()
+    if len(tag_vector) != tag_predictor.num_tags:
+        tag_predictor.update_output_layer(len(tag_vector))
+        save_model_state(tag_predictor)
+        logger.info(f"Model output layer updated to match the number of unique tags: {len(tag_vector)}")
+
     features_tensor = torch.tensor(features, dtype=torch.float32)
     if features_tensor.ndim == 1:
         features_tensor = features_tensor.unsqueeze(0)
@@ -158,7 +160,6 @@ def predict_and_update_tags(image_ids):
         logger.error("Model loading failed, prediction aborted.")
         return
 
-    update_model_tags()
     for image_id in image_ids:
         try:
             image_document = get_image_document_sync(image_id)
@@ -185,6 +186,7 @@ def predict_and_update_tags(image_ids):
 @shared_task(name='tag_prediction_tools.update_all_auto_tags.beat', queue='beat_queue')
 def update_all_auto_tags():
     logger.info("Updating all auto tags")
+    update_model_tags()
     page_size = 100
     last_id = None
     while True:

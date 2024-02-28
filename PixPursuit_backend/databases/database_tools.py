@@ -212,6 +212,13 @@ async def add_like(is_positive, username, inserted_id):
             {'$inc': {'likes': 1 if is_positive else -1}}
         )
 
+        image_document = await images_collection.find_one({'_id': inserted_id})
+        if image_document['likes'] < 0:
+            await images_collection.update_one(
+                {'_id': inserted_id},
+                {'$set': {'likes': 0}}
+            )
+
         operation = '$addToSet' if is_positive else '$pull'
         await user_collection.update_one(
             {'username': username},
@@ -396,8 +403,6 @@ async def increment_tags_count(tags):
         for tag in tags:
             if not await tags_collection.find_one({'name': tag}):
                 await tags_collection.insert_one({"name": tag, "count": 1})
-                from tag_prediction.tag_prediction_tools import update_model_tags
-                update_model_tags()
             else:
                 await tags_collection.update_one({"name": tag}, {"$inc": {"count": 1}}, upsert=True)
 

@@ -3,7 +3,7 @@ from config.logging_config import setup_logging
 from config.database_config import connect_to_mongodb_sync
 from utils.function_utils import to_object_id
 
-sync_images_collection, _, sync_faces_collection, _, sync_tags_collection = connect_to_mongodb_sync()
+sync_images_collection, sync_tags_collection, sync_faces_collection, _, _ = connect_to_mongodb_sync()
 logger = setup_logging(__name__)
 
 
@@ -61,12 +61,11 @@ def add_auto_tags(inserted_id, predicted_tags):
         auto_tags_to_add = [tag for tag in predicted_tags if tag not in user_tags]
 
         if auto_tags_to_add:
+            inserted_id = to_object_id(inserted_id)
             sync_images_collection.update_one(
                 {'_id': inserted_id},
                 {'$set': {'auto_tags': auto_tags_to_add}}
             )
-
-        if auto_tags_to_add:
             add_feedback_sync(auto_tags_to_add, inserted_id)
 
     except Exception as e:
