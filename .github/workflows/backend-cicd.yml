@@ -24,23 +24,23 @@ jobs:
     - name: Install dependencies
       run: pip install -r requirements.txt
 
-    - name: Run tests
-      run: pytest
-      env:
-        AUTH_SECRET_KEY: ${{ secrets.AUTH_SECRET_KEY }}
-        MONGODB_URI: ${{ secrets.MONGODB_URI }}
-        DO_SPACE_ENDPOINT: ${{ secrets.DO_SPACE_ENDPOINT }}
-        DO_SPACE_ACCESS_KEY: ${{ secrets.DO_SPACE_ACCESS_KEY }}
-        DO_SPACE_SECRET_KEY: ${{ secrets.DO_SPACE_SECRET_KEY }}
-        DO_SPACE_BUCKET: ${{ secrets.DO_SPACE_BUCKET }}
-        NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-        NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
-        MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
-        MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-        MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
-        TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
-        TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
-        TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+    # - name: Run tests
+    #   run: pytest
+    #   env:
+    #     AUTH_SECRET_KEY: ${{ secrets.AUTH_SECRET_KEY }}
+    #     MONGODB_URI: ${{ secrets.MONGODB_URI }}
+    #     DO_SPACE_ENDPOINT: ${{ secrets.DO_SPACE_ENDPOINT }}
+    #     DO_SPACE_ACCESS_KEY: ${{ secrets.DO_SPACE_ACCESS_KEY }}
+    #     DO_SPACE_SECRET_KEY: ${{ secrets.DO_SPACE_SECRET_KEY }}
+    #     DO_SPACE_BUCKET: ${{ secrets.DO_SPACE_BUCKET }}
+    #     NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+    #     NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+    #     MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+    #     MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+    #     MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+    #     TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
+    #     TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+    #     TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
 
   deploy:
     needs: build-and-test

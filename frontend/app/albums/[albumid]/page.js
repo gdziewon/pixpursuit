@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useContext } from 'react';
+import { useRouter } from 'next/navigation';
 import "/styles/album_layout_styles.css"
 import ImageSelection from '/utils/ImageSelection';
 import axios from "axios";
@@ -24,6 +25,7 @@ export default function SubAlbumPage({ params}) {
     const [error, setError] = useState(null);
     const [isActionsOpen, setIsActionsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const router = useRouter();
 
 
     const handleActionsClick = () => {
@@ -38,6 +40,10 @@ export default function SubAlbumPage({ params}) {
                 if (response.ok) {
                     const data = await response.json();
                     setAlbumData(data);
+                    if (data.parentAlbumId === null || data.parentAlbumId === undefined) {
+                        router.push('/albums');
+
+                    }
                     setIsLoading(false);
                 } else {
                     console.error(`Error fetching data: ${response.statusText}`);
@@ -51,7 +57,7 @@ export default function SubAlbumPage({ params}) {
         fetchData();
         setSelectedImageIds([]);
         setSelectedAlbumIds([]);
-    }, [albumId, setSelectedImageIds, setSelectedAlbumIds]);
+    }, [albumId, setSelectedImageIds, setSelectedAlbumIds, router]);
 
 
     const parentLinkHref = albumData?.parentIsRoot ? '/albums' : `/albums/${albumData?.parentAlbumId}`;

@@ -13,6 +13,9 @@ import {
 } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 import ErrorWindow from '@/utils/ErrorWindow';
+import {CloudArrowDownIcon} from "@heroicons/react/24/solid";
+import axios from "axios";
+import download from 'downloadjs';
 
 export default function Gallery({ searchParams }) {
     let page = parseInt(searchParams.page, 10) || (typeof window !== 'undefined' ? parseInt(localStorage.getItem('page'), 10) : null) || 1;
@@ -21,6 +24,8 @@ export default function Gallery({ searchParams }) {
     let dropdown = searchParams.dropdown || "hidden";
     let sort = searchParams.sort || (typeof window !== 'undefined' ? localStorage.getItem('sort') : null) || "desc";
     const [errorMessage, setErrorMessage] = useState(null);
+    const [imageIds, setImageIds] = useState(null);
+    const [downloadProgress, setDownloadProgress] = useState(false);
 
     // Save sort option to local storage
     if (typeof window !== 'undefined') {
@@ -35,6 +40,8 @@ export default function Gallery({ searchParams }) {
             try {
                 const fetchedImages = await getImages({ limit, page, query: search, sort });
                 setImages(fetchedImages);
+                setImageIds(fetchedImages.map(image => image._id));
+
             } catch (error) {
                 console.error(error);
                 setErrorMessage('Failed to get images');
@@ -43,6 +50,44 @@ export default function Gallery({ searchParams }) {
 
         fetchImages();
     }, [limit, page, search, sort]);
+
+    const handleDownload = async () => {
+        console.log(imageIds);
+        const data = {
+            image_ids: imageIds
+        };
+        try {
+            setDownloadProgress(true);
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/download-zip`, data, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                responseType: 'blob',
+            });
+
+            if (response.status === 200) {
+                const contentDisposition = response.headers['content-disposition'];
+                let fileName = 'download.zip';
+
+                if (contentDisposition) {
+                    const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (fileNameMatch && fileNameMatch[1]) {
+                        fileName = fileNameMatch[1].replace(/['"]/g, '');
+                    }
+                }
+                download(response.data, fileName, 'application/zip');
+                setDownloadProgress(false);
+            } else {
+                alert('Download failed');
+                setDownloadProgress(false);
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Download failed');
+            setDownloadProgress(false);
+        }
+    };
+
 
     const renderDropdownMenu = () => {
         if (dropdown === "visible") {
@@ -118,69 +163,80 @@ export default function Gallery({ searchParams }) {
     return (
         <section className="py-24">
             <div className="container">
-            <div className="mb-12 flex items-center justify-between gap-x-16">
-          <h1 className="text-3xl font-bold">PixPursuit</h1>
-          <Searcher search={search}/>
-          <div className="flex space-x-6">
-            <Link
-                href={{
-                  pathname: "/gallery",
-                  query: {
-                    ...(search ? {search} : {}),
-                    page: page > 1 ? page - 1 : 1,
-                      sort: sort,
-                  },
-                }}
-                className={clsx(
-                    "rounded border bg-gray-100 px-4 py-2 text-sm text-gray-800",
-                    page <= 1 && "pointer-events-none opacity-50"
-                )}
-            >
-              Previous
-            </Link>
-            <Link
-                href={{
-                  pathname: "/gallery",
-                  query: {
-                    ...(search ? {search} : {}),
-                    page: page + 1,
-                      sort: sort,
-                  },
-                }}
-                className={clsx(
-                    "rounded border bg-gray-100 px-4 py-2 text-sm text-gray-800",
-                    images.length < limit && "pointer-events-none opacity-50"
-                )}
-            >
-              Next
-            </Link>
-          </div>
-        </div>
-        <div className="mb-12 flex justify-end space-x-6">
-            <div className="relative">
-                <Link
-                    href={{
-                        pathname: "/gallery",
-                        query: {
-                            ...(search ? {search} : {}),
-                            page,
-                            sort,
-                            dropdown: dropdown === "visible" ? "hidden" : "visible",
-                        },
-                    }}
-                    className="rounded border bg-gray-300 px-3 py-1 text-xs text-black flex items-center space-x-2"
-                >
-                    <span>Sort by </span>
-                    {dropdown === "visible" ? <ChevronUpIcon className="w-4 h-4"/> :
-                        <ChevronDownIcon className="w-4 h-4"/>}
-                </Link>
-                {renderDropdownMenu()}
-            </div>
-        </div>
-            <Suspense fallback={<Loading/>}>
-                <div className="grid grid-cols-4 gap-8">
-                    {Array.isArray(images) && images.map((image, index) => (
-                        <Suspense fallback={<Loading/>} key={index}>
+                <div className="mb-12 flex items-center justify-between gap-x-16">
+                    <h1 className="text-3xl font-bold">PixPursuit</h1>
+                    <Searcher search={search}/>
+                    <div className="flex space-x-6">
+                        <Link
+                            href={{
+                                pathname: "/gallery",
+                                query: {
+                                    ...(search ? {search} : {}),
+                                    page: page > 1 ? page - 1 : 1,
+                                    sort: sort,
+                                },
+                            }}
+                            className={clsx(
+                                "rounded border bg-gray-100 px-4 py-2 text-sm text-gray-800",
+                                page <= 1 && "pointer-events-none opacity-50"
+                            )}
+                        >
+                            Previous
+                        </Link>
+                        <Link
+                            href={{
+                                pathname: "/gallery",
+                                query: {
+                                    ...(search ? {search} : {}),
+                                    page: page + 1,
+                                    sort: sort,
+                                },
+                            }}
+                            className={clsx(
+                                "rounded border bg-gray-100 px-4 py-2 text-sm text-gray-800",
+                                images.length < limit && "pointer-events-none opacity-50"
+                            )}
+                        >
+                            Next
+                        </Link>
+                    </div>
+                </div>
+                <div className="mb-12 flex justify-end space-x-6">
+                    {downloadProgress ? (
+                        <h2 className="rounded border bg-blue-500 px-3 py-1 text-xs text-white">
+                            Downloading...{" "}
+                            <span className="animate-ping">🔄</span>
+                        </h2>
+                    ) : (
+                        <button className="rounded border bg-blue-500 px-3 py-1 text-xs text-white" onClick={handleDownload}>
+                            Download Page{" "}
+                            <CloudArrowDownIcon className="inline-block w-4 h-4"/>
+                        </button>
+                    )}
+                    <div className="relative">
+                        <Link
+                            href={{
+                                pathname: "/gallery",
+                                query: {
+                                    ...(search ? {search} : {}),
+                                    page,
+                                    sort,
+                                    dropdown: dropdown === "visible" ? "hidden" : "visible",
+                                },
+                            }}
+                            className="rounded border bg-gray-300 px-3 py-1 text-xs text-black flex items-center space-x-2"
+                        >
+                            <span>Sort by </span>
+                            {dropdown === "visible" ? <ChevronUpIcon className="w-4 h-4"/> :
+                                <ChevronDownIcon className="w-4 h-4"/>}
+                        </Link>
+                        {renderDropdownMenu()}
+                    </div>
+                </div>
+                <Suspense fallback={<Loading/>}>
+                    <div className="grid grid-cols-4 gap-8">
+                        {Array.isArray(images) && images.map((image, index) => (
+                            <Suspense fallback={<Loading/>} key={index}>
                             <Link
                                 href={`/gallery/${image._id.toString()}`}
                                 className="relative rounded-md overflow-hidden group"
