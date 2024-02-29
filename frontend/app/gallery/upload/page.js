@@ -7,6 +7,8 @@ import Image from 'next/image';
 import Loading from '@/app/loading';
 import { DocumentDuplicateIcon,  CloudArrowUpIcon} from '@heroicons/react/24/outline';
 import { signIn } from 'next-auth/react';
+import SuccessWindow from '@/utils/SuccessWindow';
+import ErrorWindow from '@/utils/ErrorWindow';
 
 const UploadForm = () => {
     const [images, setImages] = useState([]);
@@ -19,23 +21,38 @@ const UploadForm = () => {
     const [successMessage, setSuccessMessage] = useState(null);
 
     const handleButtonClick = () => {
-        fileInputRef.current.click();
+        try {
+            fileInputRef.current.click();
+        } catch (error) {
+            console.error(error.message);
+            setErrorMessage("Button click failed");
+        }
     };
 
     const handleImageChange = (e) => {
-        setImages([...images, ...Array.from(e.target.files)]);
-        setErrorMessage(null);
+        try {
+            setImages([...images, ...Array.from(e.target.files)]);
+            setErrorMessage(null);
+        } catch (error) {
+            console.error(error.message);
+            setErrorMessage("Image change failed");
+        }
     };
 
     const handleRemoveImage = (index) => {
-        setImages(images.filter((_, i) => i !== index));
+        try {
+            setImages(images.filter((_, i) => i !== index));
+        } catch (error) {
+            console.error(error.message);
+            setErrorMessage("Image removal failed");
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         if (images.length === 0) {
-            setErrorMessage('You have not selected images to upload');
+            setErrorMessage('Images not selected');
             return;
         }
 
@@ -51,7 +68,7 @@ const UploadForm = () => {
                 },
             });
             if (response.status === 200) {
-                setSuccessMessage("Images uploaded successfully");
+                setSuccessMessage(`${images.length} image${images.length > 1 ? 's' : ''} uploaded`);
             } else {
                 setErrorMessage("Upload failed");
             }
@@ -73,7 +90,7 @@ const UploadForm = () => {
             const newHeight = resizeValues[index]?.height;
 
             if (!newWidth || !newHeight) {
-                setErrorMessage('Please enter width and height');
+                setErrorMessage('Width and height not entered');
                 return;
             }
             const image = new window.Image();
@@ -98,38 +115,48 @@ const UploadForm = () => {
             }, 'image/jpeg');
         } catch (error) {
             console.error(error);
-            setErrorMessage("An error occurred while resizing the image");
+            setErrorMessage("Image resize failed");
         }
     };
 
     const handleResizeInputChange = (index, dimension, value) => {
-        setResizeValues({
-            ...resizeValues,
-            [index]: { ...resizeValues[index], [dimension]: value },
-        });
+        try {
+            setResizeValues({
+                ...resizeValues,
+                [index]: { ...resizeValues[index], [dimension]: value },
+            });
+        } catch (error) {
+            console.error(error.message);
+            setErrorMessage("Error resizing image input change");
+        }
     };
 
     const handleResizeButtonClick = async (img, index) => {
-        if (showResizeFields[index]) {
-            await handleResizeImage(img, index);
-        } else {
-            const image = new window.Image();
-            image.src = URL.createObjectURL(img);
-            image.onload = () => {
-                setResizeValues({
-                    ...resizeValues,
-                    [index]: { width: image.naturalWidth, height: image.naturalHeight },
-                });
-            };
+        try {
+            if (showResizeFields[index]) {
+                await handleResizeImage(img, index);
+            } else {
+                const image = new window.Image();
+                image.src = URL.createObjectURL(img);
+                image.onload = () => {
+                    setResizeValues({
+                        ...resizeValues,
+                        [index]: { width: image.naturalWidth, height: image.naturalHeight },
+                    });
+                };
+            }
+            setShowResizeFields({ ...showResizeFields, [index]: !showResizeFields[index] });
+        } catch (error) {
+            console.error(error.message);
+            setErrorMessage("Image resize failed");
         }
-        setShowResizeFields({ ...showResizeFields, [index]: !showResizeFields[index] });
     };
 
     return (
         <section className="fa-upload">
             {isLoading && <Loading />}
-            {successMessage && <p>{successMessage}</p>}
-            {errorMessage && <p>{errorMessage}</p>}
+            {successMessage && <SuccessWindow message={successMessage} />}
+            {errorMessage && <ErrorWindow message={errorMessage} />}
             <form onSubmit={handleSubmit} className="flex items-center">
                 <input
                     type="file"
@@ -147,9 +174,6 @@ const UploadForm = () => {
                     <DocumentDuplicateIcon className="h-5 w-5 mr-2" />
                     Browse...
                 </button>
-                <span className="mx-3">
-                    {images.length > 0 ? `Files chosen: ${images.length}` : 'No files chosen'}
-                </span>
                 <button
                     type="submit"
                     className="rounded border bg-blue-500 px-3 py-1 text-sm text-white flex items-center"

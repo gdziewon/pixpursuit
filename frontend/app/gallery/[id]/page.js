@@ -9,6 +9,8 @@ import {useSession} from "next-auth/react";
 import axios from "axios";
 import Image from "next/image";
 import Link from "next/link";
+import ErrorWindow from '@/utils/ErrorWindow';
+import SuccessWindow from '@/utils/SuccessWindow';
 
 export default function ImagePage({ params }) {
   const [newTag, setNewTag] = useState(null);
@@ -27,6 +29,9 @@ export default function ImagePage({ params }) {
   const [similarImages, setSimilarImages] = useState([]);
   const [isSimilarImagesLoading, setSimilarImagesLoading] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
+  const [showHeartOverlay, setShowHeartOverlay] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
 
 
   useEffect(() => {
@@ -47,7 +52,8 @@ export default function ImagePage({ params }) {
           setAutoTagsFeedback(imageData.feedback_history[session.user.name]);
         }
       } catch (error) {
-        console.error('Error fetching image:', error);
+        console.error('Error fetching image:', error.response && error.response.data && error.response.data.message ? error.response.data.message : error);
+        setErrorMessage('Failed to fetch image');
       }
     };
     fetchImage();
@@ -94,9 +100,11 @@ export default function ImagePage({ params }) {
           setSimilarImages(response.data.similar_images);
         } else {
           console.error('Failed to fetch similar images');
+          setErrorMessage('Failed to fetch similar images');
         }
       } catch (error) {
         console.error('Error fetching similar images:', error);
+        setErrorMessage('Failed to fetch similar images');
       } finally {
         setSimilarImagesLoading(false);
       }
@@ -111,7 +119,9 @@ export default function ImagePage({ params }) {
       if (location.protocol !== "https:") {
         location.protocol = "https:";
       }
-      if (!response.ok) alert('Failed to download image');
+      if (!response.ok) {
+        throw new Error('Failed to download image');
+      }
 
       const reader = response.body.getReader();
       const stream = new ReadableStream({
@@ -135,9 +145,11 @@ export default function ImagePage({ params }) {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(blobUrl);
+        setSuccessMessage('Image downloaded successfully');
       });
     } catch (error) {
       console.error('Error in downloadImage function:', error);
+      setErrorMessage('Failed to download image');
     }
   }
 
@@ -220,14 +232,14 @@ export default function ImagePage({ params }) {
       });
 
       if (response.status === 200) {
-        alert("Tag added successfully");
+        setSuccessMessage('Tag added successfully');
         setImage(prev => ({ ...prev, user_tags: [...prev.user_tags, newTag] }));
         setNewTag(""); // Clear the input field
       } else {
-        alert("Failed to add tag");
+        setErrorMessage("Failed to add tag");
       }
     } catch (error) {
-      alert("Error adding tag");
+      setErrorMessage("Error adding tag");
       console.error(error);
     }
   };
@@ -247,14 +259,25 @@ export default function ImagePage({ params }) {
       });
 
       if (response.status === 200) {
-        alert(isPositive ? 'Like submitted successfully' : 'Unlike submitted successfully');
+        console.log(isPositive ? 'Like submitted successfully' : 'Unlike submitted successfully');
         setLikes(isPositive ? likes + 1 : likes - 1);
         setIsLikedByUser(isPositive);
+
+        if (isPositive) {
+          setShowHeartOverlay(true);
+
+          // Hide the heart overlay after 1 second
+          setTimeout(() => {
+            setShowHeartOverlay(false);
+          }, 1000);
+        }
       } else {
-        alert('Failed to submit like');
+        setErrorMessage('Failed to submit like')
+        console.log('Failed to submit like');
       }
     } catch (error) {
-      alert('Error submitting like:', error);
+        setErrorMessage('Error submitting like');
+      console.log('Error submitting like:', error);
     }
   }
 
@@ -273,14 +296,14 @@ export default function ImagePage({ params }) {
       });
 
       if (response.status === 200) {
-        alert("Description updated successfully");
+        setSuccessMessage("Description updated successfully");
         setImage(prev => ({ ...prev, description: editedDescription }));
       } else {
-        alert("Failed to update description");
+        setErrorMessage('Failed to update description');
       }
     } catch (error) {
-      alert("Error updating description");
-      console.error(error);
+      console.error('Error updating description:', error);
+      setErrorMessage('Failed to update description');
     }
 
     setEditingDescription(false);
@@ -301,17 +324,17 @@ export default function ImagePage({ params }) {
       });
 
       if (response.status === 200) {
-        alert("Tag removed successfully");
+        setSuccessMessage('Tag removed successfully');
         setImage(prev => ({
           ...prev,
           user_tags: prev.user_tags.filter(tag => tag !== tagToRemove)
         }));
       } else {
-        alert("Failed to remove tag");
+        setErrorMessage("Failed to remove tag");
       }
     } catch (error) {
-      alert("Error removing tag");
-      console.error(error);
+      console.error('Error removing tag:', error);
+      setErrorMessage('Failed to remove tag');
     }
   };
 
@@ -331,14 +354,14 @@ export default function ImagePage({ params }) {
       });
 
       if (response.status === 200) {
-        alert("Feedback submitted successfully");
+        setSuccessMessage("Feedback submitted successfully");
         setAutoTagsFeedback(prev => ({ ...prev, [tag]: isPositive }));
       } else {
-        alert("Failed to submit feedback");
+        setErrorMessage("Failed to submit feedback");
       }
     } catch (error) {
       console.error("Error submitting feedback:", error);
-      alert("Error submitting feedback");
+      setErrorMessage("Error submitting feedback");
     }
   };
 
@@ -386,8 +409,7 @@ export default function ImagePage({ params }) {
         <div className="flex">
           <div className="w-1/2">
             <div className="flex justify-center flex-col">
-              <BoxOverlay image={image} boxes={image.embeddings_box || []} originalSize={originalSize}
-                          session={session}/>
+              <BoxOverlay image={image} boxes={image.embeddings_box || []} originalSize={originalSize} session={session} showHeartOverlay={showHeartOverlay} />
             </div>
             <div className="flex justify-between items-center">
               <div>
@@ -544,6 +566,8 @@ export default function ImagePage({ params }) {
             )}
           </div>
         </div>
+        {errorMessage && <ErrorWindow message={errorMessage} />}
+        {successMessage && <SuccessWindow message={successMessage} />}
       </main>
 
   );

@@ -1,8 +1,10 @@
 import axios from "axios";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
+import { HeartIcon } from "@heroicons/react/24/solid";
+import '@/styles/design_styles.css';
 
-export const BoxOverlay = ({image, boxes, originalSize, session}) => {
+export function BoxOverlay({ image, boxes, originalSize, session, showHeartOverlay }) {
     const displayWidth = 800;  // Adjust as needed
     const displayHeight = 800; // Adjust as needed
 
@@ -95,6 +97,7 @@ export const BoxOverlay = ({image, boxes, originalSize, session}) => {
         }
         event.preventDefault();
     };
+    
 
     return (
         <div ref={overlayRef} style={{ position: 'relative' }}
@@ -108,6 +111,17 @@ export const BoxOverlay = ({image, boxes, originalSize, session}) => {
                 quality={100}
                 className="rounded-lg"
             />
+            {showHeartOverlay && (
+                <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: 1
+                }}>
+                    <HeartIcon className="h-10 w-10 text-gray-100 animate-pulse" />
+                </div>
+            )}
             {isMouseOver &&
                 boxes.map((box, index) => (
                     <div

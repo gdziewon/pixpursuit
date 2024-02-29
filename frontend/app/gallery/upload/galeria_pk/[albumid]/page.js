@@ -3,10 +3,13 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
+import SuccessWindow from '@/utils/SuccessWindow';
+import ErrorWindow from '@/utils/ErrorWindow';
 
 export default function GaleriaPKUploadPage({params}) {
     const [url, setUrl] = useState('');
-    const [errorMessage, setErrorMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
     const { data: session } = useSession();
     const albumId = params.albumid;
 
@@ -24,12 +27,13 @@ export default function GaleriaPKUploadPage({params}) {
             });
 
             if (response.status === 200) {
-                alert('Images scraped successfully');
+                setSuccessMessage('Images scraped successfully');
             } else {
-                alert('Failed to scrape images');
+                setErrorMessage('Failed to scrape images');
             }
         } catch (error) {
-            setErrorMessage('Error scraping images: ' + error.message);
+            console.error('Error scraping images:', error.response && error.response.data && error.response.data.message ? error.response.data.message : error);
+            setErrorMessage('Failed to scrape images');
         }
     };
 
@@ -57,6 +61,8 @@ export default function GaleriaPKUploadPage({params}) {
                             </div>
                         </div>
                     </form>
+                    {successMessage && <SuccessWindow message={successMessage} />}
+                    {errorMessage && <ErrorWindow message={errorMessage} />}
                 </div>
             </div>
         </div>

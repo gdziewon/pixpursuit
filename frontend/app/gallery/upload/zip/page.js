@@ -6,6 +6,8 @@ import axios from 'axios';
 import { CloudArrowUpIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import Loading from '@/app/loading';
+import SuccessWindow from '@/utils/SuccessWindow';
+import ErrorWindow from '@/utils/ErrorWindow';
 
 const UploadZipForm = () => {
     const { data: session } = useSession();
@@ -33,7 +35,7 @@ const UploadZipForm = () => {
         setErrorMessage('');
 
         if (!file) {
-            setErrorMessage('You have not selected a zip for uploading');
+            setErrorMessage('ZIP not selected');
             return;
         }
         formData.append('file', fileInputRef.current.files[0]);
@@ -47,7 +49,7 @@ const UploadZipForm = () => {
                     Authorization: `Bearer ${session.accessToken}`,
                 },
             });
-            setSuccessMessage('Zip file uploaded successfully!');
+            setSuccessMessage('ZIP uploaded successfully');
             console.log(response.data);
         } catch (error) {
             setErrorMessage(error.message);
@@ -61,8 +63,8 @@ const UploadZipForm = () => {
         <section className="fa-upload">
             {isLoading ? <Loading /> : (
                 <>
-                    {successMessage && <div className="alert alert-success">{successMessage}</div>}
-                    {errorMessage && <div className="alert alert-danger">{errorMessage}</div>}
+                    {successMessage && <SuccessWindow message={successMessage} />}
+                    {errorMessage && <ErrorWindow message={errorMessage} />}
                     <form onSubmit={handleSubmit} className="flex items-center">
                         <input
                             type="file"

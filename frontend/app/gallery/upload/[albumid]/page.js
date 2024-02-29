@@ -7,6 +7,8 @@ import Image from 'next/image';
 import Loading from '@/app/loading';
 import { DocumentDuplicateIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline';
 import { signIn } from 'next-auth/react';
+import SuccessWindow from '@/utils/SuccessWindow';
+import ErrorWindow from '@/utils/ErrorWindow';
 
 const UploadToAlbumForm = ({ params }) => {
     const [images, setImages] = useState([]);
@@ -16,15 +18,16 @@ const UploadToAlbumForm = ({ params }) => {
     const fileInputRef = useRef(null);
     const [resizeValues, setResizeValues] = useState({});
     const [showResizeFields, setShowResizeFields] = useState({})
-    const [error, setError] = useState(null);
-    const [success, setSuccess] = useState(null)
+    const [errorMessage, setErrorMessage] = useState('');
+    const [successMessage, setSuccessMessage] = useState(null)
 
     const handleImageChange = (e) => {
         try {
             setImages([...Array.from(e.target.files)]);
-            setError(null);
+            setErrorMessage(null);
         } catch (error) {
-            setError("An error occurred while changing the image: " + error.message);
+            console.error(error.message);
+            setErrorMessage("Image change failed");
         }
     };
 
@@ -32,7 +35,8 @@ const UploadToAlbumForm = ({ params }) => {
         try {
             fileInputRef.current.click();
         } catch (error) {
-            setError("An error occurred while handling the button click: " + error.message);
+            console.error(error.message);
+            setErrorMessage("Button click failed");
         }
     };
 
@@ -40,7 +44,8 @@ const UploadToAlbumForm = ({ params }) => {
         try {
             setImages(images.filter((_, i) => i !== index));
         } catch (error) {
-            setError("An error occurred while removing the image: " + error.message);
+            console.error(error.message);
+            setErrorMessage("Image removal failed");
         }
     };
 
@@ -48,7 +53,7 @@ const UploadToAlbumForm = ({ params }) => {
         e.preventDefault();
 
         if (images.length === 0) {
-            setError('You have not selected images to upload');
+            setErrorMessage('Images not selected');
             return;
         }
 
@@ -65,15 +70,15 @@ const UploadToAlbumForm = ({ params }) => {
                 },
             });
             if (response.status === 200) {
-                setSuccess("Images uploaded successfully");
+                setSuccessMessage(`${images.length} image${images.length > 1 ? 's' : ''} uploaded`);
             } else {
-                setError("Upload failed");
+                setErrorMessage("Upload failed");
             }
         } catch (error) {
             if (error.response && error.response.status === 401) {
                 signIn();
             } else {
-                setError("Upload failed");
+                setErrorMessage("Upload failed");
             }
         } finally {
             setIsLoading(false);
@@ -87,7 +92,7 @@ const UploadToAlbumForm = ({ params }) => {
             const newHeight = resizeValues[index]?.height;
 
             if (!newWidth || !newHeight) {
-                setError('Please enter width and height');
+                setErrorMessage('Width and height not entered');
                 return;
             }
             const image = new window.Image();
@@ -111,7 +116,8 @@ const UploadToAlbumForm = ({ params }) => {
                 setShowResizeFields({ ...showResizeFields, [index]: false });
             }, 'image/jpeg');
         } catch (error) {
-            setError("Image resize failed due to an error: " + error.message);
+            console.error(error.message);
+            setErrorMessage("Image resize failed");
         }
     };
 
@@ -122,7 +128,8 @@ const UploadToAlbumForm = ({ params }) => {
                 [index]: { ...resizeValues[index], [dimension]: value },
             });
         } catch (error) {
-            setError("An error occurred while resizing the image input change: " + error.message);
+            console.error(error.message);
+            setErrorMessage("Error resizing image input change");
         }
     };
 
@@ -142,15 +149,16 @@ const UploadToAlbumForm = ({ params }) => {
             }
             setShowResizeFields({ ...showResizeFields, [index]: !showResizeFields[index] });
         } catch (error) {
-            setError("An error occurred while resizing the image: " + error.message);
+            console.error(error.message);
+            setErrorMessage("Image resize failed");
         }
     };
 
     return (
         <section className="fa-upload">
             {isLoading && <Loading />}
-            {error && <div className="alert alert-danger">{error}</div>}
-            {success && <div className="alert alert-success">{success}</div>}
+            {errorMessage && <ErrorWindow message={errorMessage} />}
+            {successMessage && <SuccessWindow message={successMessage} />}
             <form onSubmit={handleSubmit} className="flex items-center">
                 <input
                     type="file"
@@ -168,12 +176,9 @@ const UploadToAlbumForm = ({ params }) => {
                     <DocumentDuplicateIcon className="h-5 w-5 mr-2" />
                     Browse...
                 </button>
-                <span className="mx-3">
-                    {images.length > 0 ? `Files chosen: ${images.length}` : 'No files chosen'}
-                </span>
                 <button
                     type="submit"
-                    className="rounded border bg-blue-500 px-3 py-1 text-sm text-white flex items-center"
+                    className="rounded border bg-blue-500 px-3 py-1 text-sm text-white flex items-center ml-3"
                 >
                     <CloudArrowUpIcon className="h-5 w-5 mr-2" />
                     Upload

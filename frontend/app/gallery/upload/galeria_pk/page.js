@@ -3,16 +3,20 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
+import SuccessWindow from '@/utils/SuccessWindow';
+import ErrorWindow from '@/utils/ErrorWindow';
 
 export default function GaleriaPKUploadPage() {
     const [url, setUrl] = useState('');
     const { data: session } = useSession();
+    const [successMessage, setSuccessMessage] = useState(null);
+    const [errorMessage, setErrorMessage] = useState(null);
 
     const handleUpload = async (e) => {
         e.preventDefault();
 
         if (!session || !session.accessToken) {
-            alert('Session or access token is missing');
+            setErrorMessage('Session or access token is missing');
             return;
         }
 
@@ -26,17 +30,13 @@ export default function GaleriaPKUploadPage() {
             });
 
             if (response.status === 200) {
-                alert('Images scraped successfully');
+                setSuccessMessage('Images scraped successfully');
             } else {
-                alert('Failed to scrape images');
+                setErrorMessage('Failed to scrape images');
             }
         } catch (error) {
-            console.error('Error scraping images:', error);
-            if (error.response && error.response.data && error.response.data.message) {
-                alert('Failed to scrape images: ' + error.response.data.message);
-            } else {
-                alert('Failed to scrape images');
-            }
+            console.error('Error scraping images:', error.response && error.response.data && error.response.data.message ? error.response.data.message : error);
+            setErrorMessage('Failed to scrape images');
         }
     };
 
@@ -63,6 +63,8 @@ export default function GaleriaPKUploadPage() {
                             </div>
                         </div>
                     </form>
+                    {successMessage && <SuccessWindow message={successMessage} />}
+                    {errorMessage && <ErrorWindow message={errorMessage} />}
                 </div>
             </div>
         </div>

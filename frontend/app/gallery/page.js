@@ -12,6 +12,7 @@ import {
   ChevronDownIcon,
 } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
+import ErrorWindow from '@/utils/ErrorWindow';
 
 export default function Gallery({ searchParams }) {
     let page = parseInt(searchParams.page, 10) || (typeof window !== 'undefined' ? parseInt(localStorage.getItem('page'), 10) : null) || 1;
@@ -19,6 +20,7 @@ export default function Gallery({ searchParams }) {
     let search = searchParams.search || undefined;
     let dropdown = searchParams.dropdown || "hidden";
     let sort = searchParams.sort || (typeof window !== 'undefined' ? localStorage.getItem('sort') : null) || "desc";
+    const [errorMessage, setErrorMessage] = useState(null);
 
     // Save sort option to local storage
     if (typeof window !== 'undefined') {
@@ -35,6 +37,7 @@ export default function Gallery({ searchParams }) {
                 setImages(fetchedImages);
             } catch (error) {
                 console.error(error);
+                setErrorMessage('Failed to get images');
             }
         };
 
@@ -202,6 +205,7 @@ export default function Gallery({ searchParams }) {
                 </div>
             </Suspense>
       </div>
+            {errorMessage && <ErrorWindow message={errorMessage} />}
     </section>
   );
 }
