@@ -21,13 +21,18 @@ export default function Searcher({ search }) {
     }
   });
 
-  useEffect(() => {
-    if (!query) {
-      router.push(`/gallery`);
-    } else {
-      router.push(`/gallery?search=${query}`);
+  // Handle key down event and fetch suggestions if Enter key is pressed
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      setText(e.target.value);
+      fetchSuggestions(e.target.value);
+      if (!e.target.value.trim()) {
+        router.push(`/gallery`);
+      } else {
+        router.push(`/gallery?search=${e.target.value}`);
+      }
     }
-  }, [query, router]);
+  };
 
   // Function to fetch search suggestions from the server
   const fetchSuggestions = async (input) => {
@@ -66,6 +71,8 @@ export default function Searcher({ search }) {
         value={text}
         placeholder="Search for tags, description..."
         onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
+        onBlur={() => setSuggestions([])}
         className="bg-gray-800 block w-full rounded-md border-0 py-1.5 pl-10 text-white ring-1 ring-inset ring-white placeholder:text-white focus:ring-2 focus:ring-inset focus:ring-white sm:text-sm sm:leading-6"
       />
       {suggestions.length > 0 && (
@@ -75,7 +82,7 @@ export default function Searcher({ search }) {
               key={index}
               onClick={() => {
                 setText(suggestion);
-                setSuggestions([]); // Clear suggestions when a suggestion is clicked
+                setSuggestions([]);
               }}
               className="cursor-pointer px-4 py-2 text-white hover:bg-gray-700"
             >
