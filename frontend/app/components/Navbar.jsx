@@ -4,18 +4,22 @@ import Link from "next/link";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { config } from "@fortawesome/fontawesome-svg-core";
 import { useSession, signIn, signOut } from 'next-auth/react';
-import React from 'react';
+import React, { useState } from 'react';
+import ErrorWindow from '@/utils/ErrorWindow';
+
 
 config.autoAddCss = false;
 
 export default function Navbar() {
     const { data: session } = useSession();
+    const [errorMessage, setErrorMessage] = useState(null);
 
     const handleSignIn = async () => {
         try {
             await signIn();
         } catch (error) {
             console.error('Error signing in:', error);
+            setErrorMessage('Error signing in');
         }
     };
 
@@ -24,11 +28,13 @@ export default function Navbar() {
             await signOut();
         } catch (error) {
             console.error('Error signing out:', error);
+            setErrorMessage('Error signing out');
         }
     };
 
     return (
         <nav className="bg-gray-900 p-6">
+            {errorMessage && <ErrorWindow message={errorMessage} clearMessage={() => setErrorMessage(null)} />}
             {session?.user && (
                 <div className="text-gray-300 text-sm font-normal px-4 mt-[-10px]">
                     Signed in as <span className="font-bold">{session.user.name}</span>

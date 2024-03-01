@@ -11,11 +11,14 @@ import download from 'downloadjs';
 import {useSession} from "next-auth/react";
 import Image from 'next/image';
 import DropdownMenu from '@/utils/DropdownMenu';
+import DropdownMenuUpload from '@/utils/DropdownMenuUpload';
 import {
     ChevronUpIcon,
     ChevronDownIcon,
 } from "@heroicons/react/24/solid";
 import Loading from "@/app/loading";
+import SuccessWindow from '@/utils/SuccessWindow';
+import ErrorWindow from '@/utils/ErrorWindow';
 
 export default function AlbumsPage() {
     const [albumData, setAlbumData] = useState(null);
@@ -29,10 +32,18 @@ export default function AlbumsPage() {
     const [isTagModalOpen, setIsTagModalOpen] = useState(false);
     const [tagInput, setTagInput] = useState('');
     const [isActionsOpen, setIsActionsOpen] = useState(false);
+    const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
+
 
     const handleActionsClick = () => {
         setIsActionsOpen(!isActionsOpen);
+    };
+
+    const handleUploadClick = () => {
+        setIsUploadOpen(!isUploadOpen);
     };
 
     useEffect(() => {
@@ -47,9 +58,11 @@ export default function AlbumsPage() {
                     setIsLoading(false);
                 } else {
                     console.error(`Error fetching data: ${response.statusText}`);
+                    setErrorMessage(`Error fetching data`);
                 }
             } catch (error) {
                 console.error(`Error fetching data: ${error.message}`);
+                setErrorMessage(`Error fetching data`);
             }
         };
 
@@ -57,6 +70,7 @@ export default function AlbumsPage() {
             fetchData();
         } catch (error) {
             console.error(`Error in fetchData: ${error.message}`);
+            setErrorMessage(`Error fetching data`);
         }
 
         setSelectedImageIds([]);
@@ -85,14 +99,15 @@ export default function AlbumsPage() {
                     const blob = await response.blob();
                     download(blob, filename, response.headers.get('Content-Type'));
                     setDownloadProgress(null);
+                    setSuccessMessage('Download successful');
                 } else {
-                    alert('Download failed');
+                    setErrorMessage(`Error in handleDownload`);
                     setDownloadProgress(null);
                 }
             } catch (error) {
                 console.error(`Error in handleDownload: ${error.message}`);
-                alert(`Error in handleDownload: ${error.message}`);
                 setDownloadProgress(null);
+                setErrorMessage(`Error in handleDownload`);
             }
         } else {
             const data = {
@@ -120,13 +135,14 @@ export default function AlbumsPage() {
                     }
                     download(response.data, fileName, 'application/zip');
                     setDownloadProgress(null);
+                    setSuccessMessage('Download successful');
                 } else {
-                    alert('Download failed');
+                    setErrorMessage('Download failed');
                     setDownloadProgress(null);
                 }
             } catch (error) {
                 console.error(`Error in handleDownload: ${error.message}`);
-                alert(`Error in handleDownload: ${error.message}`);
+                setErrorMessage(`Error in handleDownload`);
                 setDownloadProgress(null);
             }
         }
@@ -156,12 +172,14 @@ export default function AlbumsPage() {
                         images: prevState.images.filter(image => !image_ids.includes(image._id))
                     }));
                     setSelectedImageIds([]);
+                    setSuccessMessage('Delete successful');
                 } else {
                     console.error('Failed to delete images');
+                    setErrorMessage('Failed to delete images');
                 }
             } catch (error) {
                 console.error(`Error in handleDelete: ${error.message}`);
-                alert(`Error in handleDelete: ${error.message}`);
+                setErrorMessage(`Error in handleDelete`);
             }
         }
 
@@ -175,18 +193,25 @@ export default function AlbumsPage() {
                         sons: prevState.sons.filter(album => !album_ids.includes(album._id))
                     }));
                     setSelectedAlbumIds([]);
+                    setSuccessMessage('Delete successful');
                 } else {
+                    setErrorMessage('Failed to delete albums');
                     console.error('Failed to delete albums');
                 }
             } catch (error) {
                 console.error(`Error in handleDelete: ${error.message}`);
-                alert(`Error in handleDelete: ${error.message}`);
+                setErrorMessage(`Error in handleDelete`);
             }
         }
         setIsAllItemsDeselected(true);
     };
 
     const handleTagSubmit = async () => {
+        if (!tagInput) {
+            setErrorMessage('No tags entered');
+            return;
+        }
+
         const headers = {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${session.accessToken}`,
@@ -200,9 +225,16 @@ export default function AlbumsPage() {
 
         try {
             const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/add-tags-to-selected`, data, { headers });
-            console.log(response.data);
+            if (response.status === 200) {
+                console.log(response.data);
+                setSuccessMessage('Tags added successfully');
+            } else {
+                console.error('Failed to add tags');
+                setErrorMessage('Failed to add tags');
+            }
         } catch (error) {
             console.error(`Error in handleTagSubmit: ${error.message}`);
+            setErrorMessage(`Error in handleTagSubmit: ${error.message}`);
         }
 
         setTagInput('');
@@ -240,6 +272,8 @@ export default function AlbumsPage() {
 
     return (
         <div className="container">
+            {errorMessage && <ErrorWindow message={errorMessage} clearMessage={() => setErrorMessage(null)} />}
+            {successMessage && <SuccessWindow message={successMessage} clearMessage={() => setSuccessMessage(null)} />}
             <div className="mb-12 flex items-center justify-between gap-x-16">
                 <div>
                 </div>
@@ -278,26 +312,11 @@ export default function AlbumsPage() {
                     </div>
                     {session && (
                         <div className="flex space-x-3">
-                            <Link href={`/gallery/upload/galeria_pk`} passHref>
-                                <button className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
-                                    <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
-                                    Upload from GaleriaPK
-                                </button>
-                            </Link>
-                            <Link href={`/gallery/upload/zip/`} passHref>
-                                <button
-                                    className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
-                                    <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
-                                    Upload zip here
-                                </button>
-                            </Link>
-                            <Link href={`/gallery/upload/${albumId}`} passHref>
-                                <button
-                                    className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
-                                    <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
-                                    Upload images here
-                                </button>
-                            </Link>
+                            <DropdownMenuUpload
+                                isUploadOpen={isUploadOpen}
+                                handleUploadClick={handleUploadClick}
+                                albumId={albumId}
+                            />
                             <Link href={`/albums/add/${albumId}`} passHref>
                                 <button
                                     className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">

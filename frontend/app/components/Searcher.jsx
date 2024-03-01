@@ -4,13 +4,14 @@ import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDebounce } from "use-debounce";
+import ErrorWindow from '@/utils/ErrorWindow';
 
 export default function Searcher({ search }) {
   const router = useRouter();
   const [text, setText] = useState(search);
   const [query] = useDebounce(text, 500);
   const [suggestions, setSuggestions] = useState([]); // State for suggestions
-  const [error, setError] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
 
   const initialRender = useRef(true);
 
@@ -44,12 +45,12 @@ export default function Searcher({ search }) {
       } else {
         console.error("Failed to fetch search suggestions");
         setSuggestions([]); // Clear suggestions on fetch failure
-        setError("Failed to fetch search suggestions");
+        setErrorMessage('Failed to fetch search suggestions');
       }
     } catch (error) {
       console.error("Error fetching search suggestions:", error);
       setSuggestions([]); // Clear suggestions on error
-      setError(error.toString());
+      setErrorMessage('Error fetching search suggestions');
     }
   };
 
@@ -61,6 +62,7 @@ export default function Searcher({ search }) {
 
   return (
     <div className="bg-black relative rounded-md shadow-sm">
+      {errorMessage && <ErrorWindow message={errorMessage} clearMessage={() => setErrorMessage(null)} />}
       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
         <MagnifyingGlassIcon
           className="h-5 w-5 text-white"
@@ -91,7 +93,6 @@ export default function Searcher({ search }) {
           ))}
         </ul>
       )}
-      {error && <div className="text-red-500">{error}</div>}
     </div>
   );
 }

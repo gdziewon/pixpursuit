@@ -6,12 +6,15 @@ import Link from 'next/link';
 import { useSession } from "next-auth/react";
 import Image from 'next/image';
 import { FolderPlusIcon, ArrowLeftStartOnRectangleIcon } from '@heroicons/react/24/outline';
+import SuccessWindow from '@/utils/SuccessWindow';
+import ErrorWindow from '@/utils/ErrorWindow';
 
 const AddAlbumForm = ({ params }) => {
     const [albumName, setAlbumName] = useState('');
     const parentAlbumId = params.parentid;
     const { data: session } = useSession();
-    console.log(parentAlbumId)
+    const [errorMessage, setErrorMessage] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
 
     const handleAlbumNameChange = (e) => {
         setAlbumName(e.target.value);
@@ -19,6 +22,12 @@ const AddAlbumForm = ({ params }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (!albumName) {
+            setErrorMessage('Name not entered');
+            return;
+        }
+
         const albumData = {
             album_name: albumName,
             parent_id: parentAlbumId !== 'root' ? parentAlbumId : null,
@@ -33,18 +42,21 @@ const AddAlbumForm = ({ params }) => {
             });
 
             if (response.status === 200) {
-                alert("Album created successfully");
                 window.location.href = `/albums/${parentAlbumId !== 'root' ? parentAlbumId : ""}`;
+                setSuccessMessage("Album created successfully");
             } else {
-                alert("Failed to create album");
+                setErrorMessage("Failed to create album");
             }
         } catch (error) {
-            alert("Error creating album");
+            console.error(`Error in handleSubmit: ${error.message}`);
+            setErrorMessage("Failed to create album");
         }
     };
 
     return (
         <section className="add-album-form">
+            {errorMessage && <ErrorWindow message={errorMessage} clearMessage={() => setErrorMessage(null)} />}
+            {successMessage && <SuccessWindow message={successMessage} clearMessage={() => setSuccessMessage(null)} />}
             <div className="navigation-button">
                 <Link href={`/albums/${parentAlbumId !== 'root' ? parentAlbumId : ""}`} passHref>
                     <button className="rounded border bg-gray-100 px-3 py-1 text-sm text-gray-800 flex items-center">

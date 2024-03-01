@@ -566,8 +566,8 @@ export default function ImagePage({ params }) {
             )}
           </div>
         </div>
-        {errorMessage && <ErrorWindow message={errorMessage} />}
-        {successMessage && <SuccessWindow message={successMessage} />}
+        {errorMessage && <ErrorWindow message={errorMessage} clearMessage={() => setErrorMessage(null)} />}
+        {successMessage && <SuccessWindow message={successMessage} clearMessage={() => setSuccessMessage(null)} />}
       </main>
 
   );

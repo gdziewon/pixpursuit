@@ -18,7 +18,7 @@ const UploadToAlbumForm = ({ params }) => {
     const fileInputRef = useRef(null);
     const [resizeValues, setResizeValues] = useState({});
     const [showResizeFields, setShowResizeFields] = useState({})
-    const [errorMessage, setErrorMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null)
 
     const handleImageChange = (e) => {
@@ -157,8 +157,8 @@ const UploadToAlbumForm = ({ params }) => {
     return (
         <section className="fa-upload">
             {isLoading && <Loading />}
-            {errorMessage && <ErrorWindow message={errorMessage} />}
-            {successMessage && <SuccessWindow message={successMessage} />}
+            {errorMessage && <ErrorWindow message={errorMessage} clearMessage={() => setErrorMessage(null)} />}
+            {successMessage && <SuccessWindow message={successMessage} clearMessage={() => setSuccessMessage(null)} />}
             <form onSubmit={handleSubmit} className="flex items-center">
                 <input
                     type="file"

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import '@/styles/design_styles.css';
 
-const SuccessWindow = ({ message }) => {
+const SuccessWindow = ({ message, clearMessage }) => {
     const [displayMessage, setDisplayMessage] = useState(message);
     const [fadeOut, setFadeOut] = useState(false);
     const [fadeIn, setFadeIn] = useState(false);
@@ -21,6 +21,7 @@ const SuccessWindow = ({ message }) => {
 
         const clearMessageTimer = setTimeout(() => {
             setDisplayMessage(null);
+            clearMessage();
         }, 5000);
 
         return () => {
@@ -28,7 +29,7 @@ const SuccessWindow = ({ message }) => {
             clearTimeout(fadeOutTimer);
             clearTimeout(clearMessageTimer);
         };
-    }, [message]);
+    }, [message, clearMessage]);
 
     return displayMessage ? (
         <div className={`success-window ${fadeIn ? 'fade-in' : ''} ${fadeOut ? 'fade-out' : ''}`}>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import '@/styles/design_styles.css';
 
-const ErrorWindow = ({ message }) => {
+const ErrorWindow = ({ message, clearMessage }) => {
     const [displayMessage, setDisplayMessage] = useState(message);
     const [fadeOut, setFadeOut] = useState(false);
     const [fadeIn, setFadeIn] = useState(false);
@@ -21,6 +21,7 @@ const ErrorWindow = ({ message }) => {
 
         const clearMessageTimer = setTimeout(() => {
             setDisplayMessage(null);
+            clearMessage();
         }, 5000);
 
         return () => {
@@ -28,7 +29,7 @@ const ErrorWindow = ({ message }) => {
             clearTimeout(fadeOutTimer);
             clearTimeout(clearMessageTimer);
         };
-    }, [message]);
+    }, [message, clearMessage]);
 
     return displayMessage ? (
         <div className={`error-window ${fadeIn ? 'fade-in' : ''} ${fadeOut ? 'fade-out' : ''}`}>

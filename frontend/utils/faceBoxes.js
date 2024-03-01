@@ -3,6 +3,8 @@ import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { HeartIcon } from "@heroicons/react/24/solid";
 import '@/styles/design_styles.css';
+import SuccessWindow from '@/utils/SuccessWindow';
+import ErrorWindow from '@/utils/ErrorWindow';
 
 export function BoxOverlay({ image, boxes, originalSize, session, showHeartOverlay }) {
     const displayWidth = 800;  // Adjust as needed
@@ -15,6 +17,8 @@ export function BoxOverlay({ image, boxes, originalSize, session, showHeartOverl
 
     const overlayRef = useRef(null); // Ref for the BoxOverlay component itself
     const [scaleX, setScaleX] = useState(1);
+    const [errorMessage, setErrorMessage] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
 
     useEffect(() => {
         const updateScale = () => {
@@ -42,7 +46,7 @@ export function BoxOverlay({ image, boxes, originalSize, session, showHeartOverl
         e.stopPropagation();  // Prevents event bubbling up
         if (index < 0 || index >= image.user_faces.length) {
             console.error(`Invalid index: ${index}`);
-            alert('An error occurred. Please try again.');
+            setErrorMessage('An error occurred. Please try again.');
             return;
         }
         setEditableBoxIndex(index);
@@ -58,7 +62,7 @@ export function BoxOverlay({ image, boxes, originalSize, session, showHeartOverl
         e.stopPropagation();
         console.log('plus button clicked');
         if (boxText.trim() === '') {
-            console.log('No name entered.');
+            setErrorMessage('No name entered.');
             return;
         }
 
@@ -77,13 +81,14 @@ export function BoxOverlay({ image, boxes, originalSize, session, showHeartOverl
             });
 
             if (response.status === 200) {
-                alert('Name added successfully');
+                setSuccessMessage('Name added successfully');
                 // Update state or UI as needed
             } else {
-                alert('Failed to add name to face');
+                setErrorMessage('Failed to add name');
             }
         } catch (error) {
-            alert(error);
+            console.log(error);
+            setErrorMessage('Failed to add name');
         }
 
         setEditableBoxIndex(null);
@@ -92,7 +97,6 @@ export function BoxOverlay({ image, boxes, originalSize, session, showHeartOverl
     const handleMouseDownOnPlusButton = (event) => {
         if (!event) {
             console.error('Invalid event');
-            alert('An error occurred. Please try again.');
             return;
         }
         event.preventDefault();
@@ -103,6 +107,8 @@ export function BoxOverlay({ image, boxes, originalSize, session, showHeartOverl
         <div ref={overlayRef} style={{ position: 'relative' }}
              onMouseEnter={() => setIsMouseOver(true)}
              onMouseLeave={() => setIsMouseOver(false)}>
+            {errorMessage && <ErrorWindow message={errorMessage} clearMessage={() => setErrorMessage(null)} />}
+            {successMessage && <SuccessWindow message={successMessage} clearMessage={() => setSuccessMessage(null)} />}
             <Image
                 src={image.image_url}
                 alt={image.description}

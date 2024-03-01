@@ -4,12 +4,13 @@ import { useState, useEffect } from "react";
 import Image from "next/legacy/image";
 import Loading from "@/app/loading";
 import { Suspense } from "react";
+import ErrorWindow from '@/utils/ErrorWindow';
 
 export default function RandomImage() {
   const [currentImage, setCurrentImage] = useState(null);
   const [nextImage, setNextImage] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
 
   const getRandomLyric = () => {
     const taylorSwiftLyrics = [
@@ -47,18 +48,17 @@ export default function RandomImage() {
         setNextImage(data); // Store the next image
       } else {
         console.error("Failed to fetch random image");
+        setErrorMessage('Failed to fetch random image');
       }
     } catch (error) {
       console.error("Error fetching random image:", error);
-      setError(error.message);
+      setErrorMessage('Error fetching random image');
     }
   };
 
   return (
       <div className="bg-indigo-400 bg-opacity-25 p-8 shadow-lg rounded-2xl">
-        {error ? (
-                <div>Error: {error}</div>
-            ) : (
+        {errorMessage && <ErrorWindow message={errorMessage} clearMessage={() => setErrorMessage(null)} />}
         <div className="container mx-auto flex items-center space-x-8">
           {currentImage ? (
               <div className={`w-1/2 ${isLoading ? "opacity-0" : "opacity-100"}`}>
@@ -85,7 +85,6 @@ export default function RandomImage() {
             </p>
           </div>
         </div>
-        )}
       </div>
   );
 }

@@ -10,6 +10,8 @@ import download from 'downloadjs';
 import {useSession} from "next-auth/react";
 import Loading from "@/app/loading";
 import {AlbumButtons} from "@/utils/AlbumButtons";
+import SuccessWindow from '@/utils/SuccessWindow';
+import ErrorWindow from '@/utils/ErrorWindow';
 
 export default function SubAlbumPage({ params}) {
     const [albumData, setAlbumData] = useState(null);
@@ -22,14 +24,20 @@ export default function SubAlbumPage({ params}) {
     const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
     const [isTagModalOpen, setIsTagModalOpen] = useState(false);
     const [tagInput, setTagInput] = useState('');
-    const [error, setError] = useState(null);
+    const [errorMessage, setErrorMessage] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
     const [isActionsOpen, setIsActionsOpen] = useState(false);
+    const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
 
 
     const handleActionsClick = () => {
         setIsActionsOpen(!isActionsOpen);
+    };
+
+    const handleUploadClick = () => {
+        setIsUploadOpen(!isUploadOpen);
     };
 
     useEffect(() => {
@@ -47,10 +55,11 @@ export default function SubAlbumPage({ params}) {
                     setIsLoading(false);
                 } else {
                     console.error(`Error fetching data: ${response.statusText}`);
+                    setErrorMessage(`Error fetching data`);
                 }
             } catch (error) {
                 console.error(`Error fetching data: ${error.message}`);
-                setError(`Error fetching data: ${error.message}`);
+                setErrorMessage(`Error fetching data`);
             }
         };
 
@@ -74,12 +83,8 @@ export default function SubAlbumPage({ params}) {
 
     const handleDownload = async () => {
         if (selectedImageIds.length === 1 && selectedAlbumIds.length === 0) {
-            console.log('selectedImageIds:', selectedImageIds);
-            console.log('albumData.images:', albumData.images);
             const image = albumData.images.find(image => image._id.toString() === selectedImageIds[0]);
-            console.log('image:', image);
             const url = image.image_url; // Use image_url instead of url
-            console.log('url:', url);
             const filename = image.filename;
             try {
                 setDownloadProgress('Downloading...');
@@ -88,14 +93,15 @@ export default function SubAlbumPage({ params}) {
                     const blob = await response.blob();
                     download(blob, filename, response.headers.get('Content-Type'));
                     setDownloadProgress(null);
+                    setSuccessMessage('Download successful');
                 } else {
-                    alert('Download failed');
+                    setErrorMessage(`Error in handleDownload`);
                     setDownloadProgress(null);
                 }
             } catch (error) {
-                alert('Download failed');
-                setError('Download failed');
+                console.error(`Error in handleDownload: ${error.message}`);
                 setDownloadProgress(null);
+                setErrorMessage(`Error in handleDownload`);
             }
         } else {
             const data = {
@@ -123,13 +129,14 @@ export default function SubAlbumPage({ params}) {
                     }
                     download(response.data, fileName, 'application/zip');
                     setDownloadProgress(null);
+                    setSuccessMessage('Download successful');
                 } else {
-                    alert('Download failed');
+                    setErrorMessage('Download failed');
                     setDownloadProgress(null);
                 }
             } catch (error) {
-                console.error(error);
-                alert('Download failed');
+                console.error(`Error in handleDownload: ${error.message}`);
+                setErrorMessage(`Error in handleDownload`);
                 setDownloadProgress(null);
             }
         }
@@ -162,12 +169,14 @@ export default function SubAlbumPage({ params}) {
                         images: prevState.images.filter(image => !image_ids.includes(image._id))
                     }));
                     setSelectedImageIds([]);
+                    setSuccessMessage('Delete successful');
                 } else {
                     console.error('Failed to delete images');
+                    setErrorMessage('Failed to delete images');
                 }
             } catch (error) {
-                console.error('Error deleting images:', error);
-                setError('Error deleting images');
+                console.error(`Error in handleDelete: ${error.message}`);
+                setErrorMessage(`Error in handleDelete`);
             }
         }
 
@@ -184,11 +193,14 @@ export default function SubAlbumPage({ params}) {
                         sons: prevState.sons.filter(album => !album_ids.includes(album._id))
                     }));
                     setSelectedAlbumIds([]);
+                    setSuccessMessage('Delete successful');
                 } else {
+                    setErrorMessage('Failed to delete albums');
                     console.error('Failed to delete albums');
                 }
             } catch (error) {
-                console.error('Error deleting albums:', error);
+                console.error(`Error in handleDelete: ${error.message}`);
+                setErrorMessage(`Error in handleDelete`);
             }
         }
         setIsAllItemsDeselected(true);
@@ -196,6 +208,11 @@ export default function SubAlbumPage({ params}) {
 
 
     const handleTagSubmit = async () => {
+        if (!tagInput) {
+            setErrorMessage('No tags entered');
+            return;
+        }
+
         const headers = {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${session.accessToken}`,
@@ -209,9 +226,16 @@ export default function SubAlbumPage({ params}) {
 
         try {
             const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/add-tags-to-selected`, data, {headers});
-            console.log(response.data);
+            if (response.status === 200) {
+                console.log(response.data);
+                setSuccessMessage('Tags added successfully');
+            } else {
+                console.error('Failed to add tags');
+                setErrorMessage('Failed to add tags');
+            }
         } catch (error) {
-            console.error("Failed to add tags: ", error);
+            console.error(`Error in handleTagSubmit: ${error.message}`);
+            setErrorMessage(`Error in handleTagSubmit: ${error.message}`);
         }
 
         setTagInput('');
@@ -263,14 +287,12 @@ export default function SubAlbumPage({ params}) {
 
     return (
         <div className="container">
-            {error && (
-                <div className="alert alert-danger" role="alert">
-                    Error: {error}
-                </div>
-            )}
+            {errorMessage && <ErrorWindow message={errorMessage} clearMessage={() => setErrorMessage(null)} />}
+            {successMessage && <SuccessWindow message={successMessage} clearMessage={() => setSuccessMessage(null)} />}
             <AlbumButtons albumId={albumId} parentLinkHref={parentLinkHref} session={session}
                           selectedImageIds={selectedImageIds} selectedAlbumIds={selectedAlbumIds}
                           isActionsOpen={isActionsOpen} handleActionsClick={handleActionsClick}
+                          isUploadOpen={isUploadOpen} handleUploadClick={handleUploadClick}
                           handleAddTags={handleAddTags} handleDownload={handleDownload}
                           handleTagSubmit={handleTagSubmit} handleTagModalCancel={handleTagModalCancel}
                           tagInput={tagInput} handleTagInputChange={handleTagInputChange}

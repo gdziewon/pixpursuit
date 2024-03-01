@@ -6,13 +6,16 @@ import axios from "axios";
 import { useSession } from 'next-auth/react';
 import { SelectedItemsContext } from '/utils/SelectedItemsContext';
 import download from 'downloadjs';
+import SuccessWindow from '@/utils/SuccessWindow';
+import ErrorWindow from '@/utils/ErrorWindow';
 
 export default function LikedImagesPage() {
     const [likedImages, setLikedImages] = useState([]);
     const { data: session } = useSession();
     const { selectedImageIds, setSelectedImageIds, setIsAllItemsDeselected,  } = useContext(SelectedItemsContext);
     const [downloadProgress, setDownloadProgress] = useState(null);
-    const [error, setError] = useState(null);
+    const [errorMessage, setErrorMessage] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
 
     useEffect(() => {
         const fetchLikedImages = async () => {
@@ -22,7 +25,7 @@ export default function LikedImagesPage() {
                     setLikedImages(response.data);
                 }
             } catch (error) {
-                setError('Failed to fetch liked images');
+                setErrorMessage('Failed to fetch liked images');
             }
         };
 
@@ -45,14 +48,15 @@ export default function LikedImagesPage() {
                     const blob = await response.blob();
                     download(blob, filename, response.headers.get('Content-Type'));
                     setDownloadProgress(null);
+                    setSuccessMessage('Download successful');
                 } else {
-                    alert('Download failed');
+                    setErrorMessage('Download failed');
                     setDownloadProgress(null);
                 }
             } catch (error) {
-                alert('Download failed');
+                console.error(`Error in handleDownload: ${error.message}`);
                 setDownloadProgress(null);
-                setError('Failed to download image');
+                setErrorMessage(`Error in handleDownload`);
             }
         } else {
             const data = {
@@ -79,15 +83,15 @@ export default function LikedImagesPage() {
                     }
                     download(response.data, fileName, 'application/zip');
                     setDownloadProgress(null);
+                    setSuccessMessage('Download successful');
                 } else {
-                    alert('Download failed');
+                    setErrorMessage('Download failed');
                     setDownloadProgress(null);
                 }
             } catch (error) {
-                console.error(error);
-                alert('Download failed');
+                console.error(`Error in handleDownload: ${error.message}`);
+                setErrorMessage(`Error in handleDownload`);
                 setDownloadProgress(null);
-                setError('Failed to download zip');
             }
         }
         setSelectedImageIds([]);
@@ -96,7 +100,8 @@ export default function LikedImagesPage() {
 
     return (
         <div className="container">
-            {error && <div className="error">{error}</div>}
+            {errorMessage && <ErrorWindow message={errorMessage} clearMessage={() => setErrorMessage(null)} />}
+            {successMessage && <SuccessWindow message={successMessage} clearMessage={() => setSuccessMessage(null)} />}
             <div className="flex justify-between items-center mb-4">
                 <meta httpEquiv="Content-Security-Policy" content="upgrade-insecure-requests"/>
                 <h1 className="text-3xl font-bold">Liked Images</h1>

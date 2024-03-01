@@ -63,8 +63,8 @@ const UploadZipForm = () => {
         <section className="fa-upload">
             {isLoading ? <Loading /> : (
                 <>
-                    {successMessage && <SuccessWindow message={successMessage} />}
-                    {errorMessage && <ErrorWindow message={errorMessage} />}
+                    {errorMessage && <ErrorWindow message={errorMessage} clearMessage={() => setErrorMessage(null)} />}
+                    {successMessage && <SuccessWindow message={successMessage} clearMessage={() => setSuccessMessage(null)} />}
                     <form onSubmit={handleSubmit} className="flex items-center">
                         <input
                             type="file"

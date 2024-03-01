@@ -61,8 +61,8 @@ export default function GaleriaPKUploadPage({params}) {
                             </div>
                         </div>
                     </form>
-                    {successMessage && <SuccessWindow message={successMessage} />}
-                    {errorMessage && <ErrorWindow message={errorMessage} />}
+                    {errorMessage && <ErrorWindow message={errorMessage} clearMessage={() => setErrorMessage(null)} />}
+                    {successMessage && <SuccessWindow message={successMessage} clearMessage={() => setSuccessMessage(null)} />}
                 </div>
             </div>
         </div>

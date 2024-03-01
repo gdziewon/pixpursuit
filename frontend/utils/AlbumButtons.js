@@ -2,8 +2,9 @@ import Link from "next/link";
 import {ArrowLeftStartOnRectangleIcon, FolderArrowDownIcon, FolderPlusIcon} from "@heroicons/react/24/outline";
 import {ChevronDownIcon, ChevronUpIcon} from "@heroicons/react/24/solid";
 import DropdownMenu from "@/utils/DropdownMenu";
+import DropdownMenuUpload from "@/utils/DropdownMenuUpload";
 
-export function AlbumButtons({ albumId, parentLinkHref, session, selectedImageIds, selectedAlbumIds, isActionsOpen, handleActionsClick, handleAddTags, handleDownload, handleTagSubmit, handleTagModalCancel, tagInput, handleTagInputChange, downloadProgress, isConfirmDialogOpen, setIsConfirmDialogOpen, handleDelete, isTagModalOpen, setIsTagModalOpen }) {
+export function AlbumButtons({ albumId, parentLinkHref, session, selectedImageIds, selectedAlbumIds, isActionsOpen, handleActionsClick, isUploadOpen, handleUploadClick, handleAddTags, handleDownload, handleTagSubmit, handleTagModalCancel, tagInput, handleTagInputChange, downloadProgress, isConfirmDialogOpen, setIsConfirmDialogOpen, handleDelete, isTagModalOpen, setIsTagModalOpen }) {
     return (
         <div className="mb-12 flex items-center justify-between gap-x-16">
             <div className="flex space-x-6">
@@ -49,27 +50,11 @@ export function AlbumButtons({ albumId, parentLinkHref, session, selectedImageId
                 </div>
                 {session && (
                     <div className="flex space-x-6">
-                        <Link href={`/gallery/upload/galeria_pk/${albumId}`} passHref>
-                            <button
-                                className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
-                                <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
-                                Upload from GaleriaPK
-                            </button>
-                        </Link>
-                        <Link href={`/gallery/upload/zip/${albumId}`} passHref>
-                            <button
-                                className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
-                                <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
-                                Upload zip here
-                            </button>
-                        </Link>
-                        <Link href={`/gallery/upload/${albumId}`} passHref>
-                            <button
-                                className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
-                                <FolderArrowDownIcon className="h-5 w-5 mr-2"/>
-                                Upload images here
-                            </button>
-                        </Link>
+                        <DropdownMenuUpload
+                            isUploadOpen={isUploadOpen}
+                            handleUploadClick={handleUploadClick}
+                            albumId={albumId}
+                        />
                         <Link href={`/albums/add/${albumId}`} passHref>
                             <button
                                 className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">

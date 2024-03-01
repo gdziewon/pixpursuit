@@ -13,6 +13,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 import ErrorWindow from '@/utils/ErrorWindow';
+import SuccessWindow from "@/utils/SuccessWindow";
 import {CloudArrowDownIcon} from "@heroicons/react/24/solid";
 import axios from "axios";
 import download from 'downloadjs';
@@ -24,6 +25,7 @@ export default function Gallery({ searchParams }) {
     let dropdown = searchParams.dropdown || "hidden";
     let sort = searchParams.sort || (typeof window !== 'undefined' ? localStorage.getItem('sort') : null) || "desc";
     const [errorMessage, setErrorMessage] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
     const [imageIds, setImageIds] = useState(null);
     const [downloadProgress, setDownloadProgress] = useState(false);
 
@@ -77,13 +79,14 @@ export default function Gallery({ searchParams }) {
                 }
                 download(response.data, fileName, 'application/zip');
                 setDownloadProgress(false);
+                setSuccessMessage('Download complete');
             } else {
-                alert('Download failed');
+                setErrorMessage('Download failed');
                 setDownloadProgress(false);
             }
         } catch (error) {
             console.error(error);
-            alert('Download failed');
+            setErrorMessage('Download failed');
             setDownloadProgress(false);
         }
     };
@@ -261,7 +264,8 @@ export default function Gallery({ searchParams }) {
                 </div>
             </Suspense>
       </div>
-            {errorMessage && <ErrorWindow message={errorMessage} />}
+            {errorMessage && <ErrorWindow message={errorMessage} clearMessage={() => setErrorMessage(null)} />}
+            {successMessage && <SuccessWindow message={successMessage} clearMessage={() => setSuccessMessage(null)} />}
     </section>
   );
 }
