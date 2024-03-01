@@ -4,9 +4,9 @@ from databases.celery_database_tools import add_something_to_image
 from databases.face_operations import insert_many_faces
 from io import BytesIO
 from PIL import Image
-from utils.constants import DETECTION_THRESHOLD
+from utils.constants import FACE_DETECTION_THRESHOLD
 
-device, mtcnn, resnet = activate_face_models(thresholds=DETECTION_THRESHOLD)
+device, mtcnn, resnet = activate_face_models(thresholds=FACE_DETECTION_THRESHOLD)
 
 
 @shared_task(name='face_detection.get_face_embeddings.main', queue='main_queue')

@@ -240,7 +240,8 @@ export default function SubAlbumPage({ params}) {
     if ((!albumData.sons.length && !albumData.images.length)) {
         const parentLinkHref = albumData?.parentIsRoot ? '/albums' : `/albums/${albumData?.parentAlbumId}`;
         return <div>
-            <AlbumButtons albumId={albumId} parentLinkHref={parentLinkHref} session={session} selectedImageIds={selectedImageIds}
+            <AlbumButtons albumId={albumId} parentLinkHref={parentLinkHref} session={session}
+                          selectedImageIds={selectedImageIds}
                           selectedAlbumIds={selectedAlbumIds} isActionsOpen={isActionsOpen}
                           handleActionsClick={handleActionsClick} handleAddTags={handleAddTags}
                           handleDownload={handleDownload} handleTagSubmit={handleTagSubmit}
@@ -249,6 +250,7 @@ export default function SubAlbumPage({ params}) {
                           isConfirmDialogOpen={isConfirmDialogOpen} setIsConfirmDialogOpen={setIsConfirmDialogOpen}
                           handleDelete={handleDelete} isTagModalOpen={isTagModalOpen}
                           setIsTagModalOpen={setIsTagModalOpen}/>
+            <h2 style={{fontSize: '2em', fontWeight: 'bold', marginTop: '-40px'}}> {albumData.name}:</h2>
             No albums or images found.</div>;
     }
 
@@ -275,6 +277,7 @@ export default function SubAlbumPage({ params}) {
                           downloadProgress={downloadProgress} isConfirmDialogOpen={isConfirmDialogOpen}
                           setIsConfirmDialogOpen={setIsConfirmDialogOpen} handleDelete={handleDelete}
                           isTagModalOpen={isTagModalOpen} setIsTagModalOpen={setIsTagModalOpen}/>
+            <h2 style={{fontSize: '2em', fontWeight: 'bold', marginTop: '-40px'}}> {albumData.name}:</h2>
             <div className="album-container grid-layout">
                 {albumItems}
                 {imageItems}

@@ -22,10 +22,11 @@ EMAIL_SUFFIX = '@pk.edu.pl'
 MODEL_FILE_PATH = os.path.join(get_generated_dir_path(), 'tag_predictor_state.pth')
 LEARNING_RATE = float(os.getenv('LEARNING_RATE', '0.001'))
 POSITIVE_THRESHOLD = 2
-TAG_PREDICTION_THRESHOLD = 0.7
+TAG_PREDICTION_THRESHOLD = 0.8
 
 # yolov8
 YOLO_MODEL_PATH = os.path.join(get_generated_dir_path(), 'yolov8n.pt')
+OBJECT_DETECTION_THRESHOLD = 0.5
 
 # Utils
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
@@ -59,7 +60,7 @@ WEIGHTS = {
     }
 
 # Face Detection
-DETECTION_THRESHOLD = [0.6, 0.7, 0.7]
+FACE_DETECTION_THRESHOLD = [0.6, 0.7, 0.7]
 
 # Celery
 CELERY_BROKER_URL = 'redis://redis:6379/0'

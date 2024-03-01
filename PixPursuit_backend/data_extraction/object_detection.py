@@ -3,6 +3,7 @@ from celery import shared_task
 from databases.celery_database_tools import add_something_to_image
 from io import BytesIO
 from PIL import Image
+from utils.constants import OBJECT_DETECTION_THRESHOLD
 
 model = activate_object_models()
 
@@ -20,7 +21,7 @@ def detect_objects(image_data, filename):
             label_index = int(box.cls)
             label = result.names[label_index]
             confidence = float(box.conf)
-            if confidence > 0.7:
+            if confidence > OBJECT_DETECTION_THRESHOLD:
                 detected_objects.append(label)
 
     detected_objects = list(set(detected_objects))

@@ -4,7 +4,7 @@ from ultralytics import YOLO
 from config.logging_config import setup_logging
 from facenet_pytorch import MTCNN, InceptionResnetV1
 import torch
-from utils.constants import YOLO_MODEL_PATH, DETECTION_THRESHOLD
+from utils.constants import YOLO_MODEL_PATH, FACE_DETECTION_THRESHOLD
 
 logger = setup_logging(__name__)
 
@@ -30,7 +30,7 @@ def activate_object_models():
     return model
 
 
-def activate_face_models(thresholds=DETECTION_THRESHOLD):
+def activate_face_models(thresholds=FACE_DETECTION_THRESHOLD):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     mtcnn = MTCNN(keep_all=True, thresholds=thresholds, device=device)
     resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)

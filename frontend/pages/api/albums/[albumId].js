@@ -34,7 +34,8 @@ export async function getAlbums(albumId = 'root', thumbnailLimit = 50) {
         parentIsRoot,
         images,
         sons: subAlbums,
-        albumId: album._id
+        albumId: album._id,
+        name: album.name,
     };
 
     return combinedData;

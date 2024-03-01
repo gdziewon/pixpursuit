@@ -15,6 +15,8 @@ async def get_image_record(data, username, album_id):
     try:
         image_url, thumbnail_url, filename, exif_data = data
 
+        album_name = (await get_album(album_id))['name']
+
         image_record = {
             'image_url': image_url,
             'thumbnail_url': thumbnail_url,
@@ -37,7 +39,8 @@ async def get_image_record(data, username, album_id):
             'liked_by': [],
             'views': 0,
             'added_by': username,
-            'album_id': str(album_id)
+            'album_id': str(album_id),
+            'album_name': album_name
         }
         return image_record
     except Exception as e:
