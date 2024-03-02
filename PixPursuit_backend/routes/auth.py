@@ -68,7 +68,7 @@ async def refresh_access_token(refresh_token: str = Depends(oauth2_scheme)):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token, refresh_token = get_tokens(user['username'])
+    access_token, refresh_token = get_tokens(user.username)
 
     return {"access_token": access_token,
             "refresh_token": refresh_token,

@@ -27,6 +27,8 @@
     "gridfs-stream": "^1.1.1",
     "heroicons": "^2.1.1",
     "html-to-image": "^1.11.11",
+    "jsonwebtoken": "^9.0.2",
+    "jwt-decode": "^4.0.0",
     "method-override": "^3.0.0",
     "mongodb": "^6.3.0",
     "mongoose": "^8.0.3",

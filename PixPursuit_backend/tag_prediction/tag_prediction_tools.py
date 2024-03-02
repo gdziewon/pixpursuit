@@ -11,6 +11,20 @@ from utils.constants import POSITIVE_THRESHOLD, LEARNING_RATE, MODEL_FILE_PATH
 
 logger = setup_logging(__name__)
 
+unique_tags_cache = None
+
+
+def get_unique_tags_cached():
+    global unique_tags_cache
+    if unique_tags_cache is None:
+        unique_tags_cache = get_unique_tags()
+    return unique_tags_cache
+
+
+def update_unique_tags_cache():
+    global unique_tags_cache
+    unique_tags_cache = get_unique_tags()
+
 
 def save_model_state(model, file_path=MODEL_FILE_PATH):
     try:
@@ -41,11 +55,14 @@ def load_model_state(file_path=MODEL_FILE_PATH, input_size=1000, hidden_size=512
     return model
 
 
-def update_model_tags():
+def update_model_tags(tag_vector=None):
     try:
         tag_predictor = load_model_state()
-        unique_tags = get_unique_tags()
-        num_tags = len(unique_tags)
+        if not tag_vector:
+            unique_tags = get_unique_tags_cached()
+            num_tags = len(unique_tags)
+        else:
+            num_tags = len(tag_vector)
         if num_tags != tag_predictor.fc3.out_features:
             tag_predictor.update_output_layer(num_tags)
             save_model_state(tag_predictor)
@@ -54,9 +71,9 @@ def update_model_tags():
         logger.error(f"Error updating model tags: {e}", exc_info=True)
 
 
-async def tags_to_vector(tags, feedback):
+def tags_to_vector(tags, feedback):
     try:
-        unique_tags = get_unique_tags()
+        unique_tags = get_unique_tags_cached()
         tag_vector = [0] * len(unique_tags)
         tag_dict = {tag: i for i, tag in enumerate(unique_tags)}
 
@@ -84,7 +101,8 @@ async def training_init(inserted_ids):
                 features = image_document['features']
                 feedback_tags = image_document.get('feedback', {})
                 tags = image_document['user_tags']
-                tag_vector = await tags_to_vector(tags, feedback_tags)
+                update_unique_tags_cache()
+                tag_vector = tags_to_vector(tags, feedback_tags)
                 train_model.delay(features, tag_vector)
                 logger.info(f"Training initialized for image: {inserted_id}")
         except Exception as e:
@@ -124,10 +142,7 @@ def train_model(features, tag_vector):
         return
 
     logger.info("Model training started")
-    if len(tag_vector) != tag_predictor.num_tags:
-        tag_predictor.update_output_layer(len(tag_vector))
-        save_model_state(tag_predictor)
-        logger.info(f"Model output layer updated to match the number of unique tags: {len(tag_vector)}")
+    update_model_tags(tag_vector)
 
     features_tensor = torch.tensor(features, dtype=torch.float32)
     if features_tensor.ndim == 1:
@@ -168,8 +183,12 @@ def predict_and_update_tags(image_ids):
                 continue
 
             features = image_document['features']
+            tag_vector = tags_to_vector(image_document['user_tags'], image_document.get('feedback', {}))
             if not features:
                 continue
+
+            if any(tag_vector):
+                train_model.delay(features, tag_vector)
 
             features_tensor = torch.tensor(features, dtype=torch.float32)
             if features_tensor.ndim == 1:

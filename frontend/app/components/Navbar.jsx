@@ -4,15 +4,20 @@ import Link from "next/link";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { config } from "@fortawesome/fontawesome-svg-core";
 import { useSession, signIn, signOut } from 'next-auth/react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ErrorWindow from '@/utils/ErrorWindow';
-
 
 config.autoAddCss = false;
 
 export default function Navbar() {
     const { data: session } = useSession();
     const [errorMessage, setErrorMessage] = useState(null);
+
+    useEffect(() => {
+        if (session?.error === "RefreshAccessTokenError") {
+            signIn();
+        }
+    }, [session]);
 
     const handleSignIn = async () => {
         try {
