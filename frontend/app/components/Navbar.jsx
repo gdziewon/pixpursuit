@@ -15,7 +15,7 @@ export default function Navbar() {
 
     useEffect(() => {
         if (session?.error === "RefreshAccessTokenError") {
-            signIn();
+            signOut();
         }
     }, [session]);
 
