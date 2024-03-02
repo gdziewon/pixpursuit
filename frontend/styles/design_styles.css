@@ -50,7 +50,7 @@
     position: fixed;
     bottom: 20px;
     left: 20px;
-    background-color: green;
+    background-color: limegreen;
     color: white;
     padding: 10px;
     border-radius: 5px;
@@ -73,4 +73,35 @@
     100% {
         opacity: 0;
     }
+}
+
+.no-border-on-focus:focus {
+    outline: none;
+}
+
+#modal-title {
+    text-align: left;
+}
+
+.button-container {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.delete-button {
+    background-color: red;
+    color: white;
+}
+
+.delete-button:hover {
+    background-color: red;
+}
+
+.accept-button {
+    background-color: darkblue;
+    color: white;
+}
+
+.accept-button:hover {
+    background-color: darkblue;
 }
