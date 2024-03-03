@@ -1,3 +1,4 @@
+from bson import ObjectId
 from config.database_config import connect_to_mongodb_sync
 from config.logging_config import setup_logging
 from celery import shared_task
@@ -9,10 +10,11 @@ from pymongo import DeleteOne
 from sklearn.neighbors import BallTree
 
 logger = setup_logging(__name__)
+
 sync_images_collection, _, sync_faces_collection, _, _ = connect_to_mongodb_sync()
 
 
-def cluster_embeddings(embeddings):
+def cluster_embeddings(embeddings) -> np.ndarray or None:
     try:
         embeddings_array = np.array(embeddings)
         dbscan = DBSCAN(eps=0.8, min_samples=3)
@@ -20,11 +22,11 @@ def cluster_embeddings(embeddings):
         return clusters
     except Exception as e:
         logger.error(f"Clustering failed: {e}")
-        return []
+        return None
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def fetch_images():
+def fetch_images() -> list[dict]:
     try:
         cursor = sync_images_collection.find({'embeddings': {'$exists': True, '$not': {'$size': 0}}})
         return list(cursor)
@@ -34,7 +36,7 @@ def fetch_images():
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def process_images(images):
+def process_images(images: list[dict]) -> None:
     try:
         all_embeddings = [emb for image in images for emb in image['embeddings']]
 
@@ -76,7 +78,7 @@ def process_images(images):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def update_faces(image, image_clusters):
+def update_faces(image: dict, image_clusters: np.ndarray) -> None:
     try:
         current_document = sync_images_collection.find_one({'_id': image['_id']})
         current_user_faces = current_document.get('user_faces', [])
@@ -89,7 +91,8 @@ def update_faces(image, image_clusters):
         return None
 
 
-def update_user_and_backlog_faces(current_faces, current_backlog_faces, image_clusters):
+def update_user_and_backlog_faces(current_faces: list, current_backlog_faces: list,
+                                  image_clusters: np.ndarray) -> tuple[list, list] or None:
     try:
         updated_faces = []
         updated_backlog_faces = []
@@ -111,12 +114,12 @@ def update_user_and_backlog_faces(current_faces, current_backlog_faces, image_cl
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def insert_many_faces(faces_records):
+def insert_many_faces(faces_records: list[dict]) -> None:
     sync_faces_collection.insert_many(faces_records)
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def update_clusters(clusters, ids):
+def update_clusters(clusters: np.ndarray, ids: list[ObjectId]) -> bool:
     for idx, cluster_id in enumerate(clusters):
         try:
             group_id = f"face{cluster_id}"
@@ -131,7 +134,7 @@ def update_clusters(clusters, ids):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def fetch_all_embeddings():
+def fetch_all_embeddings() -> tuple[list[np.ndarray], list[ObjectId]] or None:
     try:
         cursor = sync_faces_collection.find({})
         embeddings = []
@@ -146,7 +149,7 @@ def fetch_all_embeddings():
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def update_backlog_unknown_faces(image_id, unknown_faces, backlog_faces):
+def update_backlog_unknown_faces(image_id: str or ObjectId, unknown_faces: int, backlog_faces: list) -> bool:
     try:
         image_id = to_object_id(image_id)
         sync_images_collection.update_one(
@@ -160,7 +163,8 @@ def update_backlog_unknown_faces(image_id, unknown_faces, backlog_faces):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def update_all_faces(image_id, image_clusters, updated_user_faces, updated_backlog_faces):
+def update_all_faces(image_id: str or ObjectId, image_clusters: np.ndarray, updated_user_faces: list,
+                     updated_backlog_faces: list) -> bool:
     try:
         image_id = to_object_id(image_id)
         sync_images_collection.update_one(
@@ -179,7 +183,7 @@ def update_all_faces(image_id, image_clusters, updated_user_faces, updated_backl
 
 
 @shared_task(name='face_operations.group_faces.beat', queue='beat_queue')
-def group_faces():
+def group_faces() -> None:
     images = fetch_images()
     process_images(images)
 
@@ -194,7 +198,7 @@ def group_faces():
 
 
 @shared_task(name='face_operations.update_names.main', queue='main_queue')
-def update_names(old_name, new_name):
+def update_names(old_name: str, new_name: str) -> bool:
     try:
         if not all(isinstance(name, str) for name in [old_name, new_name]):
             logger.error("Names must be strings")
@@ -220,7 +224,7 @@ def update_names(old_name, new_name):
 
 
 @shared_task(name='face_operations.delete_faces_associated_with_images.main', queue='main_queue')
-def delete_faces_associated_with_images(image_ids):
+def delete_faces_associated_with_images(image_ids: list) -> bool:
     threshold = 0.01
     delete_operations = []
 

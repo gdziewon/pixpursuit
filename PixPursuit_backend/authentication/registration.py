@@ -6,8 +6,9 @@ from utils.constants import SECRET_KEY_AUTH, ALGORITHM, MAIL_USERNAME, MAIL_APP_
                             MAIL_FROM, MAIL_FROM_NAME, CONFIRMATION_URL
 
 logger = setup_logging(__name__)
+
 ph = PasswordHasher()
-conf = ConnectionConfig(
+connection_config = ConnectionConfig(
         MAIL_USERNAME=MAIL_USERNAME,
         MAIL_PASSWORD=MAIL_APP_PASSWORD,
         MAIL_FROM=MAIL_FROM,
@@ -21,17 +22,17 @@ conf = ConnectionConfig(
     )
 
 
-async def hash_password(password: str):
+async def hash_password(password: str) -> str:
     return ph.hash(password)
 
 
-def create_confirmation_token(user_id: str):
+def create_confirmation_token(user_id: str) -> str:
     payload = {"user_id": user_id}
     token = jwt.encode(payload, SECRET_KEY_AUTH, algorithm=ALGORITHM)
     return token
 
 
-async def send_confirmation_email(email, user_id):
+async def send_confirmation_email(email: str, user_id: str) -> None:
     try:
         token = create_confirmation_token(user_id)
         confirmation_url = f"{CONFIRMATION_URL}{token}"
@@ -42,7 +43,7 @@ async def send_confirmation_email(email, user_id):
                  f"If you did not register to PixPursuit, please ignore this email.",
             subtype="html"
         )
-        fm = FastMail(conf)
+        fm = FastMail(connection_config)
         await fm.send_message(message)
         logger.info(f"send_confirmation_email - Email sent to {email}")
     except Exception as e:

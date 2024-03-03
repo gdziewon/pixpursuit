@@ -3,7 +3,7 @@ from logging.handlers import RotatingFileHandler
 from utils.constants import LOG_FILE_PATH, LOG_FORMAT
 
 
-def setup_logging(name):
+def setup_logging(name: str) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
 

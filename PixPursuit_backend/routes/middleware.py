@@ -2,11 +2,12 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from config.logging_config import setup_logging
+
 logger = setup_logging(__name__)
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next: callable) -> JSONResponse:
         try:
             response = await call_next(request)
             username = getattr(request.state, 'username', None)

@@ -13,9 +13,9 @@ from utils.constants import BUCKET_NAME
 logger = setup_logging(__name__)
 
 
-async def add_album_to_zip(album, zipf, path, depth=0, max_depth=5):
+async def add_album_to_zip(album: dict, zipf: ZipFile, path: str, depth=0, max_depth=10) -> None:
     if depth > max_depth:
-        logger.warn(f"Maximum album recursion depth reached at album: {album['name']}")
+        logger.warning(f"Maximum album recursion depth reached at album: {album['name']}")
         return
 
     logger.info(f"Adding album: {album['name']} to zip at path: {path}")
@@ -40,7 +40,7 @@ async def add_album_to_zip(album, zipf, path, depth=0, max_depth=5):
             logger.error(f"Failed to process sub-album: {sub_album['name']} in album: {album['name']} - {e}")
 
 
-async def add_image_to_zip(image, zipf, path):
+async def add_image_to_zip(image: dict, zipf: ZipFile, path: str) -> None:
     try:
         response = space_client.get_object(Bucket=BUCKET_NAME, Key=image['filename'])
         file_content = response['Body'].read()
@@ -49,7 +49,7 @@ async def add_image_to_zip(image, zipf, path):
         logger.error(f"Failed to add image: {image['filename']} to zip - {e}")
 
 
-async def process_folder(path, username, parent_id=None):
+async def process_folder(path: str, username: str, parent_id=None) -> list[str]:
     if parent_id is None:
         parent_id = await get_root_id()
 
@@ -70,13 +70,14 @@ async def process_folder(path, username, parent_id=None):
                 image_files.append(upload_file)
         except Exception as e:
             logger.error(f"Failed to process item: {item} - {e}")
+            continue
 
     inserted_ids = await process_and_save_images(image_files, username, parent_id)
 
     return inserted_ids
 
 
-async def generate_zip_file(album_ids, image_ids) -> BytesIO:
+async def generate_zip_file(album_ids: list, image_ids: list) -> BytesIO:
     zip_buffer = BytesIO()
     with ZipFile(zip_buffer, 'w', ZIP_DEFLATED) as zipf:
         for album_id in album_ids:

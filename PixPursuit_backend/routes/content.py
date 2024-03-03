@@ -69,8 +69,6 @@ async def add_view_api(data: ViewData):
 
 @router.post("/remove-tags")
 async def remove_tags_api(data: RemovingTagsData, current_user: User = Depends(get_current_user)):
-    if not data.image_id:
-        raise HTTPException(status_code=400, detail="No image ID provided")
     success = await remove_tags_from_image(data.image_id, data.tags)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to remove tags")

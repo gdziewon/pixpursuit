@@ -14,19 +14,19 @@ logger = setup_logging(__name__)
 unique_tags_cache = None
 
 
-def get_unique_tags_cached():
+def get_unique_tags_cached() -> list[str] or None:
     global unique_tags_cache
     if unique_tags_cache is None:
         unique_tags_cache = get_unique_tags()
     return unique_tags_cache
 
 
-def update_unique_tags_cache():
+def update_unique_tags_cache() -> None:
     global unique_tags_cache
     unique_tags_cache = get_unique_tags()
 
 
-def save_model_state(model, file_path=MODEL_FILE_PATH):
+def save_model_state(model: TagPredictor, file_path=MODEL_FILE_PATH) -> None:
     try:
         torch.save({
             'state_dict': model.state_dict(),
@@ -37,7 +37,7 @@ def save_model_state(model, file_path=MODEL_FILE_PATH):
         logger.error(f"Error saving model state: {e}", exc_info=True)
 
 
-def load_model_state(file_path=MODEL_FILE_PATH, input_size=1000, hidden_size=512):
+def load_model_state(file_path=MODEL_FILE_PATH, input_size=1000, hidden_size=512) -> TagPredictor or None:
     if not os.path.exists(file_path):
         logger.warning(f"Model file {file_path} not found. Initializing a new model.")
         return TagPredictor(input_size, hidden_size, num_tags=1)
@@ -48,14 +48,13 @@ def load_model_state(file_path=MODEL_FILE_PATH, input_size=1000, hidden_size=512
         model = TagPredictor(input_size, hidden_size, num_tags)
         model.load_state_dict(checkpoint['state_dict'])
         logger.info("Model state loaded")
+        return model
     except Exception as e:
         logger.error(f"Error loading model state: {e}", exc_info=True)
         return None
 
-    return model
 
-
-def update_model_tags(tag_vector=None):
+def update_model_tags(tag_vector=None) -> None:
     try:
         tag_predictor = load_model_state()
         if not tag_vector:
@@ -71,7 +70,7 @@ def update_model_tags(tag_vector=None):
         logger.error(f"Error updating model tags: {e}", exc_info=True)
 
 
-def tags_to_vector(tags, feedback):
+def tags_to_vector(tags: list[str], feedback: dict) -> list[int]:
     try:
         unique_tags = get_unique_tags_cached()
         tag_vector = [0] * len(unique_tags)
@@ -93,7 +92,7 @@ def tags_to_vector(tags, feedback):
         return []
 
 
-async def training_init(inserted_ids):
+async def training_init(inserted_ids: list) -> None:
     for inserted_id in inserted_ids:
         try:
             image_document = await get_image_document(inserted_id)
@@ -109,7 +108,7 @@ async def training_init(inserted_ids):
             logger.error(f"Error during training initialization: {e}", exc_info=True)
 
 
-async def train_init_albums(album_ids):
+async def train_init_albums(album_ids: list) -> None:
     for album_id in album_ids:
         try:
             album = await get_album(album_id)
@@ -128,14 +127,14 @@ async def train_init_albums(album_ids):
             continue
 
 
-def predictions_to_tag_names(predictions):
+def predictions_to_tag_names(predictions: list[int]) -> list[str]:
     all_tags = get_unique_tags()
     index_to_tag = {i: tag for i, tag in enumerate(all_tags)}
     return [index_to_tag[idx] for idx in predictions if idx in index_to_tag and index_to_tag[idx] != 'NULL']
 
 
 @shared_task(name='tag_prediction_tools.train_model.main', queue='main_queue')
-def train_model(features, tag_vector):
+def train_model(features: list[float], tag_vector: list[int]) -> None:
     tag_predictor = load_model_state()
     if not features or not tag_predictor:
         logger.error("Training aborted due to missing data or model")
@@ -169,7 +168,7 @@ def train_model(features, tag_vector):
 
 
 @shared_task(name='tag_prediction_tools.predict_and_update_tags.main', queue='main_queue')
-def predict_and_update_tags(image_ids):
+def predict_and_update_tags(image_ids: list) -> None:
     tag_predictor = load_model_state()
     if not tag_predictor:
         logger.error("Model loading failed, prediction aborted.")
@@ -203,7 +202,7 @@ def predict_and_update_tags(image_ids):
 
 
 @shared_task(name='tag_prediction_tools.update_all_auto_tags.beat', queue='beat_queue')
-def update_all_auto_tags():
+def update_all_auto_tags() -> None:
     logger.info("Updating all auto tags")
     update_model_tags()
     page_size = 100

@@ -5,18 +5,21 @@ from databases.face_operations import insert_many_faces
 from io import BytesIO
 from PIL import Image
 from utils.constants import FACE_DETECTION_THRESHOLD
+from config.logging_config import setup_logging
+
+logger = setup_logging(__name__)
 
 device, mtcnn, resnet = activate_face_models(thresholds=FACE_DETECTION_THRESHOLD)
 
 
 @shared_task(name='face_detection.get_face_embeddings.main', queue='main_queue')
-def get_face_embeddings(image_data, filename):
+def get_face_embeddings(image_data: bytes, filename: str) -> None:
     image = Image.open(BytesIO(image_data))
     image = image.convert("RGB")
     try:
         boxes, _ = mtcnn.detect(image)
         if boxes is None:
-            return None, None
+            return None
 
         faces = mtcnn(image)
         embeddings = resnet(faces.to(device))
@@ -36,5 +39,5 @@ def get_face_embeddings(image_data, filename):
         insert_many_faces(faces_records)
 
     except Exception as e:
-        print(f"Error processing image: {e}")
-        return None, None
+        logger.error(f"Error getting face embeddings: {e}")
+        return

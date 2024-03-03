@@ -4,7 +4,7 @@ from utils.constants import (CELERY_BROKER_URL, CELERY_RESULT_BACKEND,
                              UPDATE_AUTO_TAGS_SCHEDULE, CLUSTER_FACES_SCHEDULE, BEAT_SCHEDULE_FILE_PATH)
 
 
-def make_celery(app_name=__name__):
+def make_celery(app_name=__name__) -> Celery:
     celery_app = Celery(app_name,
                         broker=CELERY_BROKER_URL,
                         backend=CELERY_RESULT_BACKEND)

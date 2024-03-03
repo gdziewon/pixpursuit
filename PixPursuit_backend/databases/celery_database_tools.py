@@ -1,14 +1,16 @@
+from bson import ObjectId
 from tenacity import retry, stop_after_attempt, wait_fixed
 from config.logging_config import setup_logging
 from config.database_config import connect_to_mongodb_sync
 from utils.function_utils import to_object_id
 
-sync_images_collection, sync_tags_collection, sync_faces_collection, _, _ = connect_to_mongodb_sync()
 logger = setup_logging(__name__)
+
+sync_images_collection, sync_tags_collection, sync_faces_collection, _, _ = connect_to_mongodb_sync()
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def add_something_to_image(field_to_set, data, filename):
+def add_something_to_image(field_to_set: str, data: any, filename: str) -> None:
     try:
         sync_images_collection.update_one(
             {'filename': filename},
@@ -19,7 +21,7 @@ def add_something_to_image(field_to_set, data, filename):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def get_image_document_sync(inserted_id):
+def get_image_document_sync(inserted_id: ObjectId or str) -> dict or None:
     inserted_id = to_object_id(inserted_id)
     if not inserted_id:
         return None
@@ -32,7 +34,7 @@ def get_image_document_sync(inserted_id):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def get_image_ids_paginated(last_id=None, page_size=100):
+def get_image_ids_paginated(last_id: ObjectId or str = None, page_size: int = 100) -> list[str]:
     if last_id is not None:
         last_id = to_object_id(last_id)
         cursor = sync_images_collection.find({'_id': {'$gt': last_id}}, {'_id': 1}).limit(page_size)
@@ -43,14 +45,14 @@ def get_image_ids_paginated(last_id=None, page_size=100):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def get_unique_tags():
+def get_unique_tags() -> list[str] or None:
     documents = sync_tags_collection.find({}, {'name': 1})
     names = [doc['name'] for doc in documents]
     return names
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def add_auto_tags(inserted_id, predicted_tags):
+def add_auto_tags(inserted_id: ObjectId or str, predicted_tags: list[str]) -> None:
     try:
         image_document = get_image_document_sync(inserted_id)
         if not image_document:
@@ -73,7 +75,7 @@ def add_auto_tags(inserted_id, predicted_tags):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def add_feedback_sync(auto_tags, inserted_id):
+def add_feedback_sync(auto_tags: list[str], inserted_id: ObjectId or str) -> bool:
     try:
         image_document = get_image_document_sync(inserted_id)
         existing_feedback = image_document.get('feedback', {})

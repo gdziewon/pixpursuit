@@ -8,7 +8,7 @@ from utils.constants import MONGODB_URI, DO_REGION, DO_SPACE_ENDPOINT, DO_SPACE_
 logger = setup_logging(__name__)
 
 
-def connect_to_mongodb_async(attempts=5, delay=3):
+def connect_to_mongodb_async(attempts=5, delay=3) -> tuple:
     for attempt in range(attempts):
         try:
             client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)
@@ -25,7 +25,7 @@ def connect_to_mongodb_async(attempts=5, delay=3):
                 return None, None, None, None, None
 
 
-def connect_to_mongodb_sync(attempts=5, delay=3):
+def connect_to_mongodb_sync(attempts=5, delay=3) -> tuple:
     for attempt in range(attempts):
         try:
             client = MongoClient(MONGODB_URI)
@@ -42,7 +42,7 @@ def connect_to_mongodb_sync(attempts=5, delay=3):
                 return None, None, None, None, None
 
 
-def get_collections(client):
+def get_collections(client) -> tuple:
     if client:
         db = client.pixpursuit_db
         images_collection = db.images
@@ -55,7 +55,7 @@ def get_collections(client):
         return None, None, None, None, None
 
 
-def connect_to_space():
+def connect_to_space() -> boto3.client or None:
     try:
         session = boto3.session.Session()
         client = session.client('s3',
@@ -63,7 +63,7 @@ def connect_to_space():
                                 endpoint_url=DO_SPACE_ENDPOINT,
                                 aws_access_key_id=DO_SPACE_ACCESS_KEY,
                                 aws_secret_access_key=DO_SPACE_SECRET_KEY)
+        return client
     except Exception as e:
         logger.error(f"Failed to connect to Digital Ocean Space: {e}")
         return None
-    return client

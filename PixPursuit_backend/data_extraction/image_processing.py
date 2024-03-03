@@ -1,5 +1,6 @@
+from bson import ObjectId
 from databases.image_to_space import save_image_to_space
-from data_extraction.metadata_extraction import get_exif_data_async
+from data_extraction.metadata_extraction import get_exif_data
 from data_extraction.face_detection import get_face_embeddings
 from data_extraction.object_detection import detect_objects
 from data_extraction.feature_extraction import extract_features
@@ -14,26 +15,26 @@ import asyncio
 logger = setup_logging(__name__)
 
 
-async def image_to_byte_array(image: Image) -> bytes:
+async def image_to_byte_array(image: Image) -> bytes or None:
     img_byte_arr = BytesIO()
     image.save(img_byte_arr, format=image.format)
     img_byte_arr = img_byte_arr.getvalue()
     return img_byte_arr
 
 
-async def read_image(file: UploadFile) -> Image:
+async def read_image(file: UploadFile) -> Image or None:
     contents = await file.read()
     image = Image.open(BytesIO(contents))
     return image
 
 
-async def process_image(file: UploadFile):
+async def process_image(file: UploadFile) -> tuple[str, str, str, dict] or None:
     try:
         image = await read_image(file)
 
         image_byte_arr = await image_to_byte_array(image)
         image_url, thumbnail_url, filename = await save_image_to_space(image)
-        exif_data = await get_exif_data_async(image)
+        exif_data = await get_exif_data(image)
 
         get_face_embeddings.delay(image_byte_arr, filename)
         detect_objects.delay(image_byte_arr, filename)
@@ -45,7 +46,7 @@ async def process_image(file: UploadFile):
     return image_url, thumbnail_url, filename, exif_data
 
 
-async def process_and_save_images(images, user, album_id):
+async def process_and_save_images(images: list[UploadFile], user: str, album_id: ObjectId or str) -> list[str]:
     try:
         processed_images = [asyncio.create_task(process_image(image)) for image in images]
         results = await asyncio.gather(*processed_images)

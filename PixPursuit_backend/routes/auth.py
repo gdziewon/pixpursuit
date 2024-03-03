@@ -4,7 +4,7 @@ from schemas.auth_schema import Token, UserRegistration
 from authentication.auth import authenticate_user, get_tokens
 from authentication.registration import hash_password, send_confirmation_email
 from databases.database_tools import create_user, mark_email_as_verified
-from jose import JWTError, jwt
+from jose import jwt
 from utils.constants import SECRET_KEY_AUTH, ALGORITHM
 from authentication.auth import get_current_user_refresh
 
@@ -47,26 +47,20 @@ async def register_user(user_registration: UserRegistration, background_tasks: B
 
 @router.get("/verify-email")
 async def verify_email(token: str):
-    try:
-        payload = jwt.decode(token, SECRET_KEY_AUTH, algorithms=[ALGORITHM])
-        if not payload.get("user_id"):
-            raise HTTPException(status_code=400, detail="Invalid token")
+    payload = jwt.decode(token, SECRET_KEY_AUTH, algorithms=[ALGORITHM])
+    if not payload.get("user_id"):
+        raise HTTPException(status_code=400, detail="Invalid token")
 
-        await mark_email_as_verified(payload["user_id"])
-        return {"message": "Email verified successfully."}
-    except JWTError:
-        raise HTTPException(status_code=400, detail="Invalid or expired token.")
+    success = await mark_email_as_verified(payload["user_id"])
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to verify email")
+
+    return {"message": "Email verified successfully."}
 
 
 @router.post("/refresh", response_model=Token)
 async def refresh_access_token(refresh_token: str = Depends(oauth2_scheme)):
     user = await get_current_user_refresh(refresh_token)
-    if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid refresh token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
 
     access_token, refresh_token = get_tokens(user.username)
 

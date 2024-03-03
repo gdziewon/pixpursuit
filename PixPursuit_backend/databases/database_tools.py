@@ -1,3 +1,4 @@
+from bson import ObjectId
 from config.database_config import connect_to_mongodb_async
 from config.logging_config import setup_logging
 from databases.image_to_space import delete_image_from_space
@@ -8,10 +9,11 @@ from databases.face_operations import update_names
 from databases.face_operations import delete_faces_associated_with_images
 
 logger = setup_logging(__name__)
+
 images_collection, tags_collection, faces_collection, user_collection, album_collection = connect_to_mongodb_async()
 
 
-async def get_image_record(data, username, album_id):
+async def get_image_record(data: tuple, username: str, album_id: ObjectId or str) -> dict or None:
     try:
         image_url, thumbnail_url, filename, exif_data = data
 
@@ -49,7 +51,7 @@ async def get_image_record(data, username, album_id):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def save_image_to_database(data, username, album_id):
+async def save_image_to_database(data: tuple, username: str, album_id: ObjectId or str = None) -> str or None:
     try:
         if not album_id or album_id == "root":
             album_id = await get_root_id()
@@ -75,7 +77,7 @@ async def save_image_to_database(data, username, album_id):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def create_album(album_name, parent_id=None):
+async def create_album(album_name: str, parent_id: ObjectId or str = None) -> ObjectId or None:
     if not parent_id:
         parent_id = await get_root_id()
     parent_id = to_object_id(parent_id)
@@ -101,7 +103,7 @@ async def create_album(album_name, parent_id=None):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def add_tags_to_images(tags, inserted_ids):
+async def add_tags_to_images(tags: list[str], inserted_ids: list[str]) -> bool:
     for inserted_id in inserted_ids:
         inserted_id = to_object_id(inserted_id)
         if not inserted_id:
@@ -126,7 +128,7 @@ async def add_tags_to_images(tags, inserted_ids):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def add_tags_to_albums(tags, album_ids):
+async def add_tags_to_albums(tags: list[str], album_ids: list) -> bool:
     for album_id in album_ids:
         try:
             album = await get_album(album_id)
@@ -148,7 +150,7 @@ async def add_tags_to_albums(tags, album_ids):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def add_feedback(tag, is_positive, user, inserted_id):
+async def add_feedback(tag: str, is_positive: bool, user: str, inserted_id: ObjectId or str) -> bool:
     try:
         inserted_id = to_object_id(inserted_id)
         image_document = await get_image_document(inserted_id)
@@ -186,7 +188,7 @@ async def add_feedback(tag, is_positive, user, inserted_id):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def add_description(description, inserted_id):
+async def add_description(description: str, inserted_id: ObjectId or str) -> bool:
     inserted_id = to_object_id(inserted_id)
     if not inserted_id:
         return False
@@ -204,7 +206,7 @@ async def add_description(description, inserted_id):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def add_like(is_positive, username, inserted_id):
+async def add_like(is_positive: bool, username: str, inserted_id: ObjectId or str) -> bool:
     inserted_id = to_object_id(inserted_id)
     if not inserted_id:
         return False
@@ -240,7 +242,7 @@ async def add_like(is_positive, username, inserted_id):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def add_view(inserted_id):
+async def add_view(inserted_id: ObjectId or str) -> bool:
     inserted_id = to_object_id(inserted_id)
     if not inserted_id:
         return False
@@ -257,7 +259,7 @@ async def add_view(inserted_id):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def add_photos_to_album(image_ids, album_id):
+async def add_photos_to_album(image_ids: ObjectId or str, album_id: ObjectId or str) -> bool:
     album_id = to_object_id(album_id)
     if not album_id:
         logger.error(f"Invalid album_id provided: {album_id}")
@@ -278,7 +280,7 @@ async def add_photos_to_album(image_ids, album_id):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def relocate_to_album(prev_album_id, new_album_id=None, image_ids=None):
+async def relocate_to_album(prev_album_id: ObjectId or str, new_album_id: ObjectId or str, image_ids: list) -> bool:
     try:
         prev_album_id = to_object_id(prev_album_id)
         new_album_id = to_object_id(new_album_id) if new_album_id else await get_root_id()
@@ -294,19 +296,18 @@ async def relocate_to_album(prev_album_id, new_album_id=None, image_ids=None):
 
         await add_photos_to_album(image_ids, new_album_id)
 
-        await album_collection.update_one(
+        update_result = await album_collection.update_one(
             {'_id': prev_album_id},
             {'$pullAll': {'images': [str(image_id) for image_id in image_ids]}}
         )
+        return update_result.matched_count > 0 and update_result.modified_count > 0
     except Exception as e:
         logger.error(f"Error relocating images: {e}")
         return False
 
-    return True
-
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def delete_albums(album_ids, is_top_level=True):
+async def delete_albums(album_ids: list, is_top_level=True) -> bool:
     all_deleted_successfully = True
     for album_id in album_ids:
         try:
@@ -346,7 +347,7 @@ async def delete_albums(album_ids, is_top_level=True):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def delete_images(image_ids):
+async def delete_images(image_ids: list) -> bool:
     all_deleted_successfully = True
     for image_id in image_ids:
         try:
@@ -381,7 +382,7 @@ async def delete_images(image_ids):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def remove_tags_from_image(image_id, tags_to_remove):
+async def remove_tags_from_image(image_id: ObjectId or str, tags_to_remove: list[str]) -> bool:
     try:
         image_id = to_object_id(image_id)
         image = await get_image_document(image_id)
@@ -401,7 +402,7 @@ async def remove_tags_from_image(image_id, tags_to_remove):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def increment_tags_count(tags):
+async def increment_tags_count(tags: list[str]) -> bool:
     try:
         for tag in tags:
             if not await tags_collection.find_one({'name': tag}):
@@ -416,7 +417,7 @@ async def increment_tags_count(tags):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def decrement_tags_count(tags):
+async def decrement_tags_count(tags: list[str]) -> bool:
     try:
         for tag in tags:
             await tags_collection.update_one(
@@ -433,7 +434,7 @@ async def decrement_tags_count(tags):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def get_root_id():
+async def get_root_id() -> ObjectId or None:
     try:
         root_album = await album_collection.find_one({"name": "root", "parent": None})
         if not root_album:
@@ -455,13 +456,13 @@ async def get_root_id():
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def get_user(username: str):
+async def get_user(username: str) -> dict or None:
     user = await user_collection.find_one({"username": username})
     return user
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def create_user(email, password):
+async def create_user(email: str, password: str) -> dict or None:
     email = email.lower()
     username = email.split('@')[0]
     user = await get_user(username)
@@ -483,7 +484,7 @@ async def create_user(email, password):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def mark_email_as_verified(user_id: str):
+async def mark_email_as_verified(user_id: ObjectId or str) -> bool:
     try:
         user_id = to_object_id(user_id)
         if not user_id:
@@ -501,7 +502,7 @@ async def mark_email_as_verified(user_id: str):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def get_image_document(inserted_id):
+async def get_image_document(inserted_id: ObjectId or str) -> dict or None:
     inserted_id = to_object_id(inserted_id)
     if not inserted_id:
         return None
@@ -514,7 +515,7 @@ async def get_image_document(inserted_id):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def get_album(album_id):
+async def get_album(album_id: ObjectId or str) -> dict or None:
     album_id = to_object_id(album_id)
     if not album_id:
         return None
@@ -527,7 +528,7 @@ async def get_album(album_id):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def rename_album(name, album_id):
+async def rename_album(name: str, album_id: ObjectId or str) -> bool:
     album_id = to_object_id(album_id)
     if not album_id:
         return False
@@ -549,7 +550,7 @@ async def rename_album(name, album_id):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def add_names(inserted_id, anonymous_index, new_name):
+async def add_names(inserted_id: ObjectId or str, anonymous_index: int, new_name: str) -> bool:
     try:
         inserted_id = to_object_id(inserted_id)
         if not inserted_id:

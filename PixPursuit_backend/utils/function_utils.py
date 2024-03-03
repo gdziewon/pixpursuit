@@ -5,16 +5,16 @@ from config.logging_config import setup_logging
 logger = setup_logging(__name__)
 
 
-def is_allowed_file(filename):
+def is_allowed_file(filename: str) -> bool:
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def is_allowed_url(url):
+def is_allowed_url(url: str) -> bool:
     return url.startswith(PK_GALLERY_URL)
 
 
-def to_object_id(id_str):
+def to_object_id(id_str: ObjectId or str) -> ObjectId or None:
     try:
         id_obj = ObjectId(id_str)
         return id_obj

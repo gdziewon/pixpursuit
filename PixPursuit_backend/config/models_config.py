@@ -9,7 +9,7 @@ from utils.constants import YOLO_MODEL_PATH, FACE_DETECTION_THRESHOLD
 logger = setup_logging(__name__)
 
 
-def activate_feature_models():
+def activate_feature_models() -> (models.ResNet, transforms.Compose):
     weights = ResNet50_Weights.DEFAULT
     resnet = models.resnet50(weights=weights)
     resnet.eval()
@@ -24,13 +24,13 @@ def activate_feature_models():
     return resnet, transform
 
 
-def activate_object_models():
+def activate_object_models() -> YOLO:
     model = YOLO(YOLO_MODEL_PATH)
     logger.info("Activated pretrained YOLOv8 model")
     return model
 
 
-def activate_face_models(thresholds=FACE_DETECTION_THRESHOLD):
+def activate_face_models(thresholds=FACE_DETECTION_THRESHOLD) -> (torch.device, MTCNN, InceptionResnetV1):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     mtcnn = MTCNN(keep_all=True, thresholds=thresholds, device=device)
     resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)

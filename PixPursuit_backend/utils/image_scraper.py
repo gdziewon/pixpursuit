@@ -16,7 +16,7 @@ from utils.constants import BASE_URL
 logger = setup_logging(__name__)
 
 
-async def get_image_urls(soup):
+async def get_image_urls(soup) -> list[str]:
     try:
         image_links = soup.find_all('a', attrs={'rel': 'lightbox-album'})
         full_image_urls = [urljoin(BASE_URL, link['href']) for link in image_links]
@@ -26,7 +26,7 @@ async def get_image_urls(soup):
         raise HTTPException(status_code=500, detail="Failed to get image URLs")
 
 
-async def get_soup(url):
+async def get_soup(url) -> BeautifulSoup:
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(url)
@@ -38,7 +38,7 @@ async def get_soup(url):
     return BeautifulSoup(response.text, 'html.parser')
 
 
-async def fetch_image(image_url, save_dir, client):
+async def fetch_image(image_url, save_dir, client) -> None:
     try:
         parsed_url = urlparse(image_url)
         query_params = parse_qs(parsed_url.query)
@@ -62,13 +62,13 @@ async def fetch_image(image_url, save_dir, client):
         logger.error(f"Failed to download image {image_url}: {e}")
 
 
-async def download_images(urls, save_dir):
+async def download_images(urls, save_dir) -> None:
     async with httpx.AsyncClient() as client:
         tasks = [fetch_image(url, save_dir, client) for url in urls]
         await asyncio.gather(*tasks)
 
 
-async def scrape_images(soup):
+async def scrape_images(soup) -> str:
     save_dir = get_tmp_dir_path()
     try:
         image_urls = await get_image_urls(soup)
@@ -86,7 +86,7 @@ async def scrape_images(soup):
         return save_dir
 
 
-async def get_scraped_album_name(soup):
+async def get_scraped_album_name(soup) -> str or None:
     album_name = None
     try:
         full_title = soup.title.string
@@ -101,7 +101,7 @@ async def get_scraped_album_name(soup):
     return album_name
 
 
-async def scrape_and_save_images(url, user, album_id=None):
+async def scrape_and_save_images(url, user, album_id=None) -> tuple:
     image_files = []
     save_dir = None
     try:
@@ -126,7 +126,7 @@ async def scrape_and_save_images(url, user, album_id=None):
         shutil.rmtree(save_dir)
 
 
-async def prepare_image_files(save_dir):
+async def prepare_image_files(save_dir) -> list[UploadFile]:
     try:
         image_filenames = os.listdir(save_dir)
         image_files = []
@@ -143,7 +143,7 @@ async def prepare_image_files(save_dir):
         raise HTTPException(status_code=500, detail="Failed to prepare image files")
 
 
-async def cleanup_files(image_files):
+async def cleanup_files(image_files) -> None:
     try:
         for file in image_files:
             file.file.close()

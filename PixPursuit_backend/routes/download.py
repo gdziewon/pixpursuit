@@ -1,12 +1,10 @@
 import httpx
 from fastapi import APIRouter, HTTPException
-from config.logging_config import setup_logging
 from utils.images_zip import generate_zip_file
 from fastapi.responses import StreamingResponse
 from schemas.download_schema import ZipData
 
 router = APIRouter()
-logger = setup_logging(__name__)
 
 
 @router.get("/download-image/")

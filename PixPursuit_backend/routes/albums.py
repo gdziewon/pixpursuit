@@ -3,8 +3,7 @@ import shutil
 from zipfile import ZipFile
 from fastapi import APIRouter, Depends, HTTPException, Form, UploadFile, File
 from typing import Optional
-from config.logging_config import setup_logging
-from databases.database_tools import create_album, get_album, add_photos_to_album, delete_albums, rename_album
+from databases.database_tools import create_album, add_photos_to_album, delete_albums, rename_album
 from authentication.auth import get_current_user
 from schemas.albums_schema import CreateAlbumData, AddPhotosToAlbumData, DeleteAlbumsData, RenameAlbumData
 from utils.dirs import get_tmp_dir_path
@@ -12,7 +11,6 @@ from utils.images_zip import process_folder
 from schemas.auth_schema import User
 
 router = APIRouter()
-logger = setup_logging(__name__)
 
 
 @router.post("/create-album")
@@ -31,13 +29,6 @@ async def create_album_api(data: CreateAlbumData, current_user: User = Depends(g
 
 @router.post("/add-images-to-album")
 async def add_images_to_album_api(data: AddPhotosToAlbumData, current_user: User = Depends(get_current_user)):
-    if not data.image_ids:
-        raise HTTPException(status_code=400, detail="No image IDs provided")
-
-    album = await get_album(data.album_id)
-    if not album:
-        raise HTTPException(status_code=404, detail="Album not found")
-
     success = await add_photos_to_album(data.image_ids, data.album_id)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to add photos to the album")
@@ -47,11 +38,6 @@ async def add_images_to_album_api(data: AddPhotosToAlbumData, current_user: User
 
 @router.delete("/delete-albums")
 async def delete_albums_api(data: DeleteAlbumsData, current_user: User = Depends(get_current_user)):
-    for album_id in data.album_ids:
-        album = await get_album(album_id)
-        if not album:
-            raise HTTPException(status_code=404, detail=f"Album not found: {album_id}")
-
     success = await delete_albums(data.album_ids)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to delete albums")
@@ -81,10 +67,6 @@ async def upload_zip(file: UploadFile = File(...), parent_id: Optional[str] = Fo
 
 @router.put("/rename-album")
 async def rename_album_api(data: RenameAlbumData, current_user: User = Depends(get_current_user)):
-    album = await get_album(data.album_id)
-    if not album:
-        raise HTTPException(status_code=404, detail="Album not found")
-
     success = await rename_album(data.new_name, data.album_id)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to rename album")
