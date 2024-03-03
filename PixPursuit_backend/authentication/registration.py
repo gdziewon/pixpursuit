@@ -4,6 +4,7 @@ from argon2 import PasswordHasher
 from config.logging_config import setup_logging
 from utils.constants import SECRET_KEY_AUTH, ALGORITHM, MAIL_USERNAME, MAIL_APP_PASSWORD, \
                             MAIL_FROM, MAIL_FROM_NAME, CONFIRMATION_URL
+from utils.exceptions import send_confirmation_email_exception
 
 logger = setup_logging(__name__)
 
@@ -48,3 +49,4 @@ async def send_confirmation_email(email: str, user_id: str) -> None:
         logger.info(f"send_confirmation_email - Email sent to {email}")
     except Exception as e:
         logger.error(f"send_confirmation_email - Failed to send email to {email}: {e}")
+        raise send_confirmation_email_exception

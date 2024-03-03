@@ -1,13 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException
-from databases.database_tools import (add_tags_to_images, add_feedback, add_description,
-                                      add_like, add_view, remove_tags_from_image,
-                                      add_tags_to_albums, add_names)
+from fastapi import APIRouter, Depends
+from databases.database_tools import add_tags_to_images, add_tags_to_albums, add_feedback, add_description, add_like, \
+    add_view, remove_tags_from_image, add_names
 from authentication.auth import get_current_user
 from tag_prediction.tag_prediction_tools import training_init, train_init_albums
-from schemas.content_schema import (TagData, FeedbackData, DescriptionData,
-                                    LikeData, ViewData, RemovingTagsData,
-                                    FaceData, SelectedTagsData)
+from schemas.content_schema import TagData, FeedbackData, DescriptionData, LikeData, ViewData, SelectedTagsData, \
+    RemovingTagsData, FaceData
 from schemas.auth_schema import User
+from utils.exceptions import add_tags_exception, no_image_and_album_ids_exception, add_names_exception, \
+    add_feedback_exception, add_description_exception, add_like_exception, add_view_exception, remove_tags_exception
 
 router = APIRouter()
 
@@ -16,7 +16,7 @@ router = APIRouter()
 async def add_user_tag_api(data: TagData, current_user: User = Depends(get_current_user)):
     success = await add_tags_to_images(data.tags, [data.inserted_id])
     if not success:
-        raise HTTPException(status_code=500, detail="Failed to add tags")
+        raise add_tags_exception
     await training_init([data.inserted_id])
     return {"message": "Tags added successfully"}
 
@@ -24,11 +24,11 @@ async def add_user_tag_api(data: TagData, current_user: User = Depends(get_curre
 @router.post("/add-tags-to-selected")
 async def add_tags_to_selected_api(data: SelectedTagsData, current_user: User = Depends(get_current_user)):
     if not data.image_ids and not data.album_ids:
-        raise HTTPException(status_code=400, detail="No image IDs or album IDs provided")
+        raise no_image_and_album_ids_exception
     success = (await add_tags_to_images(data.tags, data.image_ids) and
                await add_tags_to_albums(data.tags, data.album_ids))
     if not success:
-        raise HTTPException(status_code=500, detail="Failed to add tags to selected items")
+        raise add_tags_exception
     await training_init(data.image_ids)
     await train_init_albums(data.album_ids)
     return {"message": "Tags added to selected items successfully"}
@@ -38,7 +38,7 @@ async def add_tags_to_selected_api(data: SelectedTagsData, current_user: User = 
 async def feedback_on_tags_api(data: FeedbackData, current_user: User = Depends(get_current_user)):
     success = await add_feedback(data.tag, data.is_positive, current_user.username, data.inserted_id)
     if not success:
-        raise HTTPException(status_code=500, detail="Failed to add feedback")
+        raise add_feedback_exception
     await training_init([data.inserted_id])
     return {"message": "Feedback added successfully"}
 
@@ -47,7 +47,7 @@ async def feedback_on_tags_api(data: FeedbackData, current_user: User = Depends(
 async def add_description_api(data: DescriptionData, current_user: User = Depends(get_current_user)):
     success = await add_description(data.description, data.inserted_id)
     if not success:
-        raise HTTPException(status_code=500, detail="Failed to add description")
+        raise add_description_exception
     return {"message": "Description added successfully"}
 
 
@@ -55,7 +55,7 @@ async def add_description_api(data: DescriptionData, current_user: User = Depend
 async def add_like_api(data: LikeData, current_user: User = Depends(get_current_user)):
     success = await add_like(data.is_positive, current_user.username, data.inserted_id)
     if not success:
-        raise HTTPException(status_code=500, detail="Failed to add like")
+        raise add_like_exception
     return {"message": "Like added successfully"}
 
 
@@ -63,7 +63,7 @@ async def add_like_api(data: LikeData, current_user: User = Depends(get_current_
 async def add_view_api(data: ViewData):
     success = await add_view(data.inserted_id)
     if not success:
-        raise HTTPException(status_code=500, detail="Failed to add view")
+        raise add_view_exception
     return {"message": "View added successfully"}
 
 
@@ -71,7 +71,7 @@ async def add_view_api(data: ViewData):
 async def remove_tags_api(data: RemovingTagsData, current_user: User = Depends(get_current_user)):
     success = await remove_tags_from_image(data.image_id, data.tags)
     if not success:
-        raise HTTPException(status_code=500, detail="Failed to remove tags")
+        raise remove_tags_exception
     await training_init([data.image_id])
     return {"message": "Tags removed successfully"}
 
@@ -80,5 +80,5 @@ async def remove_tags_api(data: RemovingTagsData, current_user: User = Depends(g
 async def add_user_face_api(data: FaceData, current_user: User = Depends(get_current_user)):
     success = await add_names(data.inserted_id, data.anonymous_index, data.name)
     if not success:
-        raise HTTPException(status_code=500, detail="Failed to add names")
+        raise add_names_exception
     return {"message": "Name added successfully"}

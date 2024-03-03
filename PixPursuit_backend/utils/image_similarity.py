@@ -23,7 +23,7 @@ async def get_cursor(image_id: str) -> list[dict] or None:
     })
 
 
-async def find_similar_images(image_id: str, limit=20) -> list[dict]:
+async def find_similar_images(image_id: str, limit: int = 20) -> list[dict]:
     logger.info(f"Finding similar images for image ID: {image_id}")
     input_image = await get_image_document(image_id)
     if not input_image:

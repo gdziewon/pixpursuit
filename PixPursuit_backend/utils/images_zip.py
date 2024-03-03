@@ -13,7 +13,8 @@ from utils.constants import BUCKET_NAME
 logger = setup_logging(__name__)
 
 
-async def add_album_to_zip(album: dict, zipf: ZipFile, path: str, depth=0, max_depth=10) -> None:
+async def add_album_to_zip(album: dict, zipf: ZipFile, path: str,
+                           depth: int = 0, max_depth: int = 10) -> None:
     if depth > max_depth:
         logger.warning(f"Maximum album recursion depth reached at album: {album['name']}")
         return
@@ -49,7 +50,7 @@ async def add_image_to_zip(image: dict, zipf: ZipFile, path: str) -> None:
         logger.error(f"Failed to add image: {image['filename']} to zip - {e}")
 
 
-async def process_folder(path: str, username: str, parent_id=None) -> list[str]:
+async def process_folder(path: str, username: str, parent_id: str = None) -> list[str]:
     if parent_id is None:
         parent_id = await get_root_id()
 
@@ -77,7 +78,7 @@ async def process_folder(path: str, username: str, parent_id=None) -> list[str]:
     return inserted_ids
 
 
-async def generate_zip_file(album_ids: list, image_ids: list) -> BytesIO:
+async def generate_zip_file(album_ids: list[str], image_ids: list[str]) -> BytesIO:
     zip_buffer = BytesIO()
     with ZipFile(zip_buffer, 'w', ZIP_DEFLATED) as zipf:
         for album_id in album_ids:

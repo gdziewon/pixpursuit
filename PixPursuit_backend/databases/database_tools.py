@@ -13,7 +13,8 @@ logger = setup_logging(__name__)
 images_collection, tags_collection, faces_collection, user_collection, album_collection = connect_to_mongodb_async()
 
 
-async def get_image_record(data: tuple, username: str, album_id: ObjectId or str) -> dict or None:
+async def get_image_record(data: tuple[str, str, str, dict],
+                           username: str, album_id: ObjectId or str) -> dict or None:
     try:
         image_url, thumbnail_url, filename, exif_data = data
 
@@ -51,7 +52,7 @@ async def get_image_record(data: tuple, username: str, album_id: ObjectId or str
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def save_image_to_database(data: tuple, username: str, album_id: ObjectId or str = None) -> str or None:
+async def save_image_to_database(data: tuple[str, str, str, dict], username: str, album_id: ObjectId or str) -> str or None:
     try:
         if not album_id or album_id == "root":
             album_id = await get_root_id()
@@ -128,7 +129,7 @@ async def add_tags_to_images(tags: list[str], inserted_ids: list[str]) -> bool:
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def add_tags_to_albums(tags: list[str], album_ids: list) -> bool:
+async def add_tags_to_albums(tags: list[str], album_ids: list[str]) -> bool:
     for album_id in album_ids:
         try:
             album = await get_album(album_id)
@@ -280,7 +281,8 @@ async def add_photos_to_album(image_ids: ObjectId or str, album_id: ObjectId or 
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def relocate_to_album(prev_album_id: ObjectId or str, new_album_id: ObjectId or str, image_ids: list) -> bool:
+async def relocate_to_album(prev_album_id: ObjectId or str, new_album_id: ObjectId or str,
+                            image_ids: list[str]) -> bool:
     try:
         prev_album_id = to_object_id(prev_album_id)
         new_album_id = to_object_id(new_album_id) if new_album_id else await get_root_id()
@@ -307,7 +309,7 @@ async def relocate_to_album(prev_album_id: ObjectId or str, new_album_id: Object
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def delete_albums(album_ids: list, is_top_level=True) -> bool:
+async def delete_albums(album_ids: list[str], is_top_level: bool = True) -> bool:
     all_deleted_successfully = True
     for album_id in album_ids:
         try:
@@ -347,7 +349,7 @@ async def delete_albums(album_ids: list, is_top_level=True) -> bool:
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-async def delete_images(image_ids: list) -> bool:
+async def delete_images(image_ids: list[str]) -> bool:
     all_deleted_successfully = True
     for image_id in image_ids:
         try:

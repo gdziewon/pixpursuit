@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from fastapi import Depends, HTTPException, status, Request
+from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 from databases.database_tools import get_user
 from argon2 import PasswordHasher
@@ -8,16 +8,12 @@ import argon2.exceptions
 from config.logging_config import setup_logging
 from schemas.auth_schema import TokenData, User
 from utils.constants import SECRET_KEY_AUTH, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
+from utils.exceptions import credentials_exception, invalid_credentials_exception, create_token_exception
 
 logger = setup_logging(__name__)
 
 ph = PasswordHasher()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
 
 
 async def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -28,20 +24,19 @@ async def verify_password(plain_password: str, hashed_password: str) -> bool:
         return False
 
 
-async def authenticate_user(username: str, password: str) -> bool or dict or None:
+async def authenticate_user(username: str, password: str) -> dict:
     user = await get_user(username)
-    if not user:
-        return False
-
-    if not user['verified']:
-        return False
+    if not user or not user['is_active']:
+        raise invalid_credentials_exception
 
     try:
         valid_password = await verify_password(password, user['password'])
     except argon2.exceptions.InvalidHashError:
         logger.error(f"Invalid hash for user {username}")
         valid_password = False
-    return user if valid_password else False
+    if not valid_password:
+        raise invalid_credentials_exception
+    return user
 
 
 def create_token(data: dict, expires_delta: timedelta = None) -> str or None:
@@ -77,7 +72,7 @@ def get_tokens(username: str) -> tuple[str, str] or None:
         return access_token, refresh_token
     except Exception as e:
         logger.error(f"Failed to create tokens: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to create tokens")
+        raise create_token_exception
 
 
 async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)) -> User or None:

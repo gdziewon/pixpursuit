@@ -14,7 +14,7 @@ logger = setup_logging(__name__)
 sync_images_collection, _, sync_faces_collection, _, _ = connect_to_mongodb_sync()
 
 
-def cluster_embeddings(embeddings) -> np.ndarray or None:
+def cluster_embeddings(embeddings: list[np.ndarray]) -> np.ndarray or None:
     try:
         embeddings_array = np.array(embeddings)
         dbscan = DBSCAN(eps=0.8, min_samples=3)
@@ -91,7 +91,7 @@ def update_faces(image: dict, image_clusters: np.ndarray) -> None:
         return None
 
 
-def update_user_and_backlog_faces(current_faces: list, current_backlog_faces: list,
+def update_user_and_backlog_faces(current_faces: list, current_backlog_faces: list[str],
                                   image_clusters: np.ndarray) -> tuple[list, list] or None:
     try:
         updated_faces = []
@@ -149,7 +149,7 @@ def fetch_all_embeddings() -> tuple[list[np.ndarray], list[ObjectId]] or None:
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def update_backlog_unknown_faces(image_id: str or ObjectId, unknown_faces: int, backlog_faces: list) -> bool:
+def update_backlog_unknown_faces(image_id: str, unknown_faces: int, backlog_faces: list[str]) -> bool:
     try:
         image_id = to_object_id(image_id)
         sync_images_collection.update_one(
@@ -163,7 +163,7 @@ def update_backlog_unknown_faces(image_id: str or ObjectId, unknown_faces: int, 
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
-def update_all_faces(image_id: str or ObjectId, image_clusters: np.ndarray, updated_user_faces: list,
+def update_all_faces(image_id: str, image_clusters: np.ndarray, updated_user_faces: list[str],
                      updated_backlog_faces: list) -> bool:
     try:
         image_id = to_object_id(image_id)

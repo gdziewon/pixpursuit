@@ -14,7 +14,7 @@ logger = setup_logging(__name__)
 unique_tags_cache = None
 
 
-def get_unique_tags_cached() -> list[str] or None:
+def get_unique_tags_cached() -> list[str]:
     global unique_tags_cache
     if unique_tags_cache is None:
         unique_tags_cache = get_unique_tags()
@@ -26,7 +26,7 @@ def update_unique_tags_cache() -> None:
     unique_tags_cache = get_unique_tags()
 
 
-def save_model_state(model: TagPredictor, file_path=MODEL_FILE_PATH) -> None:
+def save_model_state(model: TagPredictor, file_path: str = MODEL_FILE_PATH) -> None:
     try:
         torch.save({
             'state_dict': model.state_dict(),
@@ -37,7 +37,9 @@ def save_model_state(model: TagPredictor, file_path=MODEL_FILE_PATH) -> None:
         logger.error(f"Error saving model state: {e}", exc_info=True)
 
 
-def load_model_state(file_path=MODEL_FILE_PATH, input_size=1000, hidden_size=512) -> TagPredictor or None:
+def load_model_state(file_path: str = MODEL_FILE_PATH, input_size: int = 1000,
+                     hidden_size: int = 512) -> TagPredictor or None:
+
     if not os.path.exists(file_path):
         logger.warning(f"Model file {file_path} not found. Initializing a new model.")
         return TagPredictor(input_size, hidden_size, num_tags=1)
@@ -54,7 +56,7 @@ def load_model_state(file_path=MODEL_FILE_PATH, input_size=1000, hidden_size=512
         return None
 
 
-def update_model_tags(tag_vector=None) -> None:
+def update_model_tags(tag_vector: list[int] = None) -> None:
     try:
         tag_predictor = load_model_state()
         if not tag_vector:
@@ -92,7 +94,7 @@ def tags_to_vector(tags: list[str], feedback: dict) -> list[int]:
         return []
 
 
-async def training_init(inserted_ids: list) -> None:
+async def training_init(inserted_ids: list[str]) -> None:
     for inserted_id in inserted_ids:
         try:
             image_document = await get_image_document(inserted_id)
@@ -108,7 +110,7 @@ async def training_init(inserted_ids: list) -> None:
             logger.error(f"Error during training initialization: {e}", exc_info=True)
 
 
-async def train_init_albums(album_ids: list) -> None:
+async def train_init_albums(album_ids: list[str]) -> None:
     for album_id in album_ids:
         try:
             album = await get_album(album_id)
@@ -168,7 +170,7 @@ def train_model(features: list[float], tag_vector: list[int]) -> None:
 
 
 @shared_task(name='tag_prediction_tools.predict_and_update_tags.main', queue='main_queue')
-def predict_and_update_tags(image_ids: list) -> None:
+def predict_and_update_tags(image_ids: list[str]) -> None:
     tag_predictor = load_model_state()
     if not tag_predictor:
         logger.error("Model loading failed, prediction aborted.")

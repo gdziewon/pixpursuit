@@ -1,8 +1,9 @@
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from utils.images_zip import generate_zip_file
 from fastapi.responses import StreamingResponse
 from schemas.download_schema import ZipData
+from utils.exceptions import no_image_and_album_ids_exception
 
 router = APIRouter()
 
@@ -23,7 +24,7 @@ async def download_image(url: str):
 @router.post("/download-zip")
 async def download_zip(data: ZipData):
     if not data.album_ids and not data.image_ids:
-        raise HTTPException(status_code=400, detail="No album IDs or image IDs provided")
+        raise no_image_and_album_ids_exception
 
     zip_buffer = await generate_zip_file(data.album_ids, data.image_ids)
 
