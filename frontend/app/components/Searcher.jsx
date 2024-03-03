@@ -4,7 +4,7 @@ import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDebounce } from "use-debounce";
-import ErrorWindow from '@/utils/ErrorWindow';
+import ErrorWindow from "@/utils/ErrorWindow";
 
 export default function Searcher({ search }) {
   const router = useRouter();
@@ -45,12 +45,12 @@ export default function Searcher({ search }) {
       } else {
         console.error("Failed to fetch search suggestions");
         setSuggestions([]); // Clear suggestions on fetch failure
-        setErrorMessage('Failed to fetch search suggestions');
+        setErrorMessage("Failed to fetch search suggestions");
       }
     } catch (error) {
       console.error("Error fetching search suggestions:", error);
       setSuggestions([]); // Clear suggestions on error
-      setErrorMessage('Error fetching search suggestions');
+      setErrorMessage("Error fetching search suggestions");
     }
   };
 
@@ -60,9 +60,28 @@ export default function Searcher({ search }) {
     fetchSuggestions(e.target.value);
   };
 
+  // Handle suggestion click and set text in the input
+  const handleSuggestionClick = (suggestion) => {
+    setText(suggestion);
+    setSuggestions([]);
+    router.push(`/gallery?search=${suggestion}`);
+  };
+
+  // Handle input blur and set a delay to clear suggestions. This is to allow the user to click on a suggestion.
+  const handleInputBlur = () => {
+    setTimeout(() => {
+      setSuggestions([]);
+    }, 200);
+  };
+
   return (
     <div className="bg-black relative rounded-md shadow-sm">
-      {errorMessage && <ErrorWindow message={errorMessage} clearMessage={() => setErrorMessage(null)} />}
+      {errorMessage && (
+        <ErrorWindow
+          message={errorMessage}
+          clearMessage={() => setErrorMessage(null)}
+        />
+      )}
       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
         <MagnifyingGlassIcon
           className="h-5 w-5 text-white"
@@ -74,7 +93,7 @@ export default function Searcher({ search }) {
         placeholder="Search for tags, description..."
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
-        onBlur={() => setSuggestions([])}
+        onBlur={handleInputBlur}
         className="bg-gray-800 block w-full rounded-md border-0 py-1.5 pl-10 text-white ring-1 ring-inset ring-white placeholder:text-white focus:ring-2 focus:ring-inset focus:ring-white sm:text-sm sm:leading-6"
       />
       {suggestions.length > 0 && (
@@ -82,10 +101,7 @@ export default function Searcher({ search }) {
           {suggestions.map((suggestion, index) => (
             <li
               key={index}
-              onClick={() => {
-                setText(suggestion);
-                setSuggestions([]);
-              }}
+              onClick={() => handleSuggestionClick(suggestion)}
               className="cursor-pointer px-4 py-2 text-white hover:bg-gray-700"
             >
               {suggestion}
