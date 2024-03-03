@@ -19,9 +19,7 @@ async def add_album_to_zip(album: dict, zipf: ZipFile, path: str,
         logger.warning(f"Maximum album recursion depth reached at album: {album['name']}")
         return
 
-    logger.info(f"Adding album: {album['name']} to zip at path: {path}")
     path = os.path.join(path, album['name'])
-
     image_tasks = [get_image_document(image_id) for image_id in album['images']]
     sub_album_tasks = [get_album(sub_album_id) for sub_album_id in album['sons']]
     images_and_albums = await asyncio.gather(*image_tasks, *sub_album_tasks, return_exceptions=True)

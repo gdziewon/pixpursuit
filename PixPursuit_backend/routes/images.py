@@ -1,11 +1,11 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, File, UploadFile, Form
-from utils.image_similarity import find_similar_images
+from utils.image_similarity import ImageSimilarity
 from databases.database_tools import delete_images, relocate_to_album
 from authentication.auth import get_current_user
 from data_extraction.image_processing import process_and_save_images
 from schemas.images_schema import DeleteImagesData, RelocateImagesData, SimilarImagesData, ScrapeImagesData
-from utils.image_scraper import scrape_and_save_images
+from utils.image_scraper import ImageScraper
 from utils.function_utils import is_allowed_url
 from schemas.auth_schema import User
 from utils.exceptions import process_and_save_images_exception, delete_images_exception, relocate_images_exception, \
@@ -50,7 +50,8 @@ async def find_similar_images_api(data: SimilarImagesData):
     if data.limit < 1:
         raise invalid_limit_exception
 
-    similar_images = await find_similar_images(data.image_id, data.limit)
+    similarity = ImageSimilarity()
+    similar_images = await similarity.find_similar_images(data.image_id, data.limit)
     if not similar_images:
         raise find_similar_images_exception
 
@@ -62,7 +63,9 @@ async def scrape_images_api(data: ScrapeImagesData, current_user: User = Depends
     if not is_allowed_url(data.url):
         raise invalid_url_exception
 
-    inserted_ids, album_id = await scrape_and_save_images(data.url, current_user.username, data.album_id)
+    scraper = ImageScraper()
+    inserted_ids, album_id = await scraper.scrape_and_save_images(data.url, current_user.username, data.album_id)
+    await scraper.close()
     if not inserted_ids:
         raise scrape_and_save_images_exception
 

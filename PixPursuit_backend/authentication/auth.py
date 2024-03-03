@@ -26,7 +26,7 @@ async def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 async def authenticate_user(username: str, password: str) -> dict:
     user = await get_user(username)
-    if not user or not user['is_active']:
+    if not user or not user['verified']:
         raise invalid_credentials_exception
 
     try:

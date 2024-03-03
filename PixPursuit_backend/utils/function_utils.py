@@ -7,7 +7,7 @@ logger = setup_logging(__name__)
 
 def is_allowed_file(filename: str) -> bool:
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def is_allowed_url(url: str) -> bool:
