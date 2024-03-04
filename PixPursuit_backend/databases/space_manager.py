@@ -39,12 +39,12 @@ class SpaceManager:
         return await loop.run_in_executor(None, self.put_into_space, image_byte_arr, filename, content_type)
 
     async def save_image_to_space(self, image: Image) -> tuple[str, str, str]:
-        img_byte_arr = image_to_byte_array(image)
+        img_byte_arr = await image_to_byte_array(image)
         content_type = SpaceManager._get_content_type(image)
         extension = content_type.split('/')[-1]
         filename = SpaceManager._generate_filename(extension)
         image.thumbnail((300, 300))
-        thumbnail_byte_arr = image_to_byte_array(image)
+        thumbnail_byte_arr = await image_to_byte_array(image)
         image_url = await self.put_into_space_async(img_byte_arr, filename, content_type)
         thumbnail_url = await self.put_into_space_async(thumbnail_byte_arr, f'thumbnail{filename}', content_type)
         return image_url, thumbnail_url, filename
