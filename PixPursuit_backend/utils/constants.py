@@ -64,8 +64,8 @@ WEIGHTS = {
 FACE_DETECTION_THRESHOLD = [0.6, 0.7, 0.7]
 
 # Celery
-CELERY_BROKER_URL = 'redis://redis:6379/0'
-CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 UPDATE_AUTO_TAGS_SCHEDULE = '*/15'
 CLUSTER_FACES_SCHEDULE = '*/5'
 BEAT_SCHEDULE_FILE_PATH = os.path.join(get_generated_dir_path(), 'celerybeat-schedule')

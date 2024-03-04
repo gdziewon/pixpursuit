@@ -1,17 +1,15 @@
-import os
-import shutil
-from zipfile import ZipFile
 from fastapi import APIRouter, Depends, Form, UploadFile, File
 from typing import Optional
 from databases.database_tools import create_album, add_photos_to_album, delete_albums, rename_album
 from authentication.auth import get_current_user
 from schemas.albums_schema import CreateAlbumData, AddPhotosToAlbumData, DeleteAlbumsData, RenameAlbumData
-from utils.dirs import get_tmp_dir_path
-from utils.images_zip import process_folder
+from utils.images_zip import ZipProcessor
 from schemas.auth_schema import User
-from utils.exceptions import create_album_exception, add_images_to_album_exception, delete_album_exception, rename_album_exception
+from utils.exceptions import create_album_exception, add_images_to_album_exception, delete_album_exception,\
+    rename_album_exception, upload_zip_exception
 
 router = APIRouter()
+ZipProcessor = ZipProcessor()
 
 
 @router.post("/create-album")
@@ -47,21 +45,10 @@ async def delete_albums_api(data: DeleteAlbumsData, current_user: User = Depends
 
 
 @router.post("/upload-zip")
-async def upload_zip(file: UploadFile = File(...), parent_id: Optional[str] = Form(None), current_user: User = Depends(get_current_user)):
-    tmp_dir = get_tmp_dir_path()
-    temp_file = os.path.join(tmp_dir, file.filename)
-    with open(temp_file, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    with ZipFile(temp_file, 'r') as zip_ref:
-        zip_ref.extractall(tmp_dir)
-
-    os.remove(temp_file)
-
-    filename_without_extension, _ = os.path.splitext(file.filename)
-    album_id = await create_album(filename_without_extension, parent_id)
-    await process_folder(tmp_dir, current_user.username, album_id)
-    shutil.rmtree(tmp_dir)
+async def upload_zip_api(file: UploadFile = File(...), parent_id: Optional[str] = Form(None), current_user: User = Depends(get_current_user)):
+    album_id = await ZipProcessor.upload_zip(file, parent_id, current_user.username)
+    if not album_id:
+        raise upload_zip_exception
 
     return {"message": "Zip file processed successfully", 'album_id': str(album_id)}
 

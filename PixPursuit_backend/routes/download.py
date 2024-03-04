@@ -1,11 +1,12 @@
 import httpx
 from fastapi import APIRouter
-from utils.images_zip import generate_zip_file
+from utils.images_zip import ZipProcessor
 from fastapi.responses import StreamingResponse
 from schemas.download_schema import ZipData
 from utils.exceptions import no_image_and_album_ids_exception
 
 router = APIRouter()
+ZipProcessor = ZipProcessor()
 
 
 @router.get("/download-image/")
@@ -26,7 +27,7 @@ async def download_zip(data: ZipData):
     if not data.album_ids and not data.image_ids:
         raise no_image_and_album_ids_exception
 
-    zip_buffer = await generate_zip_file(data.album_ids, data.image_ids)
+    zip_buffer = await ZipProcessor.generate_zip_file(data.album_ids, data.image_ids)
 
     def iterfile():
         while True:

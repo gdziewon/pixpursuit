@@ -1,7 +1,7 @@
 from bson import ObjectId
 from config.database_config import connect_to_mongodb_async
 from config.logging_config import setup_logging
-from databases.image_to_space import delete_image_from_space
+from databases.space_manager import SpaceManager
 from pymongo import UpdateOne
 from tenacity import retry, stop_after_attempt, wait_fixed
 from utils.function_utils import to_object_id
@@ -11,6 +11,7 @@ from databases.face_operations import delete_faces_associated_with_images
 logger = setup_logging(__name__)
 
 images_collection, tags_collection, faces_collection, user_collection, album_collection = connect_to_mongodb_async()
+SpaceManager = SpaceManager()
 
 
 async def get_image_record(data: tuple[str, str, str, dict],
@@ -371,8 +372,8 @@ async def delete_images(image_ids: list[str]) -> bool:
 
             await decrement_tags_count(image_document['user_tags'])
 
-            await delete_image_from_space(image_document['image_url'])
-            await delete_image_from_space(image_document['thumbnail_url'])
+            await SpaceManager.delete_image_from_space(image_document['image_url'])
+            await SpaceManager.delete_image_from_space(image_document['thumbnail_url'])
             await images_collection.delete_one({"_id": image_id})
 
             logger.info(f"Successfully deleted image: {str(image_id)}")

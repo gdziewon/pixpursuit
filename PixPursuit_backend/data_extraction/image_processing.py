@@ -1,5 +1,5 @@
 from bson import ObjectId
-from databases.image_to_space import save_image_to_space
+from databases.space_manager import SpaceManager
 from data_extraction.metadata_extraction import get_exif_data
 from data_extraction.face_detection import get_face_embeddings
 from data_extraction.object_detection import detect_objects
@@ -11,15 +11,10 @@ from config.logging_config import setup_logging
 from databases.database_tools import save_image_to_database
 from tag_prediction.tag_prediction_tools import predict_and_update_tags
 import asyncio
+from utils.function_utils import image_to_byte_array
 
 logger = setup_logging(__name__)
-
-
-async def image_to_byte_array(image: Image) -> bytes or None:
-    img_byte_arr = BytesIO()
-    image.save(img_byte_arr, format=image.format)
-    img_byte_arr = img_byte_arr.getvalue()
-    return img_byte_arr
+SpaceManager = SpaceManager()
 
 
 async def read_image(file: UploadFile) -> Image or None:
@@ -33,7 +28,7 @@ async def process_image(file: UploadFile) -> tuple[str, str, str, dict] or None:
         image = await read_image(file)
 
         image_byte_arr = await image_to_byte_array(image)
-        image_url, thumbnail_url, filename = await save_image_to_space(image)
+        image_url, thumbnail_url, filename = await SpaceManager.save_image_to_space(image)
         exif_data = await get_exif_data(image)
 
         get_face_embeddings.delay(image_byte_arr, filename)

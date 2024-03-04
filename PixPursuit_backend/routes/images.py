@@ -13,6 +13,7 @@ from utils.exceptions import process_and_save_images_exception, delete_images_ex
     no_images_found_exception
 
 router = APIRouter()
+similarity = ImageSimilarity()
 
 
 @router.post("/process-images")
@@ -50,7 +51,6 @@ async def find_similar_images_api(data: SimilarImagesData):
     if data.limit < 1:
         raise invalid_limit_exception
 
-    similarity = ImageSimilarity()
     similar_images = await similarity.find_similar_images(data.image_id, data.limit)
     if not similar_images:
         raise find_similar_images_exception

@@ -28,6 +28,7 @@ create_album_exception = create_exception(StatusCode.INTERNAL_SERVER_ERROR.value
 add_images_to_album_exception = create_exception(StatusCode.INTERNAL_SERVER_ERROR.value, "Failed to add images to album")
 delete_album_exception = create_exception(StatusCode.INTERNAL_SERVER_ERROR.value, "Failed to delete albums")
 rename_album_exception = create_exception(StatusCode.INTERNAL_SERVER_ERROR.value, "Failed to rename album")
+upload_zip_exception = create_exception(StatusCode.INTERNAL_SERVER_ERROR.value, "Failed to upload zip file")
 
 # Content route exceptions
 add_tags_exception = create_exception(StatusCode.INTERNAL_SERVER_ERROR.value, "Failed to add tags")
