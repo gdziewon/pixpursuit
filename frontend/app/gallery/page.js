@@ -29,7 +29,7 @@ export default function Gallery({ searchParams }) {
     const [imageIds, setImageIds] = useState(null);
     const [downloadProgress, setDownloadProgress] = useState(false);
 
-    // Save sort option to local storage
+    // test_04.03
     if (typeof window !== 'undefined') {
         localStorage.setItem('sort', sort);
         localStorage.setItem('page', page.toString());

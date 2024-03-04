@@ -30,3 +30,5 @@ def make_celery(app_name=__name__) -> Celery:
 
 
 celery = make_celery()
+
+# test_04.03
