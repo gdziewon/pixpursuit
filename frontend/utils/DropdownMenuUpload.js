@@ -38,18 +38,22 @@ const DropdownMenuUpload = ({
             {isUploadOpen && (
                 <div className="absolute below-5 mt-1 w-100 rounded-md shadow-lg bg-gray-300 ring-1 ring-black ring-opacity-5 z-50">
                     <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                        <Link href={`/gallery/upload/galeria_pk`}>
-                            <div className="rounded border bg-gray-100 px-3 py-1 text-xs text-gray-800 flex items-center">
+                        <Link
+                            href={albumId === 'root' ? `/gallery/upload/galeria_pk` : `/gallery/upload/galeria_pk/${albumId}`}>
+                            <div
+                                className="rounded border bg-gray-100 px-3 py-1 text-xs text-gray-800 flex items-center">
                                 from GaleriaPK
                             </div>
                         </Link>
-                        <Link href={`/gallery/upload/zip/`}>
-                            <div className="rounded border bg-gray-100 px-3 py-1 text-xs text-gray-800 flex items-center">
+                        <Link href={albumId === 'root' ? `/gallery/upload/zip` : `/gallery/upload/zip/${albumId}`}>
+                            <div
+                                className="rounded border bg-gray-100 px-3 py-1 text-xs text-gray-800 flex items-center">
                                 ZIP file
                             </div>
                         </Link>
-                        <Link href={`/gallery/upload/${albumId}`}>
-                            <div className="rounded border bg-gray-100 px-3 py-1 text-xs text-gray-800 flex items-center">
+                        <Link href={albumId === 'root' ? `/gallery/upload` : `/gallery/upload/${albumId}`}>
+                            <div
+                                className="rounded border bg-gray-100 px-3 py-1 text-xs text-gray-800 flex items-center">
                                 Images
                             </div>
                         </Link>

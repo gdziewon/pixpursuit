@@ -56,7 +56,7 @@ def load_model_state(file_path: str = MODEL_FILE_PATH, input_size: int = 1000,
         return None
 
 
-def update_model_tags(tag_vector: list[int] = None) -> None:
+def update_model_tags(tag_vector: list[int] = None) -> TagPredictor or None:
     try:
         tag_predictor = load_model_state()
         if not tag_vector:
@@ -68,8 +68,10 @@ def update_model_tags(tag_vector: list[int] = None) -> None:
             tag_predictor.update_output_layer(num_tags)
             save_model_state(tag_predictor)
             logger.info(f"Model output layer updated to match the number of unique tags: {num_tags}")
+            return tag_predictor
     except Exception as e:
         logger.error(f"Error updating model tags: {e}", exc_info=True)
+        return None
 
 
 def tags_to_vector(tags: list[str], feedback: dict) -> list[int]:
@@ -137,13 +139,11 @@ def predictions_to_tag_names(predictions: list[int]) -> list[str]:
 
 @shared_task(name='tag_prediction_tools.train_model.main', queue='main_queue')
 def train_model(features: list[float], tag_vector: list[int]) -> None:
-    tag_predictor = load_model_state()
-    if not features or not tag_predictor:
-        logger.error("Training aborted due to missing data or model")
-        return
-
     logger.info("Model training started")
-    update_model_tags(tag_vector)
+    tag_predictor = update_model_tags(tag_vector)
+    if not tag_predictor:
+        logger.error("Model not found. Training aborted")
+        return
 
     features_tensor = torch.tensor(features, dtype=torch.float32)
     if features_tensor.ndim == 1:
@@ -170,10 +170,11 @@ def train_model(features: list[float], tag_vector: list[int]) -> None:
 
 
 @shared_task(name='tag_prediction_tools.predict_and_update_tags.main', queue='main_queue')
-def predict_and_update_tags(image_ids: list[str]) -> None:
-    tag_predictor = load_model_state()
+def predict_and_update_tags(image_ids: list[str], tag_predictor: TagPredictor = None) -> None:
     if not tag_predictor:
-        logger.error("Model loading failed, prediction aborted.")
+        tag_predictor = load_model_state()
+        if not tag_predictor:
+            logger.error("Prediction aborted due to missing model")
         return
 
     for image_id in image_ids:
@@ -206,7 +207,7 @@ def predict_and_update_tags(image_ids: list[str]) -> None:
 @shared_task(name='tag_prediction_tools.update_all_auto_tags.beat', queue='beat_queue')
 def update_all_auto_tags() -> None:
     logger.info("Updating all auto tags")
-    update_model_tags()
+    tag_predictor = update_model_tags()
     page_size = 100
     last_id = None
     while True:
@@ -215,7 +216,7 @@ def update_all_auto_tags() -> None:
             if not image_ids:
                 break
 
-            predict_and_update_tags.delay(image_ids)
+            predict_and_update_tags.delay(image_ids, tag_predictor)
 
             last_id = image_ids[-1]
         except Exception as e:
