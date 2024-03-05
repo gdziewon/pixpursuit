@@ -8,6 +8,7 @@ import Image from "next/image";
 import Loading from '@/app/loading';
 import SuccessWindow from '@/utils/SuccessWindow';
 import ErrorWindow from '@/utils/ErrorWindow';
+import { signIn } from 'next-auth/react';
 
 const UploadZipForm = ({params}) => {
     const { data: session } = useSession();
@@ -51,8 +52,13 @@ const UploadZipForm = ({params}) => {
             setSuccessMessage('ZIP uploaded successfully');
             console.log(response.data);
         } catch (error) {
-            console.error(error);
-            setErrorMessage(error.message);
+            if (error.code === 'ERR_NETWORK') {
+                setErrorMessage("ZIP size too large");
+            } else if (error.response && error.response.status === 401) {
+                signIn();
+            } else {
+                setErrorMessage("Upload failed");
+            }
         } finally {
             setIsLoading(false);
         }

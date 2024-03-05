@@ -69,11 +69,15 @@ const UploadForm = () => {
             });
             if (response.status === 200) {
                 setSuccessMessage(`${images.length} image${images.length > 1 ? 's' : ''} uploaded`);
-            } else {
+            } else if(response.status === 413) {
+                setErrorMessage("Images size too large");
+            }else{
                 setErrorMessage("Upload failed");
             }
         } catch (error) {
-            if (error.response && error.response.status === 401) {
+            if (error.code === 'ERR_NETWORK') {
+                setErrorMessage("Images size too large");
+            } else if (error.response && error.response.status === 401) {
                 signIn();
             } else {
                 setErrorMessage("Upload failed");
