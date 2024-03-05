@@ -273,7 +273,8 @@ export default function SubAlbumPage({ params}) {
                           handleTagInputChange={handleTagInputChange} downloadProgress={downloadProgress}
                           isConfirmDialogOpen={isConfirmDialogOpen} setIsConfirmDialogOpen={setIsConfirmDialogOpen}
                           handleDelete={handleDelete} isTagModalOpen={isTagModalOpen}
-                          setIsTagModalOpen={setIsTagModalOpen}/>
+                          setIsTagModalOpen={setIsTagModalOpen}
+                          handleUploadClick={handleUploadClick} isUploadOpen={isUploadOpen}/>
             <h2 style={{fontSize: '2em', fontWeight: 'bold', marginTop: '-40px'}}> {albumData.name}:</h2>
             No albums or images found.</div>;
     }
