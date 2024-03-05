@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
 import { useSession } from "next-auth/react";
@@ -43,7 +43,7 @@ const AddAlbumForm = ({ params }) => {
 
             if (response.status === 200) {
                 window.location.href = `/albums/${parentAlbumId !== 'root' ? parentAlbumId : ""}`;
-                setSuccessMessage("Album created successfully");
+                localStorage.setItem('successMessage', "Album added successfully");
             } else {
                 setErrorMessage("Failed to create album");
             }
@@ -52,6 +52,14 @@ const AddAlbumForm = ({ params }) => {
             setErrorMessage("Failed to create album");
         }
     };
+
+    useEffect(() => {
+        const successMessage = localStorage.getItem('successMessage');
+        if (successMessage) {
+            setSuccessMessage(successMessage);
+            localStorage.removeItem('successMessage');
+        }
+    }, []);
 
     return (
         <section className="add-album-form">

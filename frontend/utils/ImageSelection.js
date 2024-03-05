@@ -70,7 +70,8 @@ const ImageSelection = ({ item, isAlbum }) => {
             try {
                 const renameResponse = await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/rename-album`, { album_id: albumId, new_name: albumName }, { headers });
                 console.log(renameResponse.data);
-                setSuccessMessage("Album renamed successfully");
+                localStorage.setItem('successMessage', "Album renamed successfully");
+                window.location.reload();
             } catch (error) {
                 console.error("Failed to rename album: ", error);
                 setErrorMessage("Failed to rename album"); // set the error state
@@ -81,6 +82,16 @@ const ImageSelection = ({ item, isAlbum }) => {
 
 
     };
+
+    useEffect(() => {
+        // Retrieve the success message from the local storage
+        const successMessage = localStorage.getItem('successMessage');
+        if (successMessage) {
+            setSuccessMessage(successMessage);
+            // Remove the success message from the local storage
+            localStorage.removeItem('successMessage');
+        }
+    }, []);
 
     const handleNameAlbumChange = (e) => {
         setAlbumName(e.target.value);
