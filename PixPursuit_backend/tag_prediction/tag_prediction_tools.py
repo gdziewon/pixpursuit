@@ -56,9 +56,9 @@ def load_model_state(file_path: str = MODEL_FILE_PATH, input_size: int = 1000,
         return None
 
 
-def update_model_tags(tag_vector: list[int] = None) -> TagPredictor or None:
+def update_model_tags(tag_vector: list[int] = None) -> TagPredictor:
+    tag_predictor = load_model_state()
     try:
-        tag_predictor = load_model_state()
         if not tag_vector:
             unique_tags = get_unique_tags_cached()
             num_tags = len(unique_tags)
@@ -66,12 +66,11 @@ def update_model_tags(tag_vector: list[int] = None) -> TagPredictor or None:
             num_tags = len(tag_vector)
         if num_tags != tag_predictor.fc3.out_features:
             tag_predictor.update_output_layer(num_tags)
-            save_model_state(tag_predictor)
-            logger.info(f"Model output layer updated to match the number of unique tags: {num_tags}")
-            return tag_predictor
     except Exception as e:
         logger.error(f"Error updating model tags: {e}", exc_info=True)
-        return None
+
+    save_model_state(tag_predictor)
+    return tag_predictor
 
 
 def tags_to_vector(tags: list[str], feedback: dict) -> list[int]:
@@ -161,22 +160,15 @@ def train_model(features: list[float], tag_vector: list[int]) -> None:
         loss = criterion(predicted_tags, target)
         loss.backward()
         optimizer.step()
+        save_model_state(tag_predictor)
+        logger.info("Model trained and state saved")
     except Exception as e:
         logger.error(f"Error training model: {e}", exc_info=True)
         return
 
-    save_model_state(tag_predictor)
-    logger.info("Model trained and state saved")
-
 
 @shared_task(name='tag_prediction_tools.predict_and_update_tags.main', queue='main_queue')
-def predict_and_update_tags(image_ids: list[str], tag_predictor: TagPredictor = None) -> None:
-    if not tag_predictor:
-        tag_predictor = load_model_state()
-        if not tag_predictor:
-            logger.error("Prediction aborted due to missing model")
-        return
-
+def predict_and_update_tags(image_ids: list[str]) -> None:
     for image_id in image_ids:
         try:
             image_document = get_image_document_sync(image_id)
@@ -192,6 +184,7 @@ def predict_and_update_tags(image_ids: list[str], tag_predictor: TagPredictor = 
             if any(tag_vector):
                 train_model.delay(features, tag_vector)
 
+            tag_predictor = update_model_tags(tag_vector)
             features_tensor = torch.tensor(features, dtype=torch.float32)
             if features_tensor.ndim == 1:
                 features_tensor = features_tensor.unsqueeze(0)
@@ -199,6 +192,7 @@ def predict_and_update_tags(image_ids: list[str], tag_predictor: TagPredictor = 
             predicted_indices = tag_predictor.predict_tags(features_tensor)
             predicted_tags = predictions_to_tag_names(predicted_indices)
             add_auto_tags(image_id, predicted_tags)
+            save_model_state(tag_predictor)
         except Exception as e:
             logger.error(f"Error predicting and updating tags for image: {image_id} - {e}", exc_info=True)
             continue
@@ -207,7 +201,7 @@ def predict_and_update_tags(image_ids: list[str], tag_predictor: TagPredictor = 
 @shared_task(name='tag_prediction_tools.update_all_auto_tags.beat', queue='beat_queue')
 def update_all_auto_tags() -> None:
     logger.info("Updating all auto tags")
-    tag_predictor = update_model_tags()
+    update_unique_tags_cache()
     page_size = 100
     last_id = None
     while True:
@@ -216,7 +210,7 @@ def update_all_auto_tags() -> None:
             if not image_ids:
                 break
 
-            predict_and_update_tags.delay(image_ids, tag_predictor)
+            predict_and_update_tags.delay(image_ids)
 
             last_id = image_ids[-1]
         except Exception as e:
