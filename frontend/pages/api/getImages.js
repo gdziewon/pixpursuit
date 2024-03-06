@@ -47,6 +47,7 @@ export default async function handler(req, res) {
 
 
         const images = await db.collection("images").aggregate(pipeline).toArray();
+
         res.status(200).json(images);
 
     } catch (error) {
