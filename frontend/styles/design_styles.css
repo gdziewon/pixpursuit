@@ -169,18 +169,30 @@
 
 .image-0 {
     animation: shrink0 10s linear infinite;
+    position: absolute;
+    border-radius: 10px;
+    z-index: 3;
 }
 
 .image-1 {
     animation: shrink1 10s linear infinite;
+    position: absolute;
+    border-radius: 10px;
+    z-index: 4;
 }
 
 .image-3 {
     animation: grow3 10s linear infinite;
+    position: absolute;
+    border-radius: 10px;
+    z-index: 4;
 }
 
 .image-4 {
     animation: grow4 10s linear infinite;
+    position: absolute;
+    border-radius: 10px;
+    z-index: 3;
 }
 
 @keyframes middle {
@@ -200,4 +212,50 @@
 
 .image-2 {
     animation: middle 10s linear infinite;
+    position: absolute;
+    border-radius: 10px;
+    z-index: 5;
 }
+
+.image-container {
+    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: -40px;
+    height: 400px;
+}
+
+.overlap-image {
+    left: 0;
+}
+
+.circle-container {
+    display: flex;
+    justify-content: space-between;
+    padding: 1px 300px;
+}
+
+.circle {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: dimgrey;
+}
+.circle.active {
+    background-color: ghostwhite;
+}
+
+.arrow-icon {
+    margin: 0 60px;
+    color: dimgrey;
+    scale: 1.2;
+    font-weight: bold;
+    position: relative;
+    top:-3px;
+}
+
+
+

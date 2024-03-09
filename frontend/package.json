@@ -39,6 +39,7 @@
     "next-auth": "^4.24.5",
     "react": "^18",
     "react-dom": "^18",
+    "react-icons": "^5.0.1",
     "tls": "^0.0.1",
     "use-debounce": "^10.0.0"
   },

@@ -22,7 +22,7 @@ const ConfirmDialog = ({ isOpen, onConfirm, onCancel }) => {
                         className="inline-block align-bottom bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                         <div className="bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                             <div className="sm:flex sm:items-start">
-                                <div className="mt-3 text-center sm:mt-0 sm:text-center">
+                                <div className="mt-3 text-center sm:mt-0 sm:text-center" style={{marginTop: '10px'}}>
                                     <h3 className="text-lg text-white leading-6 font-medium  text-center"
                                         id="modal-title">
                                         Are you sure you want to delete the selected items?
@@ -30,7 +30,7 @@ const ConfirmDialog = ({ isOpen, onConfirm, onCancel }) => {
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-gray-800 px-4 py-3 sm:px-6 sm:flex button-container">
+                        <div className="bg-gray-800 px-4 py-3 sm:px-6 sm:flex button-container"  style={{marginBottom: '10px', marginTop: '15px'}}>
                             <button type="button"
                                     className="mt-3 w-auto inline-flex rounded-full shadow-sm px-4 py-1.5 bg-white text-sm font-medium text-gray-800 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:text-sm mr-2 ml-4"
                                     onClick={onCancel}>
