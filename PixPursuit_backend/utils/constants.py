@@ -62,6 +62,7 @@ WEIGHTS = {
 
 # Face Detection
 FACE_DETECTION_THRESHOLD = [0.6, 0.7, 0.7]
+FACE_SIZE_THRESHOLD = 4200
 
 # Celery
 CELERY_BROKER_URL = 'redis://redis:6379/0'

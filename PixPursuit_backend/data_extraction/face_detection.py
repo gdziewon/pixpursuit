@@ -6,7 +6,7 @@ from io import BytesIO
 from PIL import Image
 from utils.constants import FACE_DETECTION_THRESHOLD
 from config.logging_config import setup_logging
-
+from utils.constants import FACE_SIZE_THRESHOLD
 logger = setup_logging(__name__)
 
 device, mtcnn, resnet = activate_face_models(thresholds=FACE_DETECTION_THRESHOLD)
@@ -25,8 +25,15 @@ def get_face_embeddings(image_data: bytes, filename: str) -> None:
         embeddings = resnet(faces.to(device))
         embeddings = embeddings.detach().cpu().numpy()
 
-        boxes_list = [box.tolist() for box in boxes] if boxes is not None else []
-        embeddings_list = [emb.tolist() for emb in embeddings] if embeddings is not None else []
+        boxes_list = []
+        embeddings_list = []
+        for i in range(len(boxes)):
+            box = boxes[i]
+            width = box[2] - box[0]
+            height = box[3] - box[1]
+            if width * height > FACE_SIZE_THRESHOLD:
+                boxes_list.append(box.tolist())
+                embeddings_list.append(embeddings[i].tolist())
 
         user_faces_list = ["anon-1" for _ in range(len(embeddings_list))]
 
