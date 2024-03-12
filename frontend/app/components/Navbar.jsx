@@ -9,7 +9,7 @@ import ErrorWindow from '@/utils/ErrorWindow';
 
 config.autoAddCss = false;
 
-export default function Navbar() {
+function Navbar() {
     const { data: session } = useSession();
     const [errorMessage, setErrorMessage] = useState(null);
 
@@ -55,7 +55,7 @@ export default function Navbar() {
                         </Link>
                     </li>
                     <li>
-                        <Link href="/gallery">
+                        <Link href="/gallery?page=1">
                             <div className="text-white text-lg hover:text-gray-300 px-4">
                                 Gallery
                             </div>
@@ -80,7 +80,7 @@ export default function Navbar() {
                                     <span className="text-gray-500 mx-2">or</span>
                                 </div>
                                 <li>
-                                <Link href="/register">
+                                    <Link href="/register">
                                         <div className="text-white text-lg hover:text-gray-300 px-4">
                                             Register
                                         </div>
@@ -94,3 +94,5 @@ export default function Navbar() {
         </nav>
     );
 }
+
+export default Navbar;

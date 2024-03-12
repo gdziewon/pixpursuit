@@ -30,7 +30,7 @@ export default function Searcher({ search }) {
       if (!e.target.value.trim()) {
         router.push(`/gallery`);
       } else {
-        router.push(`/gallery?search=${e.target.value}`);
+        router.push(`/gallery?page=1&search=${e.target.value}`);
       }
     }
   };
@@ -64,7 +64,7 @@ export default function Searcher({ search }) {
   const handleSuggestionClick = (suggestion) => {
     setText(suggestion);
     setSuggestions([]);
-    router.push(`/gallery?search=${suggestion}`);
+    router.push(`/gallery?page=1&search=${suggestion}`);
   };
 
   // Handle input blur and set a delay to clear suggestions. This is to allow the user to click on a suggestion.
