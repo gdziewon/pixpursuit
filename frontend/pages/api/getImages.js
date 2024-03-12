@@ -10,10 +10,10 @@ export default async function handler(req, res) {
         const pipeline = [
             {
                 $sort: {
-                    ...(sort === "desc" ? { "metadata.DateTime": -1 } :
+                    ...(sort === "desc" ? { "metadata.DateTime": -1, "_id": -1 } :
                         sort === "mostPopular" ? { views: -1 } :
                             sort === "leastPopular" ? { views: 1 } :
-                                sort === "asc" ? { "metadata.DateTime": 1 } : {}),
+                                sort === "asc" ? { "metadata.DateTime": 1, "_id": 1 } : {}),
                 },
             },
             { $skip: skip },
