@@ -7,61 +7,44 @@ export default async function handler(req, res) {
 
   try {
     const { query } = req.query;
-
     const db = await connectToDatabase();
 
+    const regexQuery = { $regex: `.*${query}.*`, $options: "i" };
+    const arrayFieldsToSearch = [
+      "auto_tags",
+      "user_tags",
+      "user_faces",
+      "backlog_faces",
+      "detected_objects",
+    ];
+    const simpleFieldsToSearch = ["description", "added_by", "album_name"];
+
+    const arrayMatchConditions = arrayFieldsToSearch.map((field) => ({
+      [field]: { $elemMatch: regexQuery },
+    }));
+    const simpleMatchConditions = simpleFieldsToSearch.map((field) => ({
+      [field]: regexQuery,
+    }));
+
     const pipeline = [
-      {
-        $match: {
-          $or: [
-            { description: { $regex: `.*${query}.*`, $options: "i" } },
-            { added_by: { $regex: `.*${query}.*`, $options: "i" } },
-            {
-              auto_tags: {
-                $elemMatch: { $regex: `.*${query}.*`, $options: "i" },
-              },
-            },
-            {
-              user_tags: {
-                $elemMatch: { $regex: `.*${query}.*`, $options: "i" },
-              },
-            },
-            {
-              user_faces: {
-                $elemMatch: { $regex: `.*${query}.*`, $options: "i" },
-              },
-            },
-          ],
-        },
-      },
+      { $match: { $or: [...arrayMatchConditions, ...simpleMatchConditions] } },
       {
         $project: {
           suggestions: {
             $concatArrays: [
-              ["$description", "$added_by"],
+              ["$description", "$added_by", "$album_name"],
               "$auto_tags",
               "$user_tags",
               "$user_faces",
+              "$backlog_faces",
+              "$detected_objects",
             ],
           },
         },
       },
-      {
-        $unwind: "$suggestions",
-      },
-      {
-        $match: {
-          suggestions: { $regex: `.*${query}.*`, $options: "i" },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          suggestions: {
-            $addToSet: "$suggestions",
-          },
-        },
-      },
+      { $unwind: "$suggestions" },
+      { $match: { suggestions: regexQuery } },
+      { $group: { _id: null, suggestions: { $addToSet: "$suggestions" } } },
       { $project: { suggestions: { $slice: ["$suggestions", 10] } } },
     ];
 

@@ -290,13 +290,13 @@ export default function Gallery({ searchParams }) {
           </div>
         </div>
         <Suspense fallback={<Loading />}>
-          <div className="grid grid-cols-4 gap-8">
+          <div className="grid grid-cols-4 gap-6">
             {Array.isArray(images) &&
               images.map((image, index) => (
                 <Suspense fallback={<Loading />} key={index}>
                   <Link
                     href={`/gallery/${image._id.toString()}`}
-                    className="relative rounded-md overflow-hidden group"
+                    className="relative overflow-hidden group"
                   >
                     <Image
                       src={image.thumbnail_url}
