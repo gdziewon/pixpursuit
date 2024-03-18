@@ -5,6 +5,7 @@ import { HeartIcon } from "@heroicons/react/24/solid";
 import '@/styles/design_styles.css';
 import SuccessWindow from '@/utils/SuccessWindow';
 import ErrorWindow from '@/utils/ErrorWindow';
+import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 
 export function BoxOverlay({ image, boxes, originalSize, session, showHeartOverlay }) {
     const displayWidth = 800;  // Adjust as needed
@@ -19,6 +20,8 @@ export function BoxOverlay({ image, boxes, originalSize, session, showHeartOverl
     const [scaleX, setScaleX] = useState(1);
     const [errorMessage, setErrorMessage] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
+    const [isPlusClicked, setIsPlusClicked] = useState(false);
+    const [enlargedImage, setEnlargedImage] = useState(null);
 
     useEffect(() => {
         const updateScale = () => {
@@ -101,7 +104,7 @@ export function BoxOverlay({ image, boxes, originalSize, session, showHeartOverl
         }
         event.preventDefault();
     };
-    
+
 
     return (
         <div ref={overlayRef} style={{ position: 'relative' }}
@@ -117,6 +120,18 @@ export function BoxOverlay({ image, boxes, originalSize, session, showHeartOverl
                 quality={100}
                 className="rounded-lg"
             />
+            {isMouseOver && (
+                <div
+                    className="absolute top-0 right-0 h-8 w-8 text-white text-3xl font-medium cursor-pointer"
+                    onClick={() => {
+                        setIsPlusClicked(!isPlusClicked);
+                        setEnlargedImage(image.image_url);
+                    }}
+                    style={{ marginTop: '5px' }}
+                >
+                    <MagnifyingGlassIcon className="h-5 w-5 text-white" aria-hidden="true" />
+                </div>
+            )}
             {showHeartOverlay && (
                 <div style={{
                     position: 'absolute',
@@ -189,6 +204,31 @@ export function BoxOverlay({ image, boxes, originalSize, session, showHeartOverl
                         )}
                     </div>
                 ))}
+            {isPlusClicked && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        zIndex: 9999
+                    }}
+                    onClick={() => setIsPlusClicked(false)}
+                >
+                    <Image
+                        src={enlargedImage}
+                        alt={image.description}
+                        width={displayWidth * 1.3}
+                        height={displayHeight * 1.3}
+                        quality={100}
+                    />
+                </div>
+            )}
         </div>
     );
 };
