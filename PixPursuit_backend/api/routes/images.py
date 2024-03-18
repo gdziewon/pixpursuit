@@ -1,13 +1,13 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, File, UploadFile, Form
-from utils.image_similarity import ImageSimilarity
-from databases.database_tools import delete_images, relocate_to_album
-from authentication.auth import get_current_user
-from data_extraction.image_processing import process_and_save_images
-from schemas.images_schema import DeleteImagesData, RelocateImagesData, SimilarImagesData, ScrapeImagesData
-from utils.image_scraper import ImageScraper
+from services.image_similarity import ImageSimilarity
+from data.databases.database_tools import delete_images, relocate_to_album
+from services.authentication.auth import get_current_user
+from data.data_extraction.image_processing import process_and_save_images
+from api.schemas.images_schema import DeleteImagesData, RelocateImagesData, SimilarImagesData, ScrapeImagesData
+from services.image_scraper import ImageScraper
 from utils.function_utils import is_allowed_url
-from schemas.auth_schema import User
+from api.schemas.auth_schema import User
 from utils.exceptions import process_and_save_images_exception, delete_images_exception, relocate_images_exception, \
     find_similar_images_exception, invalid_limit_exception, scrape_and_save_images_exception, invalid_url_exception, \
     no_images_found_exception
@@ -21,11 +21,11 @@ async def process_images_api(images: List[UploadFile] = File(...), album_id: Opt
     if not images:
         raise no_images_found_exception
 
-    inserted_ids = await process_and_save_images(images, current_user.username, album_id)
-    if not inserted_ids:
+    success = await process_and_save_images(images, current_user.username, album_id)
+    if not success:
         raise process_and_save_images_exception
 
-    return {"message": "Images saved successfully", "inserted_ids": inserted_ids}
+    return {"message": "Images saved successfully"}
 
 
 @router.delete("/delete-images")
@@ -64,9 +64,9 @@ async def scrape_images_api(data: ScrapeImagesData, current_user: User = Depends
         raise invalid_url_exception
 
     scraper = ImageScraper()
-    inserted_ids, album_id = await scraper.scrape_and_save_images(data.url, current_user.username, data.album_id)
+    album_id = await scraper.scrape_and_save_images(data.url, current_user.username, data.album_id)
     await scraper.close()
-    if not inserted_ids:
+    if not album_id:
         raise scrape_and_save_images_exception
 
-    return {"message": "Images scraped successfully", "inserted_ids": inserted_ids, "album_id": str(album_id)}
+    return {"message": "Images scraped successfully", "album_id": str(album_id)}

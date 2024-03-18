@@ -1,13 +1,12 @@
 from fastapi import FastAPI
 from config.celery_config import celery
 from fastapi.middleware.cors import CORSMiddleware
-from routes import albums, content, download, images, auth
-from routes.middleware import LoggingMiddleware
+from api.routes import auth, albums, content, download, images
+from api.middleware import LoggingMiddleware
 
 app = FastAPI()
 
-celery.autodiscover_tasks(['tag_prediction.tag_prediction_tools', 'databases.face_operations',
-                           'data_extraction.object_detection', 'data_extraction.face_detection', 'data_extraction.feature_extraction'])
+celery.autodiscover_tasks(['services', 'data'])
 
 app.add_middleware(
     CORSMiddleware,

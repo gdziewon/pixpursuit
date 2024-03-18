@@ -2,11 +2,11 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
-from databases.database_tools import get_user
+from data.databases.database_tools import get_user
 from argon2 import PasswordHasher
 import argon2.exceptions
 from config.logging_config import setup_logging
-from schemas.auth_schema import TokenData, User
+from api.schemas.auth_schema import TokenData, User
 from utils.constants import SECRET_KEY_AUTH, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
 from utils.exceptions import credentials_exception, invalid_credentials_exception, create_token_exception
 

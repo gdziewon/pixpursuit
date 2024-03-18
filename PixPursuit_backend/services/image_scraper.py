@@ -1,18 +1,17 @@
-from io import BytesIO
 from bs4 import BeautifulSoup
 from config.logging_config import setup_logging
 import os
-from utils.dirs import get_tmp_dir_path
+from utils.dirs import get_tmp_dir_path, cleanup_dir
 from urllib.parse import urlparse, parse_qs, urljoin
-from databases.database_tools import create_album
+from data.databases.database_tools import create_album
 from fastapi import UploadFile
-from data_extraction.image_processing import process_and_save_images
-import shutil
+from data.data_extraction.image_processing import process_and_save_images
+from utils.function_utils import convert_to_upload_file
 import httpx
 import asyncio
 from utils.constants import BASE_URL
 from utils.exceptions import get_images_exception, get_soup_exception, scrape_images_exception, \
-    prepare_image_files_exception, clean_up_exception
+    clean_up_exception
 
 logger = setup_logging(__name__)
 
@@ -32,16 +31,15 @@ class ImageScraper:
             save_dir = await self._scrape_images(soup)
             album_name = await ImageScraper._get_scraped_album_name(soup)
             album_id = await create_album(album_name, album_id)
-            image_files = await ImageScraper._prepare_image_files(save_dir)
-            inserted_ids = await process_and_save_images(image_files, user, album_id)
-            return inserted_ids, album_id
+            image_files = await convert_to_upload_file(save_dir)
+            await process_and_save_images(image_files, user, album_id)
+            return album_id
         except Exception as e:
             logger.error(f"Failed to scrape and save images: {e}")
             raise scrape_images_exception
         finally:
             await ImageScraper._cleanup_files(image_files)
-            if save_dir:
-                shutil.rmtree(save_dir, ignore_errors=True)
+            cleanup_dir(save_dir)
 
     async def _get_soup(self, url: str) -> BeautifulSoup:
         try:
@@ -116,23 +114,6 @@ class ImageScraper:
         except Exception as e:
             logger.error(f"Failed to get album name: {e}")
             return "Scraped Album"
-
-    @staticmethod
-    async def _prepare_image_files(save_dir: str) -> list[UploadFile]:
-        try:
-            image_filenames = os.listdir(save_dir)
-            image_files = []
-            for filename in image_filenames:
-                image_path = os.path.join(save_dir, filename)
-                with open(image_path, 'rb') as file:
-                    contents = file.read()
-                upload_file = UploadFile(filename=filename, file=BytesIO(contents))
-                image_files.append(upload_file)
-
-            return image_files
-        except Exception as e:
-            logger.error(f"Failed to prepare image files: {e}")
-            raise prepare_image_files_exception
 
     @staticmethod
     async def _cleanup_files(image_files: list[UploadFile]) -> None:

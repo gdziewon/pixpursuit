@@ -1,12 +1,12 @@
 from bson import ObjectId
 from config.database_config import connect_to_mongodb_async
 from config.logging_config import setup_logging
-from databases.space_manager import SpaceManager
+from data.databases.space_manager import SpaceManager
 from pymongo import UpdateOne
 from tenacity import retry, stop_after_attempt, wait_fixed
 from utils.function_utils import to_object_id
-from databases.face_operations import update_names
-from databases.face_operations import delete_faces_associated_with_images
+from data.databases.face_operations import update_names
+from data.databases.face_operations import delete_faces_associated_with_images
 
 logger = setup_logging(__name__)
 
@@ -27,7 +27,6 @@ async def get_image_record(data: tuple[str, str, str, dict],
             'filename': filename,
             'embeddings': [],
             'embeddings_box': [],
-            'detected_objects': {},
             'metadata': exif_data,
             'features': [],
             'user_tags': [],

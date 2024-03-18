@@ -3,10 +3,10 @@ import torch.optim as optim
 from config.logging_config import setup_logging
 import os
 from celery import shared_task
-from tag_prediction.tag_prediction_model import TagPredictor
-from databases.database_tools import get_image_document
-from databases.celery_database_tools import get_image_document_sync, get_unique_tags, add_auto_tags, get_image_ids_paginated
-from databases.database_tools import get_album
+from services.tag_prediction.tag_prediction_model import TagPredictor
+from data.databases.database_tools import get_image_document
+from data.databases.celery_database_tools import get_image_document_sync, get_unique_tags, add_auto_tags, get_image_ids_paginated
+from data.databases.database_tools import get_album
 from utils.constants import POSITIVE_THRESHOLD, LEARNING_RATE, MODEL_FILE_PATH
 
 logger = setup_logging(__name__)
@@ -42,7 +42,8 @@ def load_model_state(file_path: str = MODEL_FILE_PATH, input_size: int = 1000,
 
     if not os.path.exists(file_path):
         logger.warning(f"Model file {file_path} not found. Initializing a new model.")
-        return TagPredictor(input_size, hidden_size, num_tags=1)
+        tag_predictor = TagPredictor(input_size, hidden_size, len(get_unique_tags_cached()))
+        return tag_predictor
 
     try:
         checkpoint = torch.load(file_path)
@@ -144,6 +145,10 @@ def train_model(features: list[float], tag_vector: list[int]) -> None:
         logger.error("Model not found. Training aborted")
         return
 
+    if not features or not tag_vector:
+        logger.error("Features or tag vector not found. Training aborted")
+        return
+
     features_tensor = torch.tensor(features, dtype=torch.float32)
     if features_tensor.ndim == 1:
         features_tensor = features_tensor.unsqueeze(0)
@@ -160,11 +165,11 @@ def train_model(features: list[float], tag_vector: list[int]) -> None:
         loss = criterion(predicted_tags, target)
         loss.backward()
         optimizer.step()
-        save_model_state(tag_predictor)
         logger.info("Model trained and state saved")
     except Exception as e:
         logger.error(f"Error training model: {e}", exc_info=True)
-        return
+
+    save_model_state(tag_predictor)
 
 
 @shared_task(name='tag_prediction_tools.predict_and_update_tags.main', queue='main_queue')
@@ -176,15 +181,12 @@ def predict_and_update_tags(image_ids: list[str]) -> None:
                 logger.error(f"Couldn't retrieve image document: {image_id}")
                 continue
 
-            features = image_document['features']
-            tag_vector = tags_to_vector(image_document['user_tags'], image_document.get('feedback', {}))
-            if not features:
+            tag_predictor = update_model_tags()
+            if not tag_predictor:
+                logger.error(f"Model not found. Prediction aborted for image: {image_id}")
                 continue
 
-            if any(tag_vector):
-                train_model.delay(features, tag_vector)
-
-            tag_predictor = update_model_tags(tag_vector)
+            features = image_document['features']
             features_tensor = torch.tensor(features, dtype=torch.float32)
             if features_tensor.ndim == 1:
                 features_tensor = features_tensor.unsqueeze(0)

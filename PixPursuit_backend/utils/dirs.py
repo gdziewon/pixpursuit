@@ -1,4 +1,5 @@
 import os
+import shutil
 import uuid
 
 
@@ -18,3 +19,8 @@ def get_tmp_dir_path() -> str:
         os.makedirs(tmp_dir)
 
     return tmp_dir
+
+
+def cleanup_dir(tmp_dir: str) -> None:
+    if os.path.exists(tmp_dir):
+        shutil.rmtree(tmp_dir, ignore_errors=True)

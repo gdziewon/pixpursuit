@@ -1,12 +1,12 @@
 from fastapi import Depends, APIRouter, BackgroundTasks
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from schemas.auth_schema import Token, UserRegistration
-from authentication.auth import authenticate_user, get_tokens
-from authentication.registration import hash_password, send_confirmation_email
-from databases.database_tools import create_user, mark_email_as_verified
+from api.schemas.auth_schema import Token, UserRegistration
+from services.authentication.auth import authenticate_user, get_tokens
+from services.authentication.registration import hash_password, send_confirmation_email
+from data.databases.database_tools import create_user, mark_email_as_verified
 from jose import jwt
 from utils.constants import SECRET_KEY_AUTH, ALGORITHM
-from authentication.auth import get_current_user_refresh
+from services.authentication.auth import get_current_user_refresh
 from utils.exceptions import invalid_token_exception, create_user_exception, verify_email_exception
 
 router = APIRouter()

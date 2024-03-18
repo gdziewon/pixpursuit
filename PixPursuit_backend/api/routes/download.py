@@ -1,8 +1,8 @@
 import httpx
 from fastapi import APIRouter
-from utils.images_zip import ZipProcessor
+from services.images_zip import ZipProcessor
 from fastapi.responses import StreamingResponse
-from schemas.download_schema import ZipData
+from api.schemas.download_schema import ZipData
 from utils.exceptions import no_image_and_album_ids_exception
 
 router = APIRouter()

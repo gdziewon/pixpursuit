@@ -1,23 +1,25 @@
 from io import BytesIO
 from zipfile import ZipFile, ZIP_DEFLATED
 from config.database_config import connect_to_space
-from databases.database_tools import get_album, get_image_document, get_root_id, create_album
+from data.databases.database_tools import get_album, get_image_document, get_root_id, create_album
 import os
 import asyncio
 from config.logging_config import setup_logging
 from utils.function_utils import is_allowed_file
 from utils.dirs import get_tmp_dir_path
 from fastapi import UploadFile
-from data_extraction.image_processing import process_and_save_images
+from data.data_extraction.image_processing import process_and_save_images
 from utils.constants import BUCKET_NAME
 import shutil
+from utils.dirs import cleanup_dir
 
 logger = setup_logging(__name__)
 
 
 class ZipProcessor:
-    def __init__(self):
+    def __init__(self, size: tuple[int, int] = None):
         self.space_client = connect_to_space()
+        self.size = size
 
     async def _add_album_to_zip(self, album: dict, zipf: ZipFile, path: str,
                                 depth: int = 0, max_depth: int = 10) -> None:
@@ -52,7 +54,8 @@ class ZipProcessor:
         except Exception as e:
             logger.error(f"Failed to add image: {image['filename']} to zip - {e}")
 
-    async def process_folder(self, path: str, username: str, parent_id: str = None) -> list[str]:
+    # TODO: Refactor this method to use the new process_images_from_directory method
+    async def process_folder(self, path: str, username: str, parent_id: str = None) -> None:
         if parent_id is None:
             parent_id = await get_root_id()
 
@@ -75,9 +78,7 @@ class ZipProcessor:
                 logger.error(f"Failed to process item: {item} - {e}")
                 continue
 
-        inserted_ids = await process_and_save_images(image_files, username, parent_id)
-
-        return inserted_ids
+        await process_and_save_images(image_files, username, parent_id, self.size)
 
     async def generate_zip_file(self, album_ids: list[str], image_ids: list[str]) -> BytesIO:
         zip_buffer = BytesIO()
@@ -119,4 +120,4 @@ class ZipProcessor:
             logger.error(f"Failed to upload zip: {e}")
             return None
         finally:
-            shutil.rmtree(tmp_dir, ignore_errors=True)
+            cleanup_dir(tmp_dir)

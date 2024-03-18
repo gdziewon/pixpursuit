@@ -20,3 +20,11 @@ class DeleteAlbumsData(BaseModel):
 class RenameAlbumData(BaseModel):
     album_id: str
     new_name: str
+
+
+class SharepointUploadData(BaseModel):
+    sharepoint_url: str
+    sharepoint_username: str
+    sharepoint_password: str
+    parent_id: Optional[str] = None
+    size: Optional[tuple[int, int]] = None

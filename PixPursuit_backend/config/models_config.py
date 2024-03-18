@@ -31,7 +31,7 @@ def activate_object_models() -> YOLO:
 
 
 def activate_face_models(thresholds=FACE_DETECTION_THRESHOLD) -> (torch.device, MTCNN, InceptionResnetV1):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     mtcnn = MTCNN(keep_all=True, thresholds=thresholds, device=device)
     resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
     logger.info("Activated pretrained FaceNet model")

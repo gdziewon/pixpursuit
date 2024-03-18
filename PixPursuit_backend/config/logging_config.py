@@ -9,7 +9,7 @@ def setup_logging(name: str) -> logging.Logger:
 
     log_file_path = LOG_FILE_PATH
 
-    handler = RotatingFileHandler(log_file_path, maxBytes=10000000, backupCount=5)
+    handler = RotatingFileHandler(log_file_path, maxBytes=1000000000, backupCount=5)
     formatter = logging.Formatter(LOG_FORMAT)
     handler.setFormatter(formatter)
 

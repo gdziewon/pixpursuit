@@ -52,11 +52,9 @@ WEIGHTS = {
         'features': 0.4,
         'user_tags': 0.2,
         'user_faces': 0.15,
-        'description': 0.1,
-        'album_id': 0.05,
-        'auto_faces': 0.04,
-        'auto_tags': 0.03,
-        'detected_objects': 0.02,
+        'album_id': 0.1,
+        'auto_faces': 0.06,
+        'auto_tags': 0.05,
         'added_by': 0.01
     }
 

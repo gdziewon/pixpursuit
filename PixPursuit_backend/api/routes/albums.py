@@ -1,15 +1,15 @@
 from fastapi import APIRouter, Depends, Form, UploadFile, File
 from typing import Optional
-from databases.database_tools import create_album, add_photos_to_album, delete_albums, rename_album
-from authentication.auth import get_current_user
-from schemas.albums_schema import CreateAlbumData, AddPhotosToAlbumData, DeleteAlbumsData, RenameAlbumData
-from utils.images_zip import ZipProcessor
-from schemas.auth_schema import User
+from data.databases.database_tools import create_album, add_photos_to_album, delete_albums, rename_album
+from services.authentication.auth import get_current_user
+from api.schemas.albums_schema import CreateAlbumData, AddPhotosToAlbumData, DeleteAlbumsData, RenameAlbumData, SharepointUploadData
+from services.images_zip import ZipProcessor
+from api.schemas.auth_schema import User
 from utils.exceptions import create_album_exception, add_images_to_album_exception, delete_album_exception,\
     rename_album_exception, upload_zip_exception
+from services.sharepoint_client import initiate_album_processing
 
 router = APIRouter()
-ZipProcessor = ZipProcessor()
 
 
 @router.post("/create-album")
@@ -45,8 +45,9 @@ async def delete_albums_api(data: DeleteAlbumsData, current_user: User = Depends
 
 
 @router.post("/upload-zip")
-async def upload_zip_api(file: UploadFile = File(...), parent_id: Optional[str] = Form(None), current_user: User = Depends(get_current_user)):
-    album_id = await ZipProcessor.upload_zip(file, parent_id, current_user.username)
+async def upload_zip_api(file: UploadFile = File(...), parent_id: Optional[str] = Form(None), size: Optional[tuple[int, int]] = Form(None), current_user: User = Depends(get_current_user)):
+    zip_processor = ZipProcessor(size)
+    album_id = await zip_processor.upload_zip(file, parent_id, current_user.username)
     if not album_id:
         raise upload_zip_exception
 
@@ -60,3 +61,9 @@ async def rename_album_api(data: RenameAlbumData, current_user: User = Depends(g
         raise rename_album_exception
 
     return {"message": "Album renamed successfully"}
+
+
+@router.post("/sharepoint-upload")
+async def sharepoint_upload_api(data: SharepointUploadData, current_user: User = Depends(get_current_user)):
+    initiate_album_processing.delay(data.sharepoint_url, data.sharepoint_username, data.sharepoint_password, current_user.username, data.parent_id, data.size)
+    return {"message": "Image upload initiated successfully"}

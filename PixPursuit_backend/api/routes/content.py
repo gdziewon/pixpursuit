@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends
-from databases.database_tools import add_tags_to_images, add_tags_to_albums, add_feedback, add_description, add_like, \
+from data.databases.database_tools import add_tags_to_images, add_tags_to_albums, add_feedback, add_description, add_like, \
     add_view, remove_tags_from_image, add_names
-from authentication.auth import get_current_user
-from tag_prediction.tag_prediction_tools import training_init, train_init_albums
-from schemas.content_schema import TagData, FeedbackData, DescriptionData, LikeData, ViewData, SelectedTagsData, \
+from services.authentication.auth import get_current_user
+from services.tag_prediction.tag_prediction_tools import training_init, train_init_albums
+from api.schemas.content_schema import TagData, FeedbackData, DescriptionData, LikeData, ViewData, SelectedTagsData, \
     RemovingTagsData, FaceData
-from schemas.auth_schema import User
+from api.schemas.auth_schema import User
 from utils.exceptions import add_tags_exception, no_image_and_album_ids_exception, add_names_exception, \
     add_feedback_exception, add_description_exception, add_like_exception, add_view_exception, remove_tags_exception
 
