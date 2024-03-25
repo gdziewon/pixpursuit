@@ -15,7 +15,6 @@ export default async function handler(req, res) {
       "user_tags",
       "user_faces",
       "backlog_faces",
-      "detected_objects",
     ];
     const simpleFieldsToSearch = ["description", "added_by", "album_name"];
 
@@ -37,7 +36,6 @@ export default async function handler(req, res) {
               "$user_tags",
               "$user_faces",
               "$backlog_faces",
-              "$detected_objects",
             ],
           },
         },

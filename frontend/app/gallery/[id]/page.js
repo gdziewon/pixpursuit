@@ -445,16 +445,7 @@ export default function ImagePage({ params }) {
               Tags:
             </h1>
             <div className="flex flex-wrap gap-2 mb-4">
-              {image &&
-                  Array.isArray(image.detected_objects) &&
-                  image.detected_objects.map((object, index) => (
-                      <span
-                          key={index}
-                          className="inline-block bg-yellow-200 rounded-full px-3 py-1 text-sm font-semibold text-yellow-700 mr-2"
-                      >
-        {object}
-      </span>
-                  ))}
+              {}
             </div>
             <div className="flex flex-wrap gap-2 mb-4">
               {image && Array.isArray(image.auto_tags) && image.auto_tags.map((tag, index) => {
