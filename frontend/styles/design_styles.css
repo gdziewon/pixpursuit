@@ -256,6 +256,10 @@
     position: relative;
     top:-3px;
 }
+.image-container1 {
+    object-fit: contain;
+    object-position: top;
+}
 
 
 

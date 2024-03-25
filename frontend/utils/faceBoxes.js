@@ -223,9 +223,10 @@ export function BoxOverlay({ image, boxes, originalSize, session, showHeartOverl
                     <Image
                         src={enlargedImage}
                         alt={image.description}
-                        width={displayWidth * 1.3}
-                        height={displayHeight * 1.3}
+                        width={displayWidth}
+                        height={displayHeight}
                         quality={100}
+                        className="image-container1"
                     />
                 </div>
             )}
