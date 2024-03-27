@@ -45,6 +45,12 @@ const DropdownMenuUpload = ({
                                 from GaleriaPK
                             </div>
                         </Link>
+                        <Link href={`/gallery/upload/sharepoint/${albumId}`}>
+                            <div
+                                className="rounded border bg-gray-100 px-3 py-1 text-xs text-gray-800 flex items-center">
+                                from Sharepoint
+                            </div>
+                        </Link>
                         <Link href={albumId === 'root' ? `/gallery/upload/zip` : `/gallery/upload/zip/${albumId}`}>
                             <div
                                 className="rounded border bg-gray-100 px-3 py-1 text-xs text-gray-800 flex items-center">
