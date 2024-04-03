@@ -257,9 +257,45 @@
     top:-3px;
 }
 .image-container1 {
-    object-fit: contain;
-    object-position: top;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: auto;
+    scrollbar-width: none;
+    msOverflowStyle: none;
+}
+
+.image-container1 img {
+    flex-shrink: 0;
+}
+.image-container1::-webkit-scrollbar {
+    display: none;
+
 }
 
 
+@keyframes slideIn {
+    0% {
+        transform: translateX(100%);
+    }
+    100% {
+        transform: translateX(0);
+    }
+}
 
+@keyframes slideOut {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-100%);
+    }
+}
+
+.slide-in {
+    animation: slideIn 1s forwards;
+}
+
+.slide-out {
+    animation: slideOut 1s forwards;
+}

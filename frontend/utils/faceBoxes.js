@@ -220,14 +220,28 @@ export function BoxOverlay({ image, boxes, originalSize, session, showHeartOverl
                     }}
                     onClick={() => setIsPlusClicked(false)}
                 >
-                    <Image
-                        src={enlargedImage}
-                        alt={image.description}
-                        width={displayWidth}
-                        height={displayHeight}
-                        quality={100}
-                        className="image-container1"
-                    />
+                    <div
+                        style={{
+                            width: '95%',
+                            height: '95%',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            overflow: 'auto',
+                            scrollbarWidth: 'none',
+                            msOverflowStyle: 'none'
+                        }}
+                    >
+                        <div className="image-container1">
+                            <Image
+                                src={enlargedImage}
+                                alt={image.description}
+                                width={displayWidth * 1.2}
+                                height={displayHeight * 1.2}
+                                quality={100}
+                                objectFit="contain"
+                            />
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

@@ -69,7 +69,8 @@ export default function SharepointUploadPage({params}) {
                                             border: '1px solid white',
                                             width: '580px',
                                             height: '60px',
-                                            padding: '14px'
+                                            padding: '14px',
+                                            marginBottom: '20px'
                                         }} value={url} onChange={(e) => setUrl(e.target.value)}
                                                className="mt-3 block w-full bg-gray-800 shadow-sm sm:text-sm border-white rounded-md"
                                                placeholder="Enter URL"/>
@@ -80,7 +81,8 @@ export default function SharepointUploadPage({params}) {
                                             border: '1px solid white',
                                             width: '580px',
                                             height: '60px',
-                                            padding: '14px'
+                                            padding: '14px',
+                                            marginBottom: '20px'
                                         }} value={username} onChange={(e) => setUsername(e.target.value)}
                                                className="mt-3 block w-full bg-gray-800 shadow-sm sm:text-sm border-white rounded-md"
                                                placeholder="Enter username"/>
@@ -91,7 +93,8 @@ export default function SharepointUploadPage({params}) {
                                             border: '1px solid white',
                                             width: '580px',
                                             height: '60px',
-                                            padding: '14px'
+                                            padding: '14px',
+                                            marginBottom: '20px'
                                         }} value={password} onChange={(e) => setPassword(e.target.value)}
                                                className="mt-3 block w-full bg-gray-800 shadow-sm sm:text-sm border-white rounded-md"
                                                placeholder="Enter password"/>
@@ -105,6 +108,7 @@ export default function SharepointUploadPage({params}) {
                                                     width: '280px',
                                                     height: '60px',
                                                     padding: '14px',
+                                                    marginBottom: '16px',
                                                     appearance: 'none'
                                                 }} value={width} onChange={(e) => setWidth(e.target.value)}
                                                        className="mt-3 block w-full bg-gray-800 shadow-sm sm:text-sm border-white rounded-md"
@@ -119,6 +123,7 @@ export default function SharepointUploadPage({params}) {
                                                     width: '280px',
                                                     height: '60px',
                                                     padding: '14px',
+                                                    marginBottom: '16px',
                                                     appearance: 'none'
                                                 }} value={height} onChange={(e) => setHeight(e.target.value)}
                                                        className="mt-3 block w-full bg-gray-800 shadow-sm sm:text-sm border-white rounded-md"
