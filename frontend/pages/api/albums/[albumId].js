@@ -1,79 +1,126 @@
 import { connectToDatabase } from "@/pages/api/connectMongo";
-import { ObjectId } from 'mongodb';
+import { ObjectId } from "mongodb";
 import { getRootId } from "@/utils/getRootId";
 
-export async function getAlbums(albumId = 'root', thumbnailLimit = 50) {
-    const db = await connectToDatabase();
+// Function to get albums with pagination
+export async function getAlbums(
+  albumId = "root",
+  thumbnailLimit = 10,
+  page = 1,
+  limit = 10
+) {
+  const db = await connectToDatabase();
 
-    let albumQuery;
-    if (typeof albumId === 'string' && albumId === 'root') {
-        albumQuery = { "parent": null };
-    } else {
-        albumQuery = { _id: new ObjectId(albumId) };
-    }
+  // Prepare the album query
+  let albumQuery;
+  if (typeof albumId === "string" && albumId === "root") {
+    albumQuery = {};
+  } else {
+    albumQuery = { _id: new ObjectId(albumId) };
+  }
 
-    const album = await db.collection("albums").findOne(albumQuery);
-    if (!album) {
-        throw new Error('Album not found');
-    }
+  // Fetch the album
+  const album = await db.collection("albums").findOne(albumQuery);
+  if (!album) {
+    throw new Error("Album not found");
+  }
 
-    const subAlbums = await db.collection("albums").find({ "parent": album._id.toString() }).toArray();
+  // Calculate skip value for pagination
+  const skip = (page - 1) * limit;
 
-    const imageIds = album.images ? album.images.slice(0, thumbnailLimit).map(id => new ObjectId(id)) : [];
-    const images = imageIds.length > 0 ? await db.collection("images").find({ _id: { $in: imageIds } }).toArray() : [];
+  // Fetch subalbums with pagination
+  const subAlbums = await db
+    .collection("albums")
+    .find({ parent: album._id.toString() })
+    .skip(skip)
+    .limit(limit)
+    .toArray();
 
-    let parentIsRoot = false;
-    const rootId = await getRootId();
-    if (album.parent) {
-        parentIsRoot = album.parent ? rootId === album.parent.toString() : false;
-    }
+  // Count the total number of subalbums
+  const totalSubAlbumsCount = await db
+    .collection("albums")
+    .find({ parent: album._id.toString() })
+    .count();
 
-    const combinedData = {
-        ...album,
-        parentAlbumId: album.parent,
-        parentIsRoot,
-        images,
-        sons: subAlbums,
-        albumId: album._id,
-        name: album.name,
-    };
+  // Calculate the remaining albums count
+  const remainingAlbumsCount = totalSubAlbumsCount - (skip + subAlbums.length);
 
-    return combinedData;
+  // Fetch images for the current album
+  const imageIds = album.images
+    ? album.images.slice(0, thumbnailLimit).map((id) => new ObjectId(id))
+    : [];
+  const images =
+    imageIds.length > 0
+      ? await db
+          .collection("images")
+          .find({ _id: { $in: imageIds } })
+          .toArray()
+      : [];
+
+  // Check if the parent album is root
+  let parentIsRoot = false;
+  const rootId = await getRootId();
+  if (album.parent) {
+    parentIsRoot = album.parent ? rootId === album.parent.toString() : false;
+  }
+
+  // Calculate whether there are more subalbums available
+  const hasMoreSubAlbums = remainingAlbumsCount > 0;
+
+  // Combine the album data along with the flag indicating whether there are more subalbums
+  const combinedData = {
+    ...album,
+    parentAlbumId: album.parent,
+    parentIsRoot,
+    images,
+    sons: subAlbums,
+    albumId: album._id,
+    name: album.name,
+    hasMoreSubAlbums: hasMoreSubAlbums,
+  };
+  return combinedData;
 }
 
+// Function to get random images
 export async function getRandomImages(albumId, count) {
-    const db = await connectToDatabase();
-    const album = await db.collection("albums").findOne({ _id: new ObjectId(albumId) });
+  const db = await connectToDatabase();
+  const album = await db
+    .collection("albums")
+    .findOne({ _id: new ObjectId(albumId) });
 
-    if (!album) {
-        throw new Error('Album not found');
-    }
+  if (!album) {
+    throw new Error("Album not found");
+  }
 
-    const imageIds = album.images.map(id => new ObjectId(id));
-    const images = await db.collection("images").aggregate([
-        { $match: { _id: { $in: imageIds } } },
-        { $sample: { size: parseInt(count) } }
-    ]).toArray();
+  const imageIds = album.images.map((id) => new ObjectId(id));
+  const images = await db
+    .collection("images")
+    .aggregate([
+      { $match: { _id: { $in: imageIds } } },
+      { $sample: { size: parseInt(count) } },
+    ])
+    .toArray();
 
-    return images;
+  return images;
 }
 
+// Main handler function
 export default async function handler(req, res) {
-    const { albumId, randomImages, count } = req.query;
+  const { albumId, randomImages, count, page } = req.query;
 
-    try {
-        if (randomImages) {
-            const images = await getRandomImages(albumId, count);
-            res.status(200).json(images);
-        } else {
-            const albumData = await getAlbums(albumId);
-            const responseData = {
-                ...albumData,
-            };
-            res.status(200).json(responseData);
-        }
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: error.message });
+  try {
+    if (randomImages) {
+      const images = await getRandomImages(albumId, count);
+      res.status(200).json(images);
+    } else {
+      const combinedData = await getAlbums(albumId, 10, parseInt(page));
+      const responseData = {
+        ...combinedData,
+      };
+      res.status(200).json(responseData);
     }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
 }
