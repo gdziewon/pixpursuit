@@ -1,122 +1,118 @@
-from data.databases.database_tools import get_image_document, images_collection, get_root_id
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
+import asyncio
+import heapq
+from data.databases.database_tools import get_image_document, images_collection
 from config.logging_config import setup_logging
-from utils.constants import WEIGHTS
 from utils.function_utils import to_object_id
+from sklearn.metrics.pairwise import cosine_similarity
+from scipy import sparse
 
 logger = setup_logging(__name__)
 
 
 class ImageSimilarity:
     def __init__(self):
-        self.tfidf_vectorizer = TfidfVectorizer()
+        self.input_image = None
+        self.input_img_vecs = None
 
     @staticmethod
-    async def _get_cursor(image_id: str) -> list[dict] or None:
-        image_id = to_object_id(image_id)
-        if not image_id:
+    def _get_pipeline(image_id: str, sample_size: int) -> list[dict]:
+        return [
+            {'$match': {'_id': {'$ne': image_id}}},
+            {'$sample': {'size': sample_size}},
+            {'$project': {'user_tags': 1, 'user_faces': 1, 'album_id': 1, 'auto_faces': 1, 'auto_tags': 1,
+                          'added_by': 1, 'thumbnail_url': 1}}
+        ]
+
+    @staticmethod
+    async def _get_sample_images(image_id: str, limit: int) -> list[dict] or None:
+        try:
+            image_id = to_object_id(image_id)
+            if not image_id:
+                return []
+
+            total_docs = await images_collection.count_documents({})
+            sample_size = max(limit, total_docs // 10)
+
+            # fetches a random sample of approximately 1/10 of the collection documents
+            pipeline = ImageSimilarity._get_pipeline(image_id, sample_size)
+
+            cursor = images_collection.aggregate(pipeline)
+            return await cursor.to_list(length=sample_size)
+        except Exception as e:
+            logger.error(f"Error getting cursor: {e}")
             return []
 
-        return images_collection.find({'_id': {'$ne': image_id}}, {
-            'features': 1, 'user_tags': 1, 'user_faces': 1,
-            'album_id': 1, 'auto_faces': 1, 'auto_tags': 1,
-            'added_by': 1, 'thumbnail_url': 1
-        })
-
-    @staticmethod
-    async def find_similar_images(image_id: str, limit: int = 20) -> list[dict]:
+    async def find_similar_images(self, image_id: str, limit: int = 20) -> list[dict]:
         logger.info(f"Finding similar images for image ID: {image_id}")
-        input_image = await get_image_document(image_id)
-        if not input_image or 'features' not in input_image:
-            logger.warning(f"No input image or features found for image ID: {image_id}")
-            return []
-
-        cursor = await ImageSimilarity._get_cursor(image_id)
-        images = await ImageSimilarity._pre_filter_images(input_image, cursor)
-
-        feature_vectors = np.array([img['features'] for img in images if 'features' in img])
-        input_features = np.array(input_image['features']).reshape(1, -1)
-        feature_similarities = cosine_similarity(input_features, feature_vectors)[0]
-
-        similarities_with_ids = []
-        for i, img in enumerate(images):
-            if 'features' in img:
-                feature_similarity_score = feature_similarities[i]
-            else:
-                feature_similarity_score = 0.0
-
-            other_similarity_score = await ImageSimilarity._calculate_other_similarities(input_image, img)
-
-            total_score = WEIGHTS['features'] * feature_similarity_score + other_similarity_score
-
-            similarities_with_ids.append((str(img['_id']), img['thumbnail_url'], total_score))
-
-        limited_results = sorted(similarities_with_ids, key=lambda x: x[2], reverse=True)[:limit]
-        return [{'_id': res[0], 'thumbnail_url': res[1], 'score': res[2]} for res in limited_results]
-
-    @staticmethod
-    async def _pre_filter_images(input_image, cursor):
-        pre_filtered_images = []
-        for img in cursor:
-            if ImageSimilarity._basic_criteria_met(input_image, img):
-                pre_filtered_images.append(img)
-        return pre_filtered_images
-
-    @staticmethod
-    def _basic_criteria_met(image1, image2):
-        if not set(image1['user_tags']).intersection(set(image2['user_tags'])) or \
-                not set(image1['auto_tags']).intersection(set(image2['auto_tags'])) or \
-                not set(image1['user_faces']).intersection(set(image2['user_faces'])) or \
-                not set(image1['auto_faces']).intersection(set(image2['auto_faces'])):
-            return False
-        return True
-
-    @staticmethod
-    async def _calculate_other_similarities(image1: dict, image2: dict) -> float:
-        score = 0.0
-        score += WEIGHTS['user_tags'] * await ImageSimilarity._jaccard_similarity(image1['user_tags'],                                                                      image2['user_tags'])
-        score += WEIGHTS['user_faces'] * await ImageSimilarity._face_similarity(image1['user_faces'],                                                                     image2['user_faces'])
-        score += WEIGHTS['album_id'] * await ImageSimilarity._album_similarity(image1['album_id'], image2['album_id'])
-        score += WEIGHTS['auto_faces'] * await ImageSimilarity._face_similarity(image1['auto_faces'],                                                                       image2['auto_faces'])
-        score += WEIGHTS['auto_tags'] * await ImageSimilarity._jaccard_similarity(image1['auto_tags'],                                                                         image2['auto_tags'])
-        score += WEIGHTS['added_by'] * await ImageSimilarity._added_by_similarity(image1['added_by'],
-                                                                                  image2['added_by'])
-        return score
-
-    @staticmethod
-    async def _jaccard_similarity(set1: set, set2: set) -> float:
-        if not set1 or not set2:
-            return 0.0
 
         try:
-            set1 = set(set1)
-            set2 = set(set2)
-            intersection = set1.intersection(set2)
-            union = set1.union(set2)
+            self.input_image = await get_image_document(image_id)
+            if not self.input_image:
+                logger.warning(f"No input image found for image ID: {image_id}")
+                return []
 
-            similarity = len(intersection) / len(union)
-            return similarity
+            images = await ImageSimilarity._get_sample_images(image_id, limit)
+            semaphore = asyncio.Semaphore(10)
+
+            async def task(img):
+                async with semaphore:
+                    return await self._calculate_other_similarities(img)
+
+            tasks = [task(img) for img in images]
+            total_scores = await asyncio.gather(*tasks)
+
+            extracted_data = await ImageSimilarity._extract_thumbnails_and_ids(images, total_scores, limit)
+            return extracted_data
+
         except Exception as e:
-            logger.error(f"Error during Jaccard similarity computation: {e}")
+            logger.error(f"Error finding similar images: {e}")
+            return []
+
+    @staticmethod
+    async def _get_limited_results(images: list[dict], total_scores: tuple, limit: int) -> list[dict]:
+        similarities_with_ids = []
+        for img, score in zip(images, total_scores):
+            if len(similarities_with_ids) < limit:
+                heapq.heappush(similarities_with_ids, (-score, str(img['_id']), img['thumbnail_url']))
+            else:
+                heapq.heappushpop(similarities_with_ids, (-score, str(img['_id']), img['thumbnail_url']))
+
+        limited_results = heapq.nlargest(limit, similarities_with_ids)
+        return limited_results
+
+    @staticmethod
+    async def _extract_thumbnails_and_ids(images: list[dict], total_scores: tuple, limit: int) -> list[dict]:
+        limited_results = await ImageSimilarity._get_limited_results(images, total_scores, limit)
+        return [{'_id': _id, 'thumbnail_url': thumbnail_url, 'score': -score}
+                for score, _id, thumbnail_url in limited_results]
+
+    async def _calculate_other_similarities(self, image2: dict) -> float:
+        if not self.input_image or not self.input_img_vecs:
             return 0.0
 
-    @staticmethod
-    async def _face_similarity(faces1: list[str], faces2: list[str]) -> float:
-        set1 = (set(faces1) - {'anon-1', '-1'}) if faces1 else set()
-        set2 = (set(faces2) - {'anon-1', '-1'}) if faces2 else set()
+        score = sum(
+            await self._cosine_similarity(self.input_image.get(feature, []), image2.get(feature, []))
+            for feature in ['user_tags', 'user_faces', 'auto_faces', 'auto_tags']
+        )
 
-        return await ImageSimilarity._jaccard_similarity(set1, set2)
+        score += self._standard_similarity(self.input_image.get('album_id', ''), image2.get('album_id', ''))
+        score += self._standard_similarity(self.input_image.get('added_by', ''), image2.get('added_by', ''))
 
-    @staticmethod
-    async def _album_similarity(album_id1: str, album_id2: str) -> float:
-        root_id = await get_root_id()
-        if album_id1 != root_id and album_id1 == album_id2:
-            return 1.0
-        else:
+        return score
+
+    async def _cosine_similarity(self, list1: list, list2: list) -> float:
+        if not list1 or not list2:
             return 0.0
 
+        list1_key = tuple(list1)
+        if list1_key not in self.input_img_vecs:
+            self.input_img_vecs[list1_key] = sparse.csr_matrix(list1)
+
+        vec1 = self.input_img_vecs[list1_key]
+        vec2 = sparse.csr_matrix(list2)
+
+        return cosine_similarity(vec1, vec2)[0][0]
+
     @staticmethod
-    async def _added_by_similarity(added_by1: str, added_by2: str) -> float:
-        return 1 if added_by1 == added_by2 else 0.0
+    def _standard_similarity(input_str: str, other_str: str) -> float:
+        return 1.0 if input_str == other_str else 0.0

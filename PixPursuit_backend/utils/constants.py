@@ -49,13 +49,12 @@ BASE_URL = "http://www.galeria.pk.edu.pl"
 
 # Similarity
 WEIGHTS = {
-        'features': 0.4,
-        'user_tags': 0.2,
-        'user_faces': 0.15,
+        'user_tags': 0.4,
+        'user_faces': 0.3,
         'album_id': 0.1,
-        'auto_faces': 0.06,
+        'auto_faces': 0.1,
         'auto_tags': 0.05,
-        'added_by': 0.01
+        'added_by': 0.03
     }
 
 # Face Detection
