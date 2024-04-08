@@ -1,7 +1,14 @@
+"""
+api/routes/images.py
+
+Defines routes for image-related operations, such as uploading, processing, deleting images,
+and performing actions like finding similar images or scraping images from external sources.
+"""
+
 from typing import List, Optional
 from fastapi import APIRouter, Depends, File, UploadFile, Form
 from services.image_similarity import ImageSimilarity
-from data.databases.database_tools import delete_images, relocate_to_album
+from data.databases.mongodb.async_db.database_tools import delete_images, relocate_to_album
 from services.authentication.auth import get_current_user
 from data.data_extraction.image_processing import process_and_save_images
 from api.schemas.images_schema import DeleteImagesData, RelocateImagesData, SimilarImagesData, ScrapeImagesData
@@ -17,6 +24,18 @@ router = APIRouter()
 
 @router.post("/process-images")
 async def process_images_api(images: List[UploadFile] = File(...), album_id: Optional[str] = Form(None), current_user: User = Depends(get_current_user)):
+    """
+    Process and save uploaded images.
+
+    :param images: A list of images to process and save.
+    :type images: List[UploadFile]
+    :param album_id: The ID of the album where the images should be saved, if any.
+    :type album_id: Optional[str]
+    :param current_user: The user who is uploading the images.
+    :type current_user: User
+    :return: A message indicating successful processing and saving of images.
+    :rtype: dict
+    """
     if not images:
         raise no_images_found_exception
 
@@ -29,6 +48,16 @@ async def process_images_api(images: List[UploadFile] = File(...), album_id: Opt
 
 @router.delete("/delete-images")
 async def delete_images_api(data: DeleteImagesData, current_user: User = Depends(get_current_user)):
+    """
+    Delete specified images.
+
+    :param data: Data containing the IDs of images to be deleted.
+    :type data: DeleteImagesData
+    :param current_user: The user requesting the deletion.
+    :type current_user: User
+    :return: A message indicating successful deletion of images.
+    :rtype: dict
+    """
     success = await delete_images(data.image_ids)
     if not success:
         raise delete_images_exception
@@ -38,6 +67,16 @@ async def delete_images_api(data: DeleteImagesData, current_user: User = Depends
 
 @router.post("/relocate-images")
 async def relocate_images_api(data: RelocateImagesData, current_user: User = Depends(get_current_user)):
+    """
+    Relocate images from one album to another.
+
+    :param data: Data containing the previous and new album IDs, and the image IDs to relocate.
+    :type data: RelocateImagesData
+    :param current_user: The user performing the relocation.
+    :type current_user: User
+    :return: A message indicating successful relocation of images.
+    :rtype: dict
+    """
     success = await relocate_to_album(data.prev_album_id, data.new_album_id, data.image_ids)
     if not success:
         raise relocate_images_exception
@@ -47,6 +86,14 @@ async def relocate_images_api(data: RelocateImagesData, current_user: User = Dep
 
 @router.post("/find-similar-images")
 async def find_similar_images_api(data: SimilarImagesData):
+    """
+    Find images similar to a given image.
+
+    :param data: Data containing the image ID and the limit on the number of similar images to return.
+    :type data: SimilarImagesData
+    :return: A list of similar images.
+    :rtype: dict
+    """
     if data.limit < 1:
         raise invalid_limit_exception
 
@@ -60,6 +107,16 @@ async def find_similar_images_api(data: SimilarImagesData):
 
 @router.post("/scrape-images")
 async def scrape_images_api(data: ScrapeImagesData, current_user: User = Depends(get_current_user)):
+    """
+    Scrape images from a specified URL (only for galeria.pk albums) and save them to the album.
+
+    :param data: Data containing the URL to scrape from and the album ID to save the images.
+    :type data: ScrapeImagesData
+    :param current_user: The user performing the scraping.
+    :type current_user: User
+    :return: A message indicating successful scraping and saving of images, along with the album ID.
+    :rtype: dict
+    """
     if not is_allowed_url(data.url):
         raise invalid_url_exception
 

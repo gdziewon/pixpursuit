@@ -1,5 +1,5 @@
 from bson import ObjectId
-from config.database_config import connect_to_mongodb_sync
+from config.database_config import connect_to_mongodb
 from config.logging_config import setup_logging
 from celery import shared_task
 import numpy as np
@@ -8,10 +8,11 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 from utils.function_utils import to_object_id
 from pymongo import DeleteOne
 from sklearn.neighbors import BallTree
+from utils.constants import GROUP_FACES_TASK, DELETE_FACES_TASK, UPDATE_NAMES_TASK, MAIN_QUEUE, BEAT_QUEUE
 
 logger = setup_logging(__name__)
 
-sync_images_collection, _, sync_faces_collection, _, _ = connect_to_mongodb_sync()
+sync_images_collection, _, sync_faces_collection, _, _ = connect_to_mongodb(async_mode=False)
 
 
 def cluster_embeddings(embeddings: list[np.ndarray]) -> np.ndarray or None:
@@ -182,7 +183,7 @@ def update_all_faces(image_id: str, image_clusters: np.ndarray, updated_user_fac
         return False
 
 
-@shared_task(name='face_operations.group_faces.beat', queue='beat_queue')
+@shared_task(name=GROUP_FACES_TASK, queue=BEAT_QUEUE)
 def group_faces() -> None:
     images = fetch_images()
     process_images(images)
@@ -197,7 +198,7 @@ def group_faces() -> None:
     logger.info("Faces have been successfully grouped.")
 
 
-@shared_task(name='face_operations.update_names.main', queue='main_queue')
+@shared_task(name=UPDATE_NAMES_TASK, queue=MAIN_QUEUE)
 def update_names(old_name: str, new_name: str) -> bool:
     try:
         if not all(isinstance(name, str) for name in [old_name, new_name]):
@@ -223,7 +224,7 @@ def update_names(old_name: str, new_name: str) -> bool:
         return False
 
 
-@shared_task(name='face_operations.delete_faces_associated_with_images.main', queue='main_queue')
+@shared_task(name=DELETE_FACES_TASK, queue=MAIN_QUEUE)
 def delete_faces_associated_with_images(image_ids: list) -> bool:
     threshold = 0.01
     delete_operations = []

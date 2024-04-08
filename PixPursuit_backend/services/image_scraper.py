@@ -1,9 +1,17 @@
+"""
+services/image_scraper.py
+
+Defines a class to scrape images from a given URL using BeautifulSoup for parsing HTML content.
+The class provides functionality to download images and save them into a specified directory,
+and process them into a specified album in the database.
+"""
+
 from bs4 import BeautifulSoup
 from config.logging_config import setup_logging
 import os
 from utils.dirs import get_tmp_dir_path, cleanup_dir
 from urllib.parse import urlparse, parse_qs, urljoin
-from data.databases.database_tools import create_album
+from data.databases.mongodb.async_db.database_tools import create_album
 from fastapi import UploadFile
 from data.data_extraction.image_processing import process_and_save_images
 from utils.function_utils import convert_to_upload_file
@@ -17,13 +25,31 @@ logger = setup_logging(__name__)
 
 
 class ImageScraper:
+    """
+    A scraper to download and process images from a webpage.
+    """
+
     def __init__(self):
+        """
+        Initializes the ImageScraper with an async HTTP client.
+        """
         self.client = httpx.AsyncClient()
 
     async def close(self):
+        """
+        Closes the HTTP client session.
+        """
         await self.client.aclose()
 
     async def scrape_and_save_images(self, url: str, user: str, album_id: str) -> tuple[list[str], str]:
+        """
+        Main method to scrape images from the specified URL, save them, and process into an album.
+
+        :param url: The URL to scrape images from.
+        :param user: The user performing the scraping operation.
+        :param album_id: The ID of the album where images will be saved.
+        :return: The ID of the created or updated album containing the scraped images.
+        """
         image_files = []
         save_dir = None
         try:
@@ -42,6 +68,12 @@ class ImageScraper:
             cleanup_dir(save_dir)
 
     async def _get_soup(self, url: str) -> BeautifulSoup:
+        """
+        Fetches and parses the HTML content of a webpage into a BeautifulSoup object.
+
+        :param url: The URL of the webpage to parse.
+        :return: A BeautifulSoup object containing the parsed HTML content.
+        """
         try:
             response = await self.client.get(url)
             response.raise_for_status()
@@ -51,6 +83,12 @@ class ImageScraper:
             raise get_soup_exception
 
     async def _fetch_image(self, image_url: str, save_dir: str) -> None:
+        """
+        Downloads an image from the specified URL and saves it to the given directory.
+
+        :param image_url: The URL of the image to download.
+        :param save_dir: The directory to save the downloaded image.
+        """
         try:
             parsed_url = urlparse(image_url)
             query_params = parse_qs(parsed_url.query)
@@ -74,10 +112,22 @@ class ImageScraper:
             logger.error(f"Failed to download image {image_url}: {e}")
 
     async def _download_images(self, urls: list[str], save_dir: str) -> None:
+        """
+        Downloads images from the list of URLs and saves them to the specified directory.
+
+        :param urls: A list of URLs of images to download.
+        :param save_dir: The directory to save the downloaded images.
+        """
         tasks = [self._fetch_image(url, save_dir) for url in urls]
         await asyncio.gather(*tasks)
 
     async def _scrape_images(self, soup: BeautifulSoup) -> str:
+        """
+        Scrapes image URLs from the given BeautifulSoup object and downloads them.
+
+        :param soup: The BeautifulSoup object to scrape image URLs from.
+        :return: The directory where the images are saved.
+        """
         save_dir = get_tmp_dir_path()
         try:
             image_urls = await ImageScraper._get_image_urls(soup)
@@ -93,6 +143,12 @@ class ImageScraper:
 
     @staticmethod
     async def _get_image_urls(soup: BeautifulSoup) -> list[str]:
+        """
+        Extracts image URLs from the parsed HTML content.
+
+        :param soup: The BeautifulSoup object containing the parsed HTML.
+        :return: A list of image URLs extracted from the HTML content.
+        """
         try:
             image_links = soup.find_all('a', attrs={'rel': 'lightbox-album'})
             full_image_urls = [urljoin(BASE_URL, link['href']) for link in image_links]
@@ -103,6 +159,12 @@ class ImageScraper:
 
     @staticmethod
     async def _get_scraped_album_name(soup: BeautifulSoup) -> str:
+        """
+        Extracts the album name from the webpage's title.
+
+        :param soup: The BeautifulSoup object containing the parsed HTML.
+        :return: The extracted album name.
+        """
         try:
             full_title = soup.title.string
 
@@ -117,6 +179,11 @@ class ImageScraper:
 
     @staticmethod
     async def _cleanup_files(image_files: list[UploadFile]) -> None:
+        """
+        Closes files to clean up resources.
+
+        :param image_files: A list of UploadFile objects to be cleaned up.
+        """
         try:
             for file in image_files:
                 file.file.close()

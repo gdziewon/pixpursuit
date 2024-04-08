@@ -1,13 +1,23 @@
+"""
+services/tag_prediction/tag_prediction_tools.py
+
+This module contains functions and tasks related to the training and prediction processes of a machine learning model for tag prediction.
+It includes caching mechanisms for unique tags, model state management, and Celery tasks for asynchronous training and prediction operations.
+"""
+
 import torch
 import torch.optim as optim
 from config.logging_config import setup_logging
 import os
 from celery import shared_task
-from services.tag_prediction.tag_prediction_model import TagPredictor
-from data.databases.database_tools import get_image_document
-from data.databases.celery_database_tools import get_image_document_sync, get_unique_tags, add_auto_tags, get_image_ids_paginated
-from data.databases.database_tools import get_album
-from utils.constants import POSITIVE_THRESHOLD, LEARNING_RATE, MODEL_FILE_PATH
+from services.tag_prediction.tag_predictor import TagPredictor
+from data.databases.mongodb.async_db.database_tools import get_image_document
+from data.databases.mongodb.sync_db.celery_database_tools import get_image_document_sync, get_unique_tags, add_auto_tags, get_image_ids_paginated
+from data.databases.mongodb.async_db.database_tools import get_album
+from utils.constants import (
+    POSITIVE_THRESHOLD, LEARNING_RATE, MODEL_FILE_PATH, TRAIN_MODEL_TASK,
+    PREDICT_TAGS_TASK, PREDICT_ALL_TAGS_TASK, MAIN_QUEUE, BEAT_QUEUE
+)
 
 logger = setup_logging(__name__)
 
@@ -15,6 +25,11 @@ unique_tags_cache = None
 
 
 def get_unique_tags_cached() -> list[str]:
+    """
+    Retrieves and caches the unique tags. If already cached, returns the cached tags.
+
+    :return: A list of unique tags.
+    """
     global unique_tags_cache
     if unique_tags_cache is None:
         unique_tags_cache = get_unique_tags()
@@ -22,24 +37,39 @@ def get_unique_tags_cached() -> list[str]:
 
 
 def update_unique_tags_cache() -> None:
+    """
+    Updates the cache of unique tags.
+    """
     global unique_tags_cache
     unique_tags_cache = get_unique_tags()
 
 
 def save_model_state(model: TagPredictor, file_path: str = MODEL_FILE_PATH) -> None:
+    """
+    Saves the state of the tag prediction model to a file.
+
+    :param model: The TagPredictor model to save.
+    :param file_path: The path to the file where the model state should be saved.
+    """
     try:
         torch.save({
             'state_dict': model.state_dict(),
             'num_tags': model.num_tags
         }, file_path)
-        logger.info("Model state saved")
     except Exception as e:
         logger.error(f"Error saving model state: {e}", exc_info=True)
 
 
 def load_model_state(file_path: str = MODEL_FILE_PATH, input_size: int = 1000,
                      hidden_size: int = 512) -> TagPredictor or None:
+    """
+    Loads the tag prediction model from a file.
 
+    :param file_path: The path to the file from which the model state should be loaded.
+    :param input_size: The input size for the model.
+    :param hidden_size: The hidden size for the model.
+    :return: The loaded TagPredictor model, or None if loading fails.
+    """
     if not os.path.exists(file_path):
         logger.warning(f"Model file {file_path} not found. Initializing a new model.")
         tag_predictor = TagPredictor(input_size, hidden_size, len(get_unique_tags_cached()))
@@ -50,7 +80,6 @@ def load_model_state(file_path: str = MODEL_FILE_PATH, input_size: int = 1000,
         num_tags = checkpoint['num_tags']
         model = TagPredictor(input_size, hidden_size, num_tags)
         model.load_state_dict(checkpoint['state_dict'])
-        logger.info("Model state loaded")
         return model
     except Exception as e:
         logger.error(f"Error loading model state: {e}", exc_info=True)
@@ -58,6 +87,12 @@ def load_model_state(file_path: str = MODEL_FILE_PATH, input_size: int = 1000,
 
 
 def update_model_tags(tag_vector: list[int] = None) -> TagPredictor:
+    """
+    Updates the tags of the model based on the provided tag vector.
+
+    :param tag_vector: A list of integers representing the tag vector.
+    :return: The updated TagPredictor model.
+    """
     tag_predictor = load_model_state()
     try:
         if not tag_vector:
@@ -75,6 +110,13 @@ def update_model_tags(tag_vector: list[int] = None) -> TagPredictor:
 
 
 def tags_to_vector(tags: list[str], feedback: dict) -> list[int]:
+    """
+    Converts a list of tags and their feedback to a vector representation.
+
+    :param tags: A list of tags.
+    :param feedback: A dictionary containing feedback data.
+    :return: A list of integers representing the tag vector.
+    """
     try:
         unique_tags = get_unique_tags_cached()
         tag_vector = [0] * len(unique_tags)
@@ -97,6 +139,11 @@ def tags_to_vector(tags: list[str], feedback: dict) -> list[int]:
 
 
 async def training_init(inserted_ids: list[str]) -> None:
+    """
+    Initializes training for the provided image IDs.
+
+    :param inserted_ids: A list of image document IDs to be processed for training.
+    """
     for inserted_id in inserted_ids:
         try:
             image_document = await get_image_document(inserted_id)
@@ -113,6 +160,11 @@ async def training_init(inserted_ids: list[str]) -> None:
 
 
 async def train_init_albums(album_ids: list[str]) -> None:
+    """
+    Initializes training for the provided album IDs.
+
+    :param album_ids: A list of album IDs to initialize training for.
+    """
     for album_id in album_ids:
         try:
             album = await get_album(album_id)
@@ -132,13 +184,25 @@ async def train_init_albums(album_ids: list[str]) -> None:
 
 
 def predictions_to_tag_names(predictions: list[int]) -> list[str]:
+    """
+    Converts a list of prediction indices to corresponding tag names.
+
+    :param predictions: A list of integers representing prediction indices.
+    :return: A list of tag names corresponding to the prediction indices.
+    """
     all_tags = get_unique_tags()
     index_to_tag = {i: tag for i, tag in enumerate(all_tags)}
     return [index_to_tag[idx] for idx in predictions if idx in index_to_tag and index_to_tag[idx] != 'NULL']
 
 
-@shared_task(name='tag_prediction_tools.train_model.main', queue='main_queue')
+@shared_task(name=TRAIN_MODEL_TASK, queue=MAIN_QUEUE)
 def train_model(features: list[float], tag_vector: list[int]) -> None:
+    """
+    Trains the model with the provided features and tag vector.
+
+    :param features: A list of feature values for the model.
+    :param tag_vector: A list of integers representing the tag vector.
+    """
     logger.info("Model training started")
     tag_predictor = update_model_tags(tag_vector)
     if not tag_predictor:
@@ -172,8 +236,13 @@ def train_model(features: list[float], tag_vector: list[int]) -> None:
     save_model_state(tag_predictor)
 
 
-@shared_task(name='tag_prediction_tools.predict_and_update_tags.main', queue='main_queue')
+@shared_task(name=PREDICT_TAGS_TASK, queue=MAIN_QUEUE)
 def predict_and_update_tags(image_ids: list[str]) -> None:
+    """
+    Predicts and updates tags for the provided image IDs.
+
+    :param image_ids: A list of image document IDs for which to predict and update tags.
+    """
     for image_id in image_ids:
         try:
             image_document = get_image_document_sync(image_id)
@@ -200,8 +269,11 @@ def predict_and_update_tags(image_ids: list[str]) -> None:
             continue
 
 
-@shared_task(name='tag_prediction_tools.update_all_auto_tags.beat', queue='beat_queue')
+@shared_task(name=PREDICT_ALL_TAGS_TASK, queue=BEAT_QUEUE)
 def update_all_auto_tags() -> None:
+    """
+    Periodically updates all auto-generated tags for the images in the database.
+    """
     logger.info("Updating all auto tags")
     update_unique_tags_cache()
     page_size = 100

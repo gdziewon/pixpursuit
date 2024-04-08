@@ -1,61 +1,95 @@
+"""
+config/database_config.py
+
+Configures the database connections, including both synchronous and asynchronous clients,
+for MongoDB and integration with other data storage services like DigitalOcean Spaces.
+"""
+
 import motor.motor_asyncio
 import time
+from botocore.client import BaseClient
+from pymongo import MongoClient
+
 from config.logging_config import setup_logging
 import boto3
-from pymongo.mongo_client import MongoClient
-from utils.constants import MONGODB_URI, DO_REGION, DO_SPACE_ENDPOINT, DO_SPACE_ACCESS_KEY, DO_SPACE_SECRET_KEY
+from utils.constants import (
+    MONGODB_URI, DO_REGION, DO_SPACE_ENDPOINT,
+    DO_SPACE_ACCESS_KEY, DO_SPACE_SECRET_KEY
+)
 
 logger = setup_logging(__name__)
 
 
-def connect_to_mongodb_async(attempts=5, delay=3) -> tuple:
-    for attempt in range(attempts):
-        try:
-            client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)
-            collections = get_collections(client)
-            logger.info("Successfully connected to MongoDB server - async mode")
-            return collections
+def get_mongodb_client(async_mode: bool = True):
+    """
+    Create a MongoDB client instance.
 
-        except Exception as err:
-            if attempt < attempts - 1:
-                logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay} seconds...")
-                time.sleep(delay)
-            else:
-                logger.error("Failed to connect to MongoDB server: ", err)
-                return None, None, None, None, None
-
-
-def connect_to_mongodb_sync(attempts=5, delay=3) -> tuple:
-    for attempt in range(attempts):
-        try:
-            client = MongoClient(MONGODB_URI)
-            collections = get_collections(client)
-            logger.info("Successfully connected to MongoDB server - sync mode")
-            return collections
-
-        except Exception as err:
-            if attempt < attempts - 1:
-                logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay} seconds...")
-                time.sleep(delay)
-            else:
-                logger.error("Failed to connect to MongoDB server: ", err)
-                return None, None, None, None, None
-
-
-def get_collections(client) -> tuple:
-    if client:
-        db = client.pixpursuit_db
-        images_collection = db.images
-        tags_collection = db.tags
-        faces_collection = db.faces
-        user_collection = db.users
-        directories_collection = db.albums
-        return images_collection, tags_collection, faces_collection, user_collection, directories_collection
+    :param async_mode: Flag to determine if the connection should be asynchronous.
+    :return: MongoDB client instance.
+    """
+    if async_mode:
+        return motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)
     else:
-        return None, None, None, None, None
+        return MongoClient(MONGODB_URI)
 
 
-def connect_to_space() -> boto3.client or None:
+def retry_connection(connect: callable, attempts: int = 5, delay: int = 3):
+    """
+    Retry the database connection multiple times with a delay.
+
+    :param connect: The connection function to call.
+    :param attempts: Maximum number of attempts.
+    :param delay: Delay between attempts in seconds.
+    :return: Connection result or None if failed.
+    """
+    for attempt in range(attempts):
+        try:
+            return connect()
+        except Exception as e:
+            if attempt < attempts - 1:
+                logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay} seconds...")
+                time.sleep(delay)
+            else:
+                logger.error(f"Failed to establish a connection: {e}")
+
+
+def connect_to_mongodb(async_mode: bool = True):
+    """
+    Connect to MongoDB and return the database client and collections.
+
+    :param async_mode: Flag to determine if the connection should be asynchronous.
+    :return: Tuple of database client and collections.
+    """
+    client = retry_connection(lambda: get_mongodb_client(async_mode), attempts=5, delay=3)
+    if client:
+        logger.info(f"Successfully connected to MongoDB server - {'async' if async_mode else 'sync'} mode")
+        return get_collections(client)
+    return None, None, None, None, None
+
+
+def get_collections(client):
+    """
+    Get the collections from MongoDB.
+
+    :param client: MongoDB client instance.
+    :return: Tuple containing MongoDB collection instances.
+    """
+    db = client.pixpursuit_db
+    return (
+        db.images,
+        db.tags,
+        db.faces,
+        db.users,
+        db.albums
+    )
+
+
+def connect_to_space() -> BaseClient or None:
+    """
+    Connect to DigitalOcean Spaces.
+
+    :return: boto3 client instance for DigitalOcean Spaces or None if connection fails.
+    """
     try:
         session = boto3.session.Session()
         client = session.client('s3',

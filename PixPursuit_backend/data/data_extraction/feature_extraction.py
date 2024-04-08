@@ -1,3 +1,10 @@
+"""
+data/data_extraction/features_extraction.py
+
+Responsible for extracting feature vectors from images using a pre-trained ResNet model. These feature
+vectors are used for various purposes, such as similarity comparison, classification, and indexing.
+"""
+
 from config.models_config import activate_feature_models
 import torch
 from PIL import Image
@@ -9,6 +16,12 @@ resnet, transform = activate_feature_models()
 
 
 def extract_features(image: Image) -> list[float] or None:
+    """
+    Extract features from an image using a pre-trained ResNet model.
+
+    :param image: The image to process.
+    :return: A list of feature values extracted from the image, or None if an error occurs.
+    """
     try:
         image = transform(image).unsqueeze(0)
         with torch.no_grad():

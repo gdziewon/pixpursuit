@@ -1,15 +1,19 @@
 from torchvision import models, transforms
 from torchvision.models import ResNet50_Weights
-from ultralytics import YOLO
 from config.logging_config import setup_logging
 from facenet_pytorch import MTCNN, InceptionResnetV1
 import torch
-from utils.constants import YOLO_MODEL_PATH, FACE_DETECTION_THRESHOLD
+from utils.constants import FACE_DETECTION_THRESHOLD
 
 logger = setup_logging(__name__)
 
 
-def activate_feature_models() -> (models.ResNet, transforms.Compose):
+def activate_feature_models() -> tuple[models.ResNet, transforms.Compose]:
+    """
+    Activate and return the pretrained ResNet50 model and its corresponding transforms.
+
+    :return: A tuple of ResNet50 model and its transforms.
+    """
     weights = ResNet50_Weights.DEFAULT
     resnet = models.resnet50(weights=weights)
     resnet.eval()
@@ -24,13 +28,13 @@ def activate_feature_models() -> (models.ResNet, transforms.Compose):
     return resnet, transform
 
 
-def activate_object_models() -> YOLO:
-    model = YOLO(YOLO_MODEL_PATH)
-    logger.info("Activated pretrained YOLOv8 model")
-    return model
+def activate_face_models(thresholds=FACE_DETECTION_THRESHOLD) -> tuple[torch.device, MTCNN, InceptionResnetV1]:
+    """
+    Activate and return the face detection and recognition models.
 
-
-def activate_face_models(thresholds=FACE_DETECTION_THRESHOLD) -> (torch.device, MTCNN, InceptionResnetV1):
+    :param thresholds: Detection thresholds for the face detection model.
+    :return: A tuple containing the device, MTCNN, and InceptionResnetV1 models.
+    """
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     mtcnn = MTCNN(keep_all=True, thresholds=thresholds, device=device)
     resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)

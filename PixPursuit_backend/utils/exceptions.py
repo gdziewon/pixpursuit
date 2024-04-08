@@ -1,8 +1,19 @@
+"""
+utils/exceptions.py
+
+Defines custom exceptions and standard HTTP exceptions used throughout the application.
+These exceptions cover various failure scenarios, such as authentication errors, data processing issues,
+and other operational errors, providing a structured way to handle error reporting and management.
+"""
+
 from fastapi import HTTPException, status
 from enum import Enum
 
 
 class StatusCode(Enum):
+    """
+    Enum for HTTP status codes used in exceptions.
+    """
     UNAUTHORIZED = status.HTTP_401_UNAUTHORIZED
     INTERNAL_SERVER_ERROR = status.HTTP_500_INTERNAL_SERVER_ERROR
     BAD_REQUEST = status.HTTP_400_BAD_REQUEST
@@ -11,6 +22,14 @@ class StatusCode(Enum):
 
 
 def create_exception(status_code: int, detail: str, headers: dict = None) -> HTTPException:
+    """
+    Factory function to create HTTPException instances with given status code, detail, and headers.
+
+    :param status_code: The HTTP status code for the exception.
+    :param detail: A detailed error message.
+    :param headers: Optional headers to include in the HTTP response.
+    :return: An instance of HTTPException.
+    """
     return HTTPException(status_code=status_code, detail=detail, headers=headers)
 
 
