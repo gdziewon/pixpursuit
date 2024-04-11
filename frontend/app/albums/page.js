@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useContext, useRef } from "react";
+import React, { useState, useEffect, useContext } from "react";
 
 import Link from "next/link";
 import "/styles/album_layout_styles.css";
@@ -44,9 +44,7 @@ export default function AlbumsPage() {
   const [isLoading, setIsLoading] = useState(false); // loading flag
   const [page, setPage] = useState(1); // page number
   const [showLoadMoreButton, setShowLoadMoreButton] = useState(false); // flag to indicate if the load more button should be shown
-
-  // declare ref variables
-  const initialMount = useRef(true);
+  const [initialMount, setInitialMount] = useState(true); // flag to indicate if the component is mounted
 
   const loadMore = () => {
     setPage((prevPageNumber) => prevPageNumber + 1);
@@ -57,18 +55,21 @@ export default function AlbumsPage() {
       setIsActionsOpen(false);
     }
   }, [selectedImageIds, selectedAlbumIds]);
-
   useEffect(() => {
-    if (initialMount.current) {
-      initialMount.current = false;
+    if (initialMount) {
+      setInitialMount(false);
     } else {
-      const fetchData = async () => {
+      const fetchData = () => {
         setIsLoading(true);
-        try {
-          const endpoint = `/api/albums/${albumId}?page=${page}`;
-          const response = await fetch(endpoint);
-          if (response.ok) {
-            const data = await response.json();
+        fetch(`/api/albums/${albumId}?page=${page}`)
+          .then((response) => {
+            if (response.ok) {
+              return response.json();
+            } else {
+              throw new Error(`Error fetching data: ${response.statusText}`);
+            }
+          })
+          .then((data) => {
             setAlbumData((prevData) => {
               return {
                 ...prevData,
@@ -81,24 +82,20 @@ export default function AlbumsPage() {
             });
             setIsLoading(false);
             setShowLoadMoreButton(data.hasMoreSubAlbums);
-          } else {
-            console.error(`Error fetching data: ${response.statusText}`);
+          })
+          .catch((error) => {
+            console.error(`Error fetching data: ${error.message}`);
             setErrorMessage(`Error fetching data`);
-          }
-        } catch (error) {
-          console.error(`Error fetching data: ${error.message}`);
-          setErrorMessage(`Error fetching data`);
-        }
+          });
       };
 
       fetchData();
     }
-  }, [albumId, page]);
-
+  }, [albumId, page, initialMount]);
   if (isLoading && !albumData) {
     return <Loading />;
   }
-
+  // declare event handlers for the actions dropdown
   const handleActionsClick = () => {
     setIsActionsOpen(!isActionsOpen);
   };
@@ -309,10 +306,6 @@ export default function AlbumsPage() {
     }
   });
 
-  const imageItems = albumData.images.map((image, idx) => {
-    return <ImageSelection key={idx} item={image} isAlbum={false} />;
-  });
-
   return (
     <div className="container">
       {errorMessage && (
@@ -396,7 +389,6 @@ export default function AlbumsPage() {
           </Link>
         )}
         {albumItems}
-        {imageItems}
         {showLoadMoreButton && <button onClick={loadMore}>Load More</button>}
         {isLoading && <Loading />}
       </div>
