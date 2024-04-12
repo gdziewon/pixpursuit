@@ -16,6 +16,12 @@ sync_images_collection, _, sync_faces_collection, _, _ = connect_to_mongodb(asyn
 
 
 def cluster_embeddings(embeddings: list[np.ndarray]) -> np.ndarray or None:
+    """
+   Clusters the given face embeddings using the DBSCAN algorithm.
+
+   :param embeddings: A list of face embeddings to cluster.
+   :return: An array of cluster labels for each embedding, or None if an error occurs.
+   """
     try:
         embeddings_array = np.array(embeddings)
         dbscan = DBSCAN(eps=0.8, min_samples=3)
@@ -28,6 +34,11 @@ def cluster_embeddings(embeddings: list[np.ndarray]) -> np.ndarray or None:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 def fetch_images() -> list[dict]:
+    """
+    Fetches all image documents from the sync_images_collection where the 'embeddings' field exists and is not empty.
+
+    :return: A list of image documents, or an empty list if an error occurs.
+    """
     try:
         cursor = sync_images_collection.find({'embeddings': {'$exists': True, '$not': {'$size': 0}}})
         return list(cursor)
@@ -38,6 +49,11 @@ def fetch_images() -> list[dict]:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 def process_images(images: list[dict]) -> None:
+    """
+    Processes a list of image documents by clustering their embeddings and updating their faces.
+
+    :param images: A list of image documents to process.
+    """
     try:
         all_embeddings = [emb for image in images for emb in image['embeddings']]
 
@@ -80,6 +96,12 @@ def process_images(images: list[dict]) -> None:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 def update_faces(image: dict, image_clusters: np.ndarray) -> None:
+    """
+    Updates the faces of a given image document in the sync_images_collection.
+
+    :param image: The image document to update.
+    :param image_clusters: The array of cluster labels for each face embedding in the image.
+    """
     try:
         current_document = sync_images_collection.find_one({'_id': image['_id']})
         current_user_faces = current_document.get('user_faces', [])
@@ -94,6 +116,14 @@ def update_faces(image: dict, image_clusters: np.ndarray) -> None:
 
 def update_user_and_backlog_faces(current_faces: list, current_backlog_faces: list[str],
                                   image_clusters: np.ndarray) -> tuple[list, list] or None:
+    """
+    Updates the user and backlog faces of a given image document based on the cluster labels.
+
+    :param current_faces: The current user faces of the image document.
+    :param current_backlog_faces: The current backlog faces of the image document.
+    :param image_clusters: The array of cluster labels for each face embedding in the image.
+    :return: A tuple containing the updated user faces and backlog faces, or None if an error occurs.
+    """
     try:
         updated_faces = []
         updated_backlog_faces = []
@@ -116,11 +146,23 @@ def update_user_and_backlog_faces(current_faces: list, current_backlog_faces: li
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 def insert_many_faces(faces_records: list[dict]) -> None:
+    """
+    Inserts multiple face records into the sync_faces_collection.
+
+    :param faces_records: A list of face records to insert.
+    """
     sync_faces_collection.insert_many(faces_records)
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 def update_clusters(clusters: np.ndarray, ids: list[ObjectId]) -> bool:
+    """
+    Updates the cluster labels of the face documents in the sync_faces_collection.
+
+    :param clusters: The array of cluster labels for each face embedding.
+    :param ids: The list of IDs of the face documents to update.
+    :return: True if the update was successful, False otherwise.
+    """
     for idx, cluster_id in enumerate(clusters):
         try:
             group_id = f"face{cluster_id}"
@@ -136,6 +178,11 @@ def update_clusters(clusters: np.ndarray, ids: list[ObjectId]) -> bool:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 def fetch_all_embeddings() -> tuple[list[np.ndarray], list[ObjectId]] or None:
+    """
+    Fetches all face embeddings and their corresponding IDs from the sync_faces_collection.
+
+    :return: A tuple containing a list of face embeddings and a list of their corresponding IDs, or None if an error occurs.
+    """
     try:
         cursor = sync_faces_collection.find({})
         embeddings = []
@@ -151,6 +198,14 @@ def fetch_all_embeddings() -> tuple[list[np.ndarray], list[ObjectId]] or None:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 def update_backlog_unknown_faces(image_id: str, unknown_faces: int, backlog_faces: list[str]) -> bool:
+    """
+    Updates the 'unknown_faces' and 'backlog_faces' fields of a given image document in the sync_images_collection.
+
+    :param image_id: The ID of the image document to update.
+    :param unknown_faces: The updated count of unknown faces.
+    :param backlog_faces: The updated list of backlog faces.
+    :return: True if the update was successful, False otherwise.
+    """
     try:
         image_id = to_object_id(image_id)
         sync_images_collection.update_one(
@@ -166,6 +221,15 @@ def update_backlog_unknown_faces(image_id: str, unknown_faces: int, backlog_face
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 def update_all_faces(image_id: str, image_clusters: np.ndarray, updated_user_faces: list[str],
                      updated_backlog_faces: list) -> bool:
+    """
+    Updates the 'auto_faces', 'user_faces', and 'backlog_faces' fields of a given image document in the sync_images_collection.
+
+    :param image_id: The ID of the image document to update.
+    :param image_clusters: The array of cluster labels for each face embedding in the image.
+    :param updated_user_faces: The updated list of user faces.
+    :param updated_backlog_faces: The updated list of backlog faces.
+    :return: True if the update was successful, False otherwise.
+    """
     try:
         image_id = to_object_id(image_id)
         sync_images_collection.update_one(
@@ -185,6 +249,11 @@ def update_all_faces(image_id: str, image_clusters: np.ndarray, updated_user_fac
 
 @shared_task(name=GROUP_FACES_TASK, queue=BEAT_QUEUE)
 def group_faces() -> None:
+    """
+    Groups faces by fetching all images, processing them, and then clustering their embeddings.
+
+    This function is a Celery task that runs on the BEAT_QUEUE.
+    """
     images = fetch_images()
     process_images(images)
 
@@ -200,6 +269,13 @@ def group_faces() -> None:
 
 @shared_task(name=UPDATE_NAMES_TASK, queue=MAIN_QUEUE)
 def update_names(old_name: str, new_name: str) -> bool:
+    """
+    Updates the names of faces in the sync_images_collection.
+
+    :param old_name: The old name of the face.
+    :param new_name: The new name of the face.
+    :return: True if the update was successful, False otherwise.
+    """
     try:
         if not all(isinstance(name, str) for name in [old_name, new_name]):
             logger.error("Names must be strings")
@@ -226,6 +302,12 @@ def update_names(old_name: str, new_name: str) -> bool:
 
 @shared_task(name=DELETE_FACES_TASK, queue=MAIN_QUEUE)
 def delete_faces_associated_with_images(image_ids: list) -> bool:
+    """
+    Deletes faces associated with given images from the sync_faces_collection.
+
+    :param image_ids: The list of IDs of the images whose associated faces are to be deleted.
+    :return: True if the deletion was successful, False otherwise.
+    """
     threshold = 0.01
     delete_operations = []
 
