@@ -299,3 +299,13 @@
 .slide-out {
     animation: slideOut 1s forwards;
 }
+
+.album-name {
+    width: 300px;
+    word-wrap: break-word;
+}
+
+.album-pair {
+    margin: 10px;
+    border-radius: 5px;
+}
