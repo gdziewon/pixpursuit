@@ -4,7 +4,12 @@ import React, { useState, useEffect, useContext } from "react";
 
 import Link from "next/link";
 import "/styles/album_layout_styles.css";
-import { FolderPlusIcon } from "@heroicons/react/24/outline";
+import {
+  FolderPlusIcon,
+  HeartIcon,
+  PhotoIcon,
+  Lo,
+} from "@heroicons/react/24/outline";
 import ImageSelection from "/utils/ImageSelection";
 import { SelectedItemsContext } from "/utils/SelectedItemsContext";
 import axios from "axios";
@@ -321,8 +326,22 @@ export default function AlbumsPage() {
         />
       )}
       <div className="mb-12 flex items-center justify-between gap-x-16">
-        <div></div>
-        <div></div>
+        <div className="flex space-x-3">
+          {session && (
+            <Link href={`/albums/liked/`} passHref>
+              <button className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
+                <HeartIcon className="h-5 w-5 mr-2" />
+                <span>Liked Images</span>
+              </button>
+            </Link>
+          )}
+          <Link href={`/albums/unassigned/`} passHref>
+            <button className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
+              <PhotoIcon className="h-5 w-5 mr-2" />
+              <span>Misc Images</span>
+            </button>
+          </Link>
+        </div>
         <div className="flex space-x-3">
           <div className="relative">
             {selectedImageIds.length + selectedAlbumIds.length > 0 && (
@@ -358,7 +377,7 @@ export default function AlbumsPage() {
             )}
           </div>
           {session && (
-            <div className="flex space-x-3">
+            <>
               <DropdownMenuUpload
                 isUploadOpen={isUploadOpen}
                 handleUploadClick={handleUploadClick}
@@ -370,27 +389,29 @@ export default function AlbumsPage() {
                   Add album
                 </button>
               </Link>
-            </div>
+            </>
           )}
         </div>
       </div>
       <div className="album-container grid-layout">
-        {session && (
-          <Link href={`/albums/liked/`} passHref>
-            <div className="album-item">
-              <Image
-                src="/liked.png"
-                alt="Liked Images"
-                width={200}
-                height={200}
-              />
-              <span>Liked Images</span>
-            </div>
-          </Link>
-        )}
         {albumItems}
-        {showLoadMoreButton && <button onClick={loadMore}>Load More</button>}
-        {isLoading && <Loading />}
+        {isLoading ? (
+          <div className="flex justify-center col-span-full h-12 items-center">
+            <div className="h-12">
+              <Loading />
+            </div>
+          </div>
+        ) : null}
+        {!isLoading && showLoadMoreButton && (
+          <div className="flex justify-center col-span-full">
+            <button
+              className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded"
+              onClick={loadMore}
+            >
+              Load More
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
