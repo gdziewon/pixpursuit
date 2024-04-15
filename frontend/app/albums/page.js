@@ -1,10 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, useContext, useRef } from "react";
+import React, { useState, useEffect, useContext } from "react";
 
 import Link from "next/link";
 import "/styles/album_layout_styles.css";
-import { FolderPlusIcon } from "@heroicons/react/24/outline";
+import {
+  FolderPlusIcon,
+  HeartIcon,
+  PhotoIcon,
+  Lo,
+} from "@heroicons/react/24/outline";
 import ImageSelection from "/utils/ImageSelection";
 import { SelectedItemsContext } from "/utils/SelectedItemsContext";
 import axios from "axios";
@@ -44,9 +49,7 @@ export default function AlbumsPage() {
   const [isLoading, setIsLoading] = useState(false); // loading flag
   const [page, setPage] = useState(1); // page number
   const [showLoadMoreButton, setShowLoadMoreButton] = useState(false); // flag to indicate if the load more button should be shown
-
-  // declare ref variables
-  const initialMount = useRef(true);
+  const [initialMount, setInitialMount] = useState(true); // flag to indicate if the component is mounted
 
   const loadMore = () => {
     setPage((prevPageNumber) => prevPageNumber + 1);
@@ -57,18 +60,21 @@ export default function AlbumsPage() {
       setIsActionsOpen(false);
     }
   }, [selectedImageIds, selectedAlbumIds]);
-
   useEffect(() => {
-    if (initialMount.current) {
-      initialMount.current = false;
+    if (initialMount) {
+      setInitialMount(false);
     } else {
-      const fetchData = async () => {
+      const fetchData = () => {
         setIsLoading(true);
-        try {
-          const endpoint = `/api/albums/${albumId}?page=${page}`;
-          const response = await fetch(endpoint);
-          if (response.ok) {
-            const data = await response.json();
+        fetch(`/api/albums/${albumId}?page=${page}`)
+          .then((response) => {
+            if (response.ok) {
+              return response.json();
+            } else {
+              throw new Error(`Error fetching data: ${response.statusText}`);
+            }
+          })
+          .then((data) => {
             setAlbumData((prevData) => {
               return {
                 ...prevData,
@@ -81,24 +87,20 @@ export default function AlbumsPage() {
             });
             setIsLoading(false);
             setShowLoadMoreButton(data.hasMoreSubAlbums);
-          } else {
-            console.error(`Error fetching data: ${response.statusText}`);
+          })
+          .catch((error) => {
+            console.error(`Error fetching data: ${error.message}`);
             setErrorMessage(`Error fetching data`);
-          }
-        } catch (error) {
-          console.error(`Error fetching data: ${error.message}`);
-          setErrorMessage(`Error fetching data`);
-        }
+          });
       };
 
       fetchData();
     }
-  }, [albumId, page]);
-
+  }, [albumId, page, initialMount]);
   if (isLoading && !albumData) {
     return <Loading />;
   }
-
+  // declare event handlers for the actions dropdown
   const handleActionsClick = () => {
     setIsActionsOpen(!isActionsOpen);
   };
@@ -309,10 +311,6 @@ export default function AlbumsPage() {
     }
   });
 
-  const imageItems = albumData.images.map((image, idx) => {
-    return <ImageSelection key={idx} item={image} isAlbum={false} />;
-  });
-
   return (
     <div className="container">
       {errorMessage && (
@@ -328,8 +326,22 @@ export default function AlbumsPage() {
         />
       )}
       <div className="mb-12 flex items-center justify-between gap-x-16">
-        <div></div>
-        <div></div>
+        <div className="flex space-x-3">
+          {session && (
+            <Link href={`/albums/liked/`} passHref>
+              <button className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
+                <HeartIcon className="h-5 w-5 mr-2" />
+                <span>Liked Images</span>
+              </button>
+            </Link>
+          )}
+          <Link href={`/albums/unassigned/`} passHref>
+            <button className="rounded border bg-gray-100 px-2 py-1 text-xs text-gray-800 flex items-center">
+              <PhotoIcon className="h-5 w-5 mr-2" />
+              <span>Misc Images</span>
+            </button>
+          </Link>
+        </div>
         <div className="flex space-x-3">
           <div className="relative">
             {selectedImageIds.length + selectedAlbumIds.length > 0 && (
@@ -365,7 +377,7 @@ export default function AlbumsPage() {
             )}
           </div>
           {session && (
-            <div className="flex space-x-3">
+            <>
               <DropdownMenuUpload
                 isUploadOpen={isUploadOpen}
                 handleUploadClick={handleUploadClick}
@@ -377,28 +389,29 @@ export default function AlbumsPage() {
                   Add album
                 </button>
               </Link>
-            </div>
+            </>
           )}
         </div>
       </div>
       <div className="album-container grid-layout">
-        {session && (
-          <Link href={`/albums/liked/`} passHref>
-            <div className="album-item">
-              <Image
-                src="/liked.png"
-                alt="Liked Images"
-                width={200}
-                height={200}
-              />
-              <span>Liked Images</span>
-            </div>
-          </Link>
-        )}
         {albumItems}
-        {imageItems}
-        {showLoadMoreButton && <button onClick={loadMore}>Load More</button>}
-        {isLoading && <Loading />}
+        {isLoading ? (
+          <div className="flex justify-center col-span-full h-12 items-center">
+            <div className="h-12">
+              <Loading />
+            </div>
+          </div>
+        ) : null}
+        {!isLoading && showLoadMoreButton && (
+          <div className="flex justify-center col-span-full">
+            <button
+              className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded"
+              onClick={loadMore}
+            >
+              Load More
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
