@@ -10,11 +10,7 @@ import { IoIosArrowBack, IoIosArrowForward } from 'react-icons/io';
 import Link from 'next/link';
 import '@/styles/design_styles.css';
 
-/**
- * RandomImage component.
- *
- * @returns {JSX.Element} - The rendered JSX element.
- */
+
 export default function RandomImage() {
   const [images, setImages] = useState(Array(10).fill(null));
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -22,9 +18,6 @@ export default function RandomImage() {
   const [errorMessage, setErrorMessage] = useState(null);
   const [newestAlbums, setNewestAlbums] = useState([]);
 
-  /**
-   * Fetches images and newest albums on component mount.
-   */
   useEffect(() => {
     fetchImages();
     getNewestAlbums();

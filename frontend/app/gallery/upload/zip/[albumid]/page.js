@@ -10,12 +10,6 @@ import SuccessWindow from '@/utils/SuccessWindow';
 import ErrorWindow from '@/utils/ErrorWindow';
 import { signIn } from 'next-auth/react';
 
-/**
- * UploadZipForm component.
- *
- * @param {Object} params - The parameters.
- * @returns {JSX.Element} - The rendered JSX element.
- */
 const UploadZipForm = ({params}) => {
     const { data: session } = useSession();
     const fileInputRef = useRef(null);
@@ -25,32 +19,15 @@ const UploadZipForm = ({params}) => {
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
 
-    /**
-     * Handles the click of the button.
-     *
-     * @returns {void}
-     */
     const handleButtonClick = () => {
         fileInputRef.current.click();
     };
 
-    /**
-     * Handles the change of the image input.
-     *
-     * @param {Object} e - The event object.
-     * @returns {void}
-     */
     const handleImageChange = (e) => {
         setUploadedFile(e.target.files[0]);
         setErrorMessage(null);
     };
 
-    /**
-     * Handles the submission of the form.
-     *
-     * @param {Object} e - The event object.
-     * @returns {Promise<void>}
-     */
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -87,11 +64,6 @@ const UploadZipForm = ({params}) => {
         }
     };
 
-    /**
-     * Renders the UploadZipForm component.
-     *
-     * @returns {JSX.Element} - The rendered JSX element.
-     */
     return (
         <section className="fa-upload">
             {isLoading ? <Loading /> : (

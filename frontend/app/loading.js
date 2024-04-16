@@ -1,8 +1,3 @@
-/**
- * Loading component.
- *
- * @returns {JSX.Element} - The rendered JSX element.
- */
 export default function Loading() {
     /**
      * Renders a spinning circle to indicate loading.

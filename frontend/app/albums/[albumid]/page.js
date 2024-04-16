@@ -13,12 +13,6 @@ import {AlbumButtons} from "@/utils/AlbumButtons";
 import SuccessWindow from '@/utils/SuccessWindow';
 import ErrorWindow from '@/utils/ErrorWindow';
 
-/**
- * SubAlbumPage component.
- *
- * @param {Object} params - The parameters passed to the component.
- * @returns {JSX.Element} - The rendered JSX element.
- */
 export default function SubAlbumPage({ params}) {
     const [albumData, setAlbumData] = useState(null);
     const albumId = params.albumid;
@@ -38,29 +32,14 @@ export default function SubAlbumPage({ params}) {
     const router = useRouter();
 
 
-    /**
-     * Handles the click on the Actions button.
-     *
-     * @returns {void}
-     */
     const handleActionsClick = () => {
         setIsActionsOpen(!isActionsOpen);
     };
 
-    /**
-     * Handles the click on the Upload button.
-     *
-     * @returns {void}
-     */
     const handleUploadClick = () => {
         setIsUploadOpen(!isUploadOpen);
     };
 
-    /**
-     * Fetches album data and sets the state.
-     *
-     * @returns {void}
-     */
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -102,11 +81,6 @@ export default function SubAlbumPage({ params}) {
         return <Loading/>;
     }
 
-    /**
-     * Handles the download action.
-     *
-     * @returns {Promise<void>}
-     */
     const handleDownload = async () => {
         if (selectedImageIds.length === 1 && selectedAlbumIds.length === 0) {
             const image = albumData.images.find(image => image._id.toString() === selectedImageIds[0]);
@@ -172,11 +146,6 @@ export default function SubAlbumPage({ params}) {
     };
 
 
-    /**
-     * Handles the delete action.
-     *
-     * @returns {Promise<void>}
-     */
     const handleDelete = async () => {
         const image_ids = selectedImageIds;
         const album_ids = selectedAlbumIds;
@@ -238,11 +207,6 @@ export default function SubAlbumPage({ params}) {
     };
 
 
-    /**
-     * Handles the tag submission action.
-     *
-     * @returns {Promise<void>}
-     */
     const handleTagSubmit = async () => {
         if (!tagInput) {
             setErrorMessage('No tags entered');
@@ -281,31 +245,15 @@ export default function SubAlbumPage({ params}) {
         setIsAllItemsDeselected(true);
     };
 
-    /**
-     * Handles the Add Tags action.
-     *
-     * @returns {void}
-     */
     const handleAddTags = () => {
         setIsTagModalOpen(true);
     };
 
-    /**
-     * Handles the cancel action in the Tag Modal.
-     *
-     * @returns {void}
-     */
     const handleTagModalCancel = () => {
         setTagInput('');
         setIsTagModalOpen(false);
     };
 
-    /**
-     * Handles the change in the Tag Input field.
-     *
-     * @param {Object} e - The event object.
-     * @returns {void}
-     */
     const handleTagInputChange = (e) => {
         setTagInput(e.target.value);
     };
@@ -338,11 +286,6 @@ export default function SubAlbumPage({ params}) {
         <ImageSelection key={idx} item={image} isAlbum={false}/>
     ));
 
-    /**
-     * Renders the SubAlbumPage component.
-     *
-     * @returns {JSX.Element} - The rendered JSX element.
-     */
     return (
         <div className="container">
             {errorMessage && <ErrorWindow message={errorMessage} clearMessage={() => setErrorMessage(null)} />}

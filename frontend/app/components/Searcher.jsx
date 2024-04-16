@@ -16,11 +16,7 @@ export default function Searcher({ search }) {
   const [suggestions, setSuggestions] = useState([]);
   const [errorMessage, setErrorMessage] = useState(null);
 
-  /**
-   * Fetches search suggestions from the API.
-   *
-   * @param {string} input - The input text.
-   */
+
   const fetchSuggestions = async (input) => {
     try {
       const response = await fetch(`/api/searchSuggestions?query=${input}`);
@@ -35,11 +31,7 @@ export default function Searcher({ search }) {
     }
   };
 
-  /**
-   * Handles the input event.
-   *
-   * @param {Object} e - The event object.
-   */
+
   const handleInput = (e) => {
     setText(e.target.value);
     fetchSuggestions(e.target.value);
@@ -56,11 +48,7 @@ export default function Searcher({ search }) {
     }
   };
 
-  /**
-   * Handles the click event on a suggestion.
-   *
-   * @param {string} suggestion - The clicked suggestion.
-   */
+
   const handleSuggestionClick = (suggestion) => {
     setText(suggestion);
     setSuggestions([]);
@@ -71,9 +59,7 @@ export default function Searcher({ search }) {
     router.push(`/gallery?${params.toString()}`);
   };
 
-  /**
-   * Handles the blur event on the input.
-   */
+
   const handleInputBlur = () => {
     setTimeout(() => {
       setSuggestions([]);

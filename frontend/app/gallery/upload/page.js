@@ -10,11 +10,6 @@ import { signIn } from 'next-auth/react';
 import SuccessWindow from '@/utils/SuccessWindow';
 import ErrorWindow from '@/utils/ErrorWindow';
 
-/**
- * UploadForm component.
- *
- * @returns {JSX.Element} - The rendered JSX element.
- */
 const UploadForm = () => {
     const [images, setImages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -25,11 +20,6 @@ const UploadForm = () => {
     const [errorMessage, setErrorMessage] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
 
-    /**
-     * Handles the click of the button.
-     *
-     * @returns {void}
-     */
     const handleButtonClick = () => {
         try {
             fileInputRef.current.click();
@@ -39,12 +29,6 @@ const UploadForm = () => {
         }
     };
 
-    /**
-     * Handles the change of the image input.
-     *
-     * @param {Object} e - The event object.
-     * @returns {void}
-     */
     const handleImageChange = (e) => {
         try {
             setImages([...images, ...Array.from(e.target.files)]);
@@ -55,12 +39,6 @@ const UploadForm = () => {
         }
     };
 
-    /**
-     * Handles the removal of an image.
-     *
-     * @param {number} index - The index of the image to remove.
-     * @returns {void}
-     */
     const handleRemoveImage = (index) => {
         try {
             setImages(images.filter((_, i) => i !== index));
@@ -70,12 +48,6 @@ const UploadForm = () => {
         }
     };
 
-    /**
-     * Handles the submission of the form.
-     *
-     * @param {Object} e - The event object.
-     * @returns {Promise<void>}
-     */
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -116,13 +88,6 @@ const UploadForm = () => {
         }
     };
 
-    /**
-     * Handles the resizing of an image.
-     *
-     * @param {Object} img - The image to resize.
-     * @param {number} index - The index of the image to resize.
-     * @returns {Promise<void>}
-     */
     const handleResizeImage = async (img, index) => {
         try {
             const newWidth = resizeValues[index]?.width;
@@ -158,14 +123,6 @@ const UploadForm = () => {
         }
     };
 
-    /**
-     * Handles the change of the resize input.
-     *
-     * @param {number} index - The index of the image to resize.
-     * @param {string} dimension - The dimension to resize ('width' or 'height').
-     * @param {number} value - The new value for the dimension.
-     * @returns {void}
-     */
     const handleResizeInputChange = (index, dimension, value) => {
         try {
             setResizeValues({
@@ -178,13 +135,6 @@ const UploadForm = () => {
         }
     };
 
-    /**
-     * Handles the click of the resize button.
-     *
-     * @param {Object} img - The image to resize.
-     * @param {number} index - The index of the image to resize.
-     * @returns {Promise<void>}
-     */
     const handleResizeButtonClick = async (img, index) => {
         try {
             if (showResizeFields[index]) {
@@ -206,11 +156,6 @@ const UploadForm = () => {
         }
     };
 
-    /**
-     * Renders the UploadForm component.
-     *
-     * @returns {JSX.Element} - The rendered JSX element.
-     */
     return (
         <section className="fa-upload">
             {isLoading && <Loading />}

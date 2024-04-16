@@ -10,12 +10,7 @@ import { signIn } from 'next-auth/react';
 import SuccessWindow from '@/utils/SuccessWindow';
 import ErrorWindow from '@/utils/ErrorWindow';
 
-/**
- * UploadToAlbumForm component.
- *
- * @param {Object} params - The parameters.
- * @returns {JSX.Element} - The rendered JSX element.
- */
+
 const UploadToAlbumForm = ({ params }) => {
     const [images, setImages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -27,12 +22,7 @@ const UploadToAlbumForm = ({ params }) => {
     const [errorMessage, setErrorMessage] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null)
 
-    /**
-     * Handles the change of the image input.
-     *
-     * @param {Object} e - The event object.
-     * @returns {void}
-     */
+
     const handleImageChange = (e) => {
         try {
             setImages([...Array.from(e.target.files)]);
@@ -43,11 +33,7 @@ const UploadToAlbumForm = ({ params }) => {
         }
     };
 
-    /**
-     * Handles the click of the button.
-     *
-     * @returns {void}
-     */
+
     const handleButtonClick = () => {
         try {
             fileInputRef.current.click();
@@ -57,12 +43,7 @@ const UploadToAlbumForm = ({ params }) => {
         }
     };
 
-    /**
-     * Handles the removal of an image.
-     *
-     * @param {number} index - The index of the image to remove.
-     * @returns {void}
-     */
+
     const handleRemoveImage = (index) => {
         try {
             setImages(images.filter((_, i) => i !== index));
@@ -72,12 +53,7 @@ const UploadToAlbumForm = ({ params }) => {
         }
     };
 
-    /**
-     * Handles the submission of the form.
-     *
-     * @param {Object} e - The event object.
-     * @returns {Promise<void>}
-     */
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -207,11 +183,7 @@ const UploadToAlbumForm = ({ params }) => {
         }
     };
 
-    /**
-     * Renders the UploadToAlbumForm component.
-     *
-     * @returns {JSX.Element} - The rendered JSX element.
-     */
+
     return (
         <section className="fa-upload">
             {isLoading && <Loading />}

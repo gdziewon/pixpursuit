@@ -9,29 +9,17 @@ import ErrorWindow from '@/utils/ErrorWindow';
 
 config.autoAddCss = false;
 
-/**
- * Navbar component.
- *
- * @returns {JSX.Element} - The rendered JSX element.
- */
 function Navbar() {
     const { data: session } = useSession();
     const [errorMessage, setErrorMessage] = useState(null);
 
-    /**
-     * Checks if there was an error refreshing the access token and signs out if there was.
-     */
     useEffect(() => {
         if (session?.error === "RefreshAccessTokenError") {
             signOut();
         }
     }, [session]);
 
-    /**
-     * Handles the sign-in process.
-     *
-     * @returns {Promise<void>}
-     */
+
     const handleSignIn = async () => {
         try {
             await signIn();
@@ -41,11 +29,7 @@ function Navbar() {
         }
     };
 
-    /**
-     * Handles the sign-out process.
-     *
-     * @returns {Promise<void>}
-     */
+
     const handleSignOut = async () => {
         try {
             await signOut();

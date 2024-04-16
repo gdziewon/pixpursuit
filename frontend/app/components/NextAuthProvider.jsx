@@ -17,9 +17,6 @@ const NextAuthProvider = ({ children, pageProps }) => {
         return <SessionProvider session={pageProps?.session}>{children}</SessionProvider>;
     } catch (error) {
         console.error("Error occurred while providing the session: ", error);
-        /**
-         * Returns an error message if an error occurred.
-         */
         return <div>An error occurred. Please try again later.</div>;
     }
 };

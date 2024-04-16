@@ -12,12 +12,7 @@ import Link from "next/link";
 import ErrorWindow from '@/utils/ErrorWindow';
 import SuccessWindow from '@/utils/SuccessWindow';
 
-/**
- * ImagePage component.
- *
- * @param {Object} params - The parameters.
- * @returns {JSX.Element} - The rendered JSX element.
- */
+
 export default function ImagePage({ params }) {
   const [newTag, setNewTag] = useState(null);
   const [editingDescription, setEditingDescription] = useState(false);
@@ -39,11 +34,6 @@ export default function ImagePage({ params }) {
   const [errorMessage, setErrorMessage] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  /**
-   * Fetches image data and sets the state.
-   *
-   * @returns {void}
-   */
   useEffect(() => {
     const fetchImage = async () => {
       try {
@@ -69,11 +59,6 @@ export default function ImagePage({ params }) {
     fetchImage();
   }, [id, session]);
 
-  /**
-   * Adds a view for the image.
-   *
-   * @returns {void}
-   */
   useEffect(() => {
     const addView = async () => {
       try {
@@ -102,11 +87,7 @@ export default function ImagePage({ params }) {
     }
   }, [id]);
 
-  /**
-   * Fetches similar images and sets the state.
-   *
-   * @returns {void}
-   */
+
   useEffect(() => {
     const fetchSimilarImages = async () => {
       try {
@@ -180,11 +161,6 @@ export default function ImagePage({ params }) {
     }
   }
 
-  /**
-   * Renders the description of the image.
-   *
-   * @returns {JSX.Element} - The rendered JSX element.
-   */
   const renderDescription = () => {
     if (editingDescription) {
       return (
@@ -236,11 +212,7 @@ export default function ImagePage({ params }) {
     }
   };
 
-  /**
-   * Renders the heart icon.
-   *
-   * @returns {JSX.Element} - The rendered JSX element.
-   */
+
   const renderHeartIcon = () => {
     const heartIconClass = session
         ? `h-10 w-10 ${isLikedByUser ? 'text-red-500 cursor-pointer' : 'text-gray-500 hover:text-pink-500 cursor-pointer'}`
@@ -254,11 +226,7 @@ export default function ImagePage({ params }) {
     );
   };
 
-  /**
-   * Adds a tag to the image.
-   *
-   * @returns {Promise<void>}
-   */
+
   const handleAddTag = async () => {
     try {
       const tagData = {
@@ -286,12 +254,7 @@ export default function ImagePage({ params }) {
     }
   };
 
-  /**
-   * Handles the click on the heart icon.
-   *
-   * @param {boolean} isPositive - Whether the click is a like or unlike.
-   * @returns {Promise<void>}
-   */
+
   const handleHeartClick = async (isPositive) => {
     try {
       const faceData = {
@@ -329,11 +292,7 @@ export default function ImagePage({ params }) {
     }
   }
 
-  /**
-   * Changes the description of the image.
-   *
-   * @returns {Promise<void>}
-   */
+
   const handleChangeDescription = async () => {
     const descriptionData = {
       inserted_id: id,
@@ -362,12 +321,7 @@ export default function ImagePage({ params }) {
     setEditingDescription(false);
   };
 
-  /**
-   * Removes a tag from the image.
-   *
-   * @param {string} tagToRemove - The tag to remove.
-   * @returns {Promise<void>}
-   */
+
   const handleRemoveTag = async (tagToRemove) => {
     try {
       const tagData = {
@@ -431,22 +385,11 @@ export default function ImagePage({ params }) {
     }
   };
 
-  /**
-   * Checks the feedback history for a tag.
-   *
-   * @param {string} tag - The tag.
-   * @returns {boolean|null} - The feedback for the tag, or null if there is no feedback.
-   */
+
   const checkFeedbackHistory = (tag) => {
     return autoTagsFeedback[tag] !== undefined ? autoTagsFeedback[tag] : null;
   };
 
-  /**
-   * Handles the mouse enter event on a tag.
-   *
-   * @param {string} tag - The tag.
-   * @returns {void}
-   */
   const handleMouseEnter = (tag) => {
     if (leaveTimer) {
       clearTimeout(leaveTimer);
@@ -455,11 +398,6 @@ export default function ImagePage({ params }) {
     setHoveredTag(tag);
   };
 
-  /**
-   * Handles the mouse leave event on a tag.
-   *
-   * @returns {void}
-   */
   const handleMouseLeave = () => {
     const timer = setTimeout(() => {
       setHoveredTag(null);
@@ -467,47 +405,26 @@ export default function ImagePage({ params }) {
     setLeaveTimer(timer);
   };
 
-  /**
-   * Handles the change event on the description input.
-   *
-   * @param {Object} e - The event object.
-   * @returns {void}
-   */
+
   const handleDescriptionChange = (e) => {
     setEditedDescription(e.target.value);
   };
 
-  /**
-   * Toggles the editing of the description.
-   *
-   * @returns {void}
-   */
+
   const toggleEditingDescription = () => {
     setEditingDescription(!editingDescription);
   };
 
-  /**
-   * Handles the cancel edit event.
-   *
-   * @returns {void}
-   */
   const handleCancelEdit = () => {
     setEditingDescription(false);
     setEditedDescription(image.description);
   };
 
 
-
-
   if (!image) {
     return <Loading />;
   }
 
-  /**
-   * Renders the ImagePage component.
-   *
-   * @returns {JSX.Element} - The rendered JSX element.
-   */
   return (
       <main className="flex flex-col p-6">
         <div className="flex">
