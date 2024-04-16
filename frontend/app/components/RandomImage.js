@@ -10,6 +10,11 @@ import { IoIosArrowBack, IoIosArrowForward } from 'react-icons/io';
 import Link from 'next/link';
 import '@/styles/design_styles.css';
 
+/**
+ * RandomImage component.
+ *
+ * @returns {JSX.Element} - The rendered JSX element.
+ */
 export default function RandomImage() {
   const [images, setImages] = useState(Array(10).fill(null));
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -17,13 +22,18 @@ export default function RandomImage() {
   const [errorMessage, setErrorMessage] = useState(null);
   const [newestAlbums, setNewestAlbums] = useState([]);
 
+  /**
+   * Fetches images and newest albums on component mount.
+   */
   useEffect(() => {
     fetchImages();
     getNewestAlbums();
   }, []);
 
 
-
+  /**
+   * Sets up a timer to change the current image index every 10 seconds.
+   */
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
@@ -32,6 +42,9 @@ export default function RandomImage() {
     return () => clearInterval(timer);
   }, [images]);
 
+  /**
+   * Fetches images from the API.
+   */
   const fetchImages = async () => {
     try {
       const data = await getImages({ limit: 5, sort: "mostPopular", page: 1, query: "" });
@@ -42,18 +55,32 @@ export default function RandomImage() {
     }
   };
 
+  /**
+   * Handles the previous image button click.
+   */
   const handlePrev = () => {
     setCurrentImageIndex((prevIndex) => (prevIndex - 1 + images.length) % images.length);
   };
 
+  /**
+   * Handles the next image button click.
+   */
   const handleNext = () => {
     setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
   };
 
+  /**
+   * Handles the circle button click.
+   *
+   * @param {number} index - The index of the circle button.
+   */
   const handleCircleClick = (index) => {
     setCurrentImageIndex(index);
   };
 
+  /**
+   * Fetches the newest albums from the API.
+   */
   const getNewestAlbums = async () => {
     setIsLoading(true);
     try {

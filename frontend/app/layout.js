@@ -12,8 +12,20 @@ export const metadata = {
   description: "Image gallery app",
 };
 
+/**
+ * Root layout component.
+ *
+ * @param {Object} props - The props.
+ * @param {React.ReactNode} props.children - The children to be rendered.
+ * @param {Object} props.session - The session object.
+ * @returns {JSX.Element} - The rendered JSX element.
+ */
 export default function RootLayout({ children, session }) {
   try {
+    /**
+     * Wraps the children with the NextAuth provider and the SelectedItems provider.
+     * Renders the Navbar and the children.
+     */
     return (
         <NextAuthProvider session={session}>
           <SelectedItemsProvider>
