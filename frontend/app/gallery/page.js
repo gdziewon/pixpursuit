@@ -15,6 +15,12 @@ import { CloudArrowDownIcon } from "@heroicons/react/24/solid";
 import axios from "axios";
 import download from "downloadjs";
 
+/**
+ * Gallery component.
+ *
+ * @param {Object} searchParams - The search parameters.
+ * @returns {JSX.Element} - The rendered JSX element.
+ */
 export default function Gallery({ searchParams }) {
   let page =
     parseInt(searchParams.page, 10) ||
@@ -35,7 +41,6 @@ export default function Gallery({ searchParams }) {
   const [downloadProgress, setDownloadProgress] = useState(false);
   const [searchMode, setSearchMode] = useState(searchParams.searchMode || "OR");
 
-  // test_04.03
   if (typeof window !== "undefined") {
     localStorage.setItem("sort", sort);
     localStorage.setItem("page", page.toString());
@@ -43,6 +48,11 @@ export default function Gallery({ searchParams }) {
 
   const [images, setImages] = useState([]);
 
+  /**
+   * Fetches images from the server.
+   *
+   * @returns {Promise<void>}
+   */
   useEffect(() => {
     const fetchImages = async () => {
       try {
@@ -64,6 +74,11 @@ export default function Gallery({ searchParams }) {
     fetchImages();
   }, [limit, page, search, sort, searchMode]);
 
+  /**
+   * Handles the download of images.
+   *
+   * @returns {Promise<void>}
+   */
   const handleDownload = async () => {
     console.log(imageIds);
     const data = {
@@ -108,6 +123,11 @@ export default function Gallery({ searchParams }) {
     }
   };
 
+  /**
+   * Renders the dropdown menu.
+   *
+   * @returns {JSX.Element} - The rendered JSX element.
+   */
   const renderDropdownMenu = () => {
     if (dropdown === "visible") {
       return (

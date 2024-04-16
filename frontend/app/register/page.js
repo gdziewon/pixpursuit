@@ -3,6 +3,11 @@
 import { useState } from "react";
 import axios from "axios";
 
+/**
+ * Register component.
+ *
+ * @returns {JSX.Element} - The rendered JSX element.
+ */
 export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -10,17 +15,36 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  /**
+   * Validates the email.
+   *
+   * @param {string} email - The email to validate.
+   * @returns {boolean} - Whether the email is valid.
+   */
   const validateEmail = (email) => {
     const emailRegex =
       /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
     return emailRegex.test(email);
   };
 
+  /**
+   * Validates the password.
+   *
+   * @param {string} password - The password to validate.
+   * @returns {boolean} - Whether the password is valid.
+   */
   const validatePassword = (password) => {
     const passwordRegex =
       /(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%\^&\*])(?=.{8,})/;
     return passwordRegex.test(password);
   };
+
+  /**
+   * Handles the submission of the form.
+   *
+   * @param {Object} event - The event object.
+   * @returns {Promise<void>}
+   */
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);

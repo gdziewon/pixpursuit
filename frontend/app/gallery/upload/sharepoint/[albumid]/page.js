@@ -6,6 +6,12 @@ import { useSession } from 'next-auth/react';
 import SuccessWindow from '@/utils/SuccessWindow';
 import ErrorWindow from '@/utils/ErrorWindow';
 
+/**
+ * SharepointUploadPage component.
+ *
+ * @param {Object} params - The parameters.
+ * @returns {JSX.Element} - The rendered JSX element.
+ */
 export default function SharepointUploadPage({params}) {
     const [url, setUrl] = useState('');
     const [username, setUsername] = useState('');
@@ -17,6 +23,12 @@ export default function SharepointUploadPage({params}) {
     const { data: session } = useSession();
     const albumId = params.albumid;
 
+    /**
+     * Handles the upload of images.
+     *
+     * @param {Object} e - The event object.
+     * @returns {Promise<void>}
+     */
     const handleUpload = async (e) => {
         e.preventDefault();
 
@@ -49,10 +61,20 @@ export default function SharepointUploadPage({params}) {
         }
     };
 
+    /**
+     * Handles the cancel action.
+     *
+     * @returns {void}
+     */
     const handleCancel = () => {
         window.history.back();
     };
 
+    /**
+     * Renders the SharepointUploadPage component.
+     *
+     * @returns {JSX.Element} - The rendered JSX element.
+     */
     return (
         <div className="container mx-auto max-w-md shadow-md overflow-hidden md:max-w-2xl rounded-lg">
             <div className="p-6 bg-gray-800">

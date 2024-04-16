@@ -10,6 +10,12 @@ import { signIn } from 'next-auth/react';
 import SuccessWindow from '@/utils/SuccessWindow';
 import ErrorWindow from '@/utils/ErrorWindow';
 
+/**
+ * UploadToAlbumForm component.
+ *
+ * @param {Object} params - The parameters.
+ * @returns {JSX.Element} - The rendered JSX element.
+ */
 const UploadToAlbumForm = ({ params }) => {
     const [images, setImages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -21,6 +27,12 @@ const UploadToAlbumForm = ({ params }) => {
     const [errorMessage, setErrorMessage] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null)
 
+    /**
+     * Handles the change of the image input.
+     *
+     * @param {Object} e - The event object.
+     * @returns {void}
+     */
     const handleImageChange = (e) => {
         try {
             setImages([...Array.from(e.target.files)]);
@@ -31,6 +43,11 @@ const UploadToAlbumForm = ({ params }) => {
         }
     };
 
+    /**
+     * Handles the click of the button.
+     *
+     * @returns {void}
+     */
     const handleButtonClick = () => {
         try {
             fileInputRef.current.click();
@@ -40,6 +57,12 @@ const UploadToAlbumForm = ({ params }) => {
         }
     };
 
+    /**
+     * Handles the removal of an image.
+     *
+     * @param {number} index - The index of the image to remove.
+     * @returns {void}
+     */
     const handleRemoveImage = (index) => {
         try {
             setImages(images.filter((_, i) => i !== index));
@@ -49,6 +72,12 @@ const UploadToAlbumForm = ({ params }) => {
         }
     };
 
+    /**
+     * Handles the submission of the form.
+     *
+     * @param {Object} e - The event object.
+     * @returns {Promise<void>}
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -88,6 +117,13 @@ const UploadToAlbumForm = ({ params }) => {
         }
     };
 
+    /**
+     * Handles the resizing of an image.
+     *
+     * @param {Object} img - The image to resize.
+     * @param {number} index - The index of the image to resize.
+     * @returns {Promise<void>}
+     */
     const handleResizeImage = async (img, index) => {
         try {
             const newWidth = resizeValues[index]?.width;
@@ -123,6 +159,14 @@ const UploadToAlbumForm = ({ params }) => {
         }
     };
 
+    /**
+     * Handles the change of the resize input.
+     *
+     * @param {number} index - The index of the image to resize.
+     * @param {string} dimension - The dimension to change ('width' or 'height').
+     * @param {number} value - The new value for the dimension.
+     * @returns {void}
+     */
     const handleResizeInputChange = (index, dimension, value) => {
         try {
             setResizeValues({
@@ -135,6 +179,13 @@ const UploadToAlbumForm = ({ params }) => {
         }
     };
 
+    /**
+     * Handles the click of the resize button.
+     *
+     * @param {Object} img - The image to resize.
+     * @param {number} index - The index of the image to resize.
+     * @returns {Promise<void>}
+     */
     const handleResizeButtonClick = async (img, index) => {
         try {
             if (showResizeFields[index]) {
@@ -156,6 +207,11 @@ const UploadToAlbumForm = ({ params }) => {
         }
     };
 
+    /**
+     * Renders the UploadToAlbumForm component.
+     *
+     * @returns {JSX.Element} - The rendered JSX element.
+     */
     return (
         <section className="fa-upload">
             {isLoading && <Loading />}
