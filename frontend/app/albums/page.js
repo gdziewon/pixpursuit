@@ -23,6 +23,11 @@ import Loading from "@/app/loading";
 import SuccessWindow from "@/utils/SuccessWindow";
 import ErrorWindow from "@/utils/ErrorWindow";
 
+/**
+ * AlbumsPage component.
+ *
+ * @returns {JSX.Element} - The rendered JSX element.
+ */
 export default function AlbumsPage() {
   const albumId = "root";
 
@@ -51,10 +56,20 @@ export default function AlbumsPage() {
   const [showLoadMoreButton, setShowLoadMoreButton] = useState(false); // flag to indicate if the load more button should be shown
   const [initialMount, setInitialMount] = useState(true); // flag to indicate if the component is mounted
 
+  /**
+   * Load more albums or images.
+   *
+   * @returns {void}
+   */
   const loadMore = () => {
     setPage((prevPageNumber) => prevPageNumber + 1);
   };
 
+  /**
+   * Fetches album data and sets the state.
+   *
+   * @returns {void}
+   */
   useEffect(() => {
     if (selectedImageIds.length === 0 && selectedAlbumIds.length === 0) {
       setIsActionsOpen(false);
@@ -107,6 +122,12 @@ export default function AlbumsPage() {
   const handleUploadClick = () => {
     setIsUploadOpen(!isUploadOpen);
   };
+
+  /**
+   * Handles the download action.
+   *
+   * @returns {Promise<void>}
+   */
   const handleDownload = async () => {
     if (selectedImageIds.length === 1 && selectedAlbumIds.length === 0) {
       const image = albumData.images.find(
@@ -182,6 +203,12 @@ export default function AlbumsPage() {
     setSelectedAlbumIds([]);
     setIsAllItemsDeselected(true);
   };
+
+  /**
+   * Handles the delete action.
+   *
+   * @returns {Promise<void>}
+   */
   const handleDelete = async () => {
     const image_ids = selectedImageIds;
     const album_ids = selectedAlbumIds;
@@ -245,6 +272,12 @@ export default function AlbumsPage() {
     }
     setIsAllItemsDeselected(true);
   };
+
+  /**
+   * Handles the tag submission.
+   *
+   * @returns {Promise<void>}
+   */
   const handleTagSubmit = async () => {
     if (!tagInput) {
       setErrorMessage("No tags entered");
@@ -286,23 +319,49 @@ export default function AlbumsPage() {
     setSelectedAlbumIds([]);
     setIsAllItemsDeselected(true);
   };
+
+  /**
+   * Handles the add tags action.
+   *
+   * @returns {void}
+   */
   const handleAddTags = () => {
     setIsTagModalOpen(true);
   };
+
+  /**
+   * Handles the tag modal cancel action.
+   *
+   * @returns {void}
+   */
   const handleTagModalCancel = () => {
     setTagInput("");
     setIsTagModalOpen(false);
   };
+
+  /**
+   * Handles the tag input change action.
+   *
+   * @param {Object} e - The event object.
+   * @returns {void}
+   */
   const handleTagInputChange = (e) => {
     setTagInput(e.target.value);
   };
 
-  // check if there is no album data or if there are no albums or images
+  /**
+   * Checks if there is no album data or if there are no albums or images.
+   * If true, returns a JSX element indicating no albums or images found.
+   */
   if (!albumData || (!albumData.sons.length && !albumData.images.length)) {
     return <div>No albums or images found.</div>;
   }
 
-  // map over the album data to create the album and image items
+
+  /**
+   * Maps over the album data to create the album and image items.
+   * Returns an array of ImageSelection components.
+   */
   const albumItems = albumData.sons.map((album, index) => {
     if (albumData.sons.length === index + 1) {
       return <ImageSelection key={index} item={album} isAlbum={true} />;
@@ -311,6 +370,11 @@ export default function AlbumsPage() {
     }
   });
 
+  /**
+   * Renders the AlbumsPage component.
+   *
+   * @returns {JSX.Element} - The rendered JSX element.
+   */
   return (
     <div className="container">
       {errorMessage && (

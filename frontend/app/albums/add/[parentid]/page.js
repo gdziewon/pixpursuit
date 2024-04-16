@@ -9,6 +9,11 @@ import { FolderPlusIcon, ArrowLeftStartOnRectangleIcon } from '@heroicons/react/
 import SuccessWindow from '@/utils/SuccessWindow';
 import ErrorWindow from '@/utils/ErrorWindow';
 
+/**
+ * Renders the SubAlbumPage component.
+ *
+ * @returns {JSX.Element} - The rendered JSX element.
+ */
 const AddAlbumForm = ({ params }) => {
     const [albumName, setAlbumName] = useState('');
     const parentAlbumId = params.parentid;
@@ -16,10 +21,22 @@ const AddAlbumForm = ({ params }) => {
     const [errorMessage, setErrorMessage] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
 
+    /**
+     * Handles the change on the Album Name field.
+     *
+     * @param {Object} e - The event object.
+     * @returns {void}
+     */
     const handleAlbumNameChange = (e) => {
         setAlbumName(e.target.value);
     };
 
+    /**
+     * Handles the form submission.
+     *
+     * @param {Object} e - The event object.
+     * @returns {Promise<void>}
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -53,6 +70,11 @@ const AddAlbumForm = ({ params }) => {
         }
     };
 
+    /**
+     * Sets the success message on component mount.
+     *
+     * @returns {void}
+     */
     useEffect(() => {
         const successMessage = localStorage.getItem('successMessage');
         if (successMessage) {
@@ -61,6 +83,11 @@ const AddAlbumForm = ({ params }) => {
         }
     }, []);
 
+    /**
+     * Renders the AddAlbumForm component.
+     *
+     * @returns {JSX.Element} - The rendered JSX element.
+     */
     return (
         <section className="add-album-form">
             {errorMessage && <ErrorWindow message={errorMessage} clearMessage={() => setErrorMessage(null)} />}

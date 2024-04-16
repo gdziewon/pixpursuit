@@ -9,6 +9,11 @@ import download from "downloadjs";
 import SuccessWindow from "@/utils/SuccessWindow";
 import ErrorWindow from "@/utils/ErrorWindow";
 
+/**
+ * UnassignedImagesPage component.
+ *
+ * @returns {JSX.Element} - The rendered JSX element.
+ */
 export default function UnassignedImagesPage() {
   const [unassignedImages, setUnassignedImages] = useState([]);
   const { data: session } = useSession();
@@ -18,6 +23,11 @@ export default function UnassignedImagesPage() {
   const [errorMessage, setErrorMessage] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
+  /**
+   * Fetches unassigned images and sets the state.
+   *
+   * @returns {void}
+   */
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -35,6 +45,11 @@ export default function UnassignedImagesPage() {
     return <ImageSelection key={idx} item={image} isAlbum={false} />;
   });
 
+  /**
+   * Handles the download action.
+   *
+   * @returns {Promise<void>}
+   */
   const handleDownload = async () => {
     if (selectedImageIds.length === 1) {
       const image = unassignedImages.find(
@@ -109,6 +124,11 @@ export default function UnassignedImagesPage() {
     setIsAllItemsDeselected(true);
   };
 
+  /**
+   * Renders the UnassignedImagesPage component.
+   *
+   * @returns {JSX.Element} - The rendered JSX element.
+   */
   return (
     <div className="container">
       {errorMessage && (

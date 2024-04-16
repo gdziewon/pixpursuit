@@ -9,6 +9,11 @@ import download from 'downloadjs';
 import SuccessWindow from '@/utils/SuccessWindow';
 import ErrorWindow from '@/utils/ErrorWindow';
 
+/**
+ * LikedImagesPage component.
+ *
+ * @returns {JSX.Element} - The rendered JSX element.
+ */
 export default function LikedImagesPage() {
     const [likedImages, setLikedImages] = useState([]);
     const { data: session } = useSession();
@@ -17,6 +22,11 @@ export default function LikedImagesPage() {
     const [errorMessage, setErrorMessage] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
 
+    /**
+     * Fetches liked images and sets the state.
+     *
+     * @returns {void}
+     */
     useEffect(() => {
         const fetchLikedImages = async () => {
             try {
@@ -36,6 +46,11 @@ export default function LikedImagesPage() {
         return <ImageSelection key={idx} item={image} isAlbum={false} />
     });
 
+    /**
+     * Handles the download action.
+     *
+     * @returns {Promise<void>}
+     */
     const handleDownload = async () => {
         if (selectedImageIds.length === 1) {
             const image = likedImages.find(image => image._id.toString() === selectedImageIds[0]);
@@ -98,6 +113,11 @@ export default function LikedImagesPage() {
         setIsAllItemsDeselected(true);
     };
 
+    /**
+     * Renders the LikedImagesPage component.
+     *
+     * @returns {JSX.Element} - The rendered JSX element.
+     */
     return (
         <div className="container">
             {errorMessage && <ErrorWindow message={errorMessage} clearMessage={() => setErrorMessage(null)} />}
