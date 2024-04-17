@@ -8,7 +8,8 @@ It configures the Celery application for asynchronous task execution in the proj
 from celery import Celery
 from celery.schedules import crontab
 from utils.constants import (CELERY_BROKER_URL, CELERY_RESULT_BACKEND,
-                             UPDATE_AUTO_TAGS_SCHEDULE, CLUSTER_FACES_SCHEDULE, BEAT_SCHEDULE_FILE_PATH)
+                             UPDATE_AUTO_TAGS_SCHEDULE, CLUSTER_FACES_SCHEDULE, BEAT_SCHEDULE_FILE_PATH,
+                             PREDICT_ALL_TAGS_TASK, GROUP_FACES_TASK)
 
 
 def make_celery(app_name=__name__) -> Celery:

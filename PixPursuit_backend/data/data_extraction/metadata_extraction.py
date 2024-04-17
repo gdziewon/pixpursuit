@@ -33,7 +33,7 @@ async def get_exif_data(image: Image) -> dict[str, str] or None:
                     value = exif_data[tag]
 
                     if key == 'DateTime':
-                        value = process_exif_date(value)
+                        value = await process_exif_date(value)
 
                     formatted_exif_data[key] = value
 

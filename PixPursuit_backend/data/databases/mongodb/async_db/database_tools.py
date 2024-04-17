@@ -16,6 +16,14 @@ SpaceManager = SpaceManager()
 
 async def get_image_record(data: tuple[str, str, str, dict],
                            username: str, album_id: ObjectId or str) -> dict or None:
+    """
+    Get the image record to be saved in the database.
+
+    :param data: A tuple containing the image URL, thumbnail URL, filename, and EXIF data.
+    :param username: The username of the user adding the image.
+    :param album_id: The ID of the album to which the image belongs.
+    :return: A dictionary containing the image record.
+    """
     try:
         image_url, thumbnail_url, filename, exif_data = data
 
@@ -53,6 +61,14 @@ async def get_image_record(data: tuple[str, str, str, dict],
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def save_image_to_database(data: tuple[str, str, str, dict], username: str, album_id: ObjectId or str) -> str or None:
+    """
+    Save image data to the database.
+
+    :param data: A tuple containing the image URL, thumbnail URL, filename, and EXIF data.
+    :param username: The username of the user adding the image.
+    :param album_id: The ID of the album to which the image belongs.
+    :return: The ID of the inserted image record.
+    """
     try:
         if not album_id or album_id == "root":
             album_id = await get_root_id()
@@ -79,6 +95,13 @@ async def save_image_to_database(data: tuple[str, str, str, dict], username: str
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def create_album(album_name: str, parent_id: ObjectId or str = None) -> ObjectId or None:
+    """
+    Create a new album in the database.
+
+    :param album_name: The name of the new album.
+    :param parent_id: The ID of the parent album.
+    :return: The ID of the inserted album.
+    """
     if not parent_id:
         parent_id = await get_root_id()
     parent_id = to_object_id(parent_id)
@@ -105,6 +128,12 @@ async def create_album(album_name: str, parent_id: ObjectId or str = None) -> Ob
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def add_tags_to_images(tags: list[str], inserted_ids: list[str]) -> bool:
+    """
+    Add tags to images in the database.
+    :param tags: A list of tags to add.
+    :param inserted_ids: A list of image IDs to which to add the tags.
+    :return: True if the tags were added successfully, False otherwise.
+    """
     for inserted_id in inserted_ids:
         inserted_id = to_object_id(inserted_id)
         if not inserted_id:
@@ -130,6 +159,13 @@ async def add_tags_to_images(tags: list[str], inserted_ids: list[str]) -> bool:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def add_tags_to_albums(tags: list[str], album_ids: list[str]) -> bool:
+    """
+    Add tags to albums in the database.
+
+    :param tags: A list of tags to add.
+    :param album_ids: A list of album IDs to which to add the tags.
+    :return: True if the tags were added successfully, False otherwise.
+    """
     for album_id in album_ids:
         try:
             album = await get_album(album_id)
@@ -152,6 +188,14 @@ async def add_tags_to_albums(tags: list[str], album_ids: list[str]) -> bool:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def add_feedback(tag: str, is_positive: bool, user: str, inserted_id: ObjectId or str) -> bool:
+    """
+    Add feedback to an image in the database.
+    :param tag: The tag for which to add feedback.
+    :param is_positive: Whether the feedback is positive or negative.
+    :param user: The username of the user providing feedback.
+    :param inserted_id: The ID of the image to which to add feedback.
+    :return: True if the feedback was added successfully, False otherwise.
+    """
     try:
         inserted_id = to_object_id(inserted_id)
         image_document = await get_image_document(inserted_id)
@@ -190,6 +234,13 @@ async def add_feedback(tag: str, is_positive: bool, user: str, inserted_id: Obje
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def add_description(description: str, inserted_id: ObjectId or str) -> bool:
+    """
+    Add a description to an image in the database.
+
+    :param description: The description to add.
+    :param inserted_id: The ID of the image to which to add the description.
+    :return: True if the description was added successfully, False otherwise.
+    """
     inserted_id = to_object_id(inserted_id)
     if not inserted_id:
         return False
@@ -208,6 +259,14 @@ async def add_description(description: str, inserted_id: ObjectId or str) -> boo
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def add_like(is_positive: bool, username: str, inserted_id: ObjectId or str) -> bool:
+    """
+    Add a like to an image in the database.
+
+    :param is_positive: Whether the like is positive or negative.
+    :param username: The username of the user adding the like.
+    :param inserted_id: The ID of the image to which to add the like.
+    :return: True if the like was added successfully, False otherwise.
+    """
     inserted_id = to_object_id(inserted_id)
     if not inserted_id:
         return False
@@ -244,6 +303,12 @@ async def add_like(is_positive: bool, username: str, inserted_id: ObjectId or st
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def add_view(inserted_id: ObjectId or str) -> bool:
+    """
+    Add a view to an image in the database.
+
+    :param inserted_id: The ID of the image to which to add the view.
+    :return: True if the view was added successfully, False otherwise.
+    """
     inserted_id = to_object_id(inserted_id)
     if not inserted_id:
         return False
@@ -261,6 +326,13 @@ async def add_view(inserted_id: ObjectId or str) -> bool:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def add_photos_to_album(image_ids: ObjectId or str, album_id: ObjectId or str) -> bool:
+    """
+    Add photos to an album in the database.
+
+    :param image_ids: The ID of the image or a list of image IDs to add to the album.
+    :param album_id: The ID of the album to which to add the photos.
+    :return: True if the photos were added successfully, False otherwise.
+    """
     album_id = to_object_id(album_id)
     if not album_id:
         logger.error(f"Invalid album_id provided: {album_id}")
@@ -283,6 +355,14 @@ async def add_photos_to_album(image_ids: ObjectId or str, album_id: ObjectId or 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def relocate_to_album(prev_album_id: ObjectId or str, new_album_id: ObjectId or str,
                             image_ids: list[str]) -> bool:
+    """
+    Relocate images from one album to another.
+
+    :param prev_album_id: The ID of the previous album.
+    :param new_album_id: The ID of the new album.
+    :param image_ids: A list of image IDs to relocate.
+    :return: True if the images were relocated successfully, False otherwise.
+    """
     try:
         prev_album_id = to_object_id(prev_album_id)
         new_album_id = to_object_id(new_album_id) if new_album_id else await get_root_id()
@@ -310,6 +390,13 @@ async def relocate_to_album(prev_album_id: ObjectId or str, new_album_id: Object
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def delete_albums(album_ids: list[str], is_top_level: bool = True) -> bool:
+    """
+    Delete albums from the database.
+
+    :param album_ids: A list of album IDs to delete.
+    :param is_top_level: Whether the album is root of the local tree.
+    :return: True if the albums were deleted successfully, False otherwise.
+    """
     all_deleted_successfully = True
     for album_id in album_ids:
         try:
@@ -350,6 +437,12 @@ async def delete_albums(album_ids: list[str], is_top_level: bool = True) -> bool
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def delete_images(image_ids: list[str]) -> bool:
+    """
+    Delete images from the database.
+
+    :param image_ids: A list of image IDs to delete.
+    :return: True if the images were deleted successfully, False otherwise.
+    """
     all_deleted_successfully = True
     for image_id in image_ids:
         try:
@@ -385,6 +478,12 @@ async def delete_images(image_ids: list[str]) -> bool:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def remove_tags_from_image(image_id: ObjectId or str, tags_to_remove: list[str]) -> bool:
+    """
+    Remove tags from an image in the database.
+    :param image_id: The ID of the image from which to remove tags.
+    :param tags_to_remove: A list of tags to remove.
+    :return: True if the tags were removed successfully, False otherwise.
+    """
     try:
         image_id = to_object_id(image_id)
         image = await get_image_document(image_id)
@@ -405,6 +504,12 @@ async def remove_tags_from_image(image_id: ObjectId or str, tags_to_remove: list
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def increment_tags_count(tags: list[str]) -> bool:
+    """
+    Increment the count of unique tags in the database.
+
+    :param tags: A list of tags to increment.
+    :return: True if the tags were incremented successfully, False otherwise.
+    """
     try:
         for tag in tags:
             if not await tags_collection.find_one({'name': tag}):
@@ -420,6 +525,12 @@ async def increment_tags_count(tags: list[str]) -> bool:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def decrement_tags_count(tags: list[str]) -> bool:
+    """
+    Decrement the count of unique tags in the database.
+
+    :param tags: A list of tags to decrement.
+    :return: True if the tags were decremented successfully, False otherwise.
+    """
     try:
         for tag in tags:
             await tags_collection.update_one(
@@ -437,6 +548,11 @@ async def decrement_tags_count(tags: list[str]) -> bool:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def get_root_id() -> ObjectId or None:
+    """
+    Get the ID of the root album.
+
+    :return: The ID of the root album.
+    """
     try:
         root_album = await album_collection.find_one({"name": "root", "parent": None})
         if not root_album:
@@ -459,12 +575,24 @@ async def get_root_id() -> ObjectId or None:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def get_user(username: str) -> dict or None:
+    """
+    Get a user document by username from the database.
+    :param username: The username of the user to retrieve.
+    :return: The user document if found, None otherwise.
+    """
     user = await user_collection.find_one({"username": username})
     return user
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def create_user(email: str, password: str) -> dict or None:
+    """
+    Create a new user in the database.
+
+    :param email: The email address of the new user.
+    :param password: Hashed password of the new user.
+    :return: Inserted user document if successful, None otherwise.
+    """
     email = email.lower()
     username = email.split('@')[0]
     user = await get_user(username)
@@ -487,6 +615,12 @@ async def create_user(email: str, password: str) -> dict or None:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def mark_email_as_verified(user_id: ObjectId or str) -> bool:
+    """
+    Mark a user's email as verified in the database.
+
+    :param user_id: The ID of the user to mark as verified.
+    :return: True if the email was marked as verified successfully, False otherwise.
+    """
     try:
         user_id = to_object_id(user_id)
         if not user_id:
@@ -505,6 +639,12 @@ async def mark_email_as_verified(user_id: ObjectId or str) -> bool:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def get_image_document(inserted_id: ObjectId or str) -> dict or None:
+    """
+    Get an image document by ID from the database.
+
+    :param inserted_id: The ID of the image to retrieve.
+    :return: The image document if found, None otherwise.
+    """
     inserted_id = to_object_id(inserted_id)
     if not inserted_id:
         return None
@@ -518,6 +658,12 @@ async def get_image_document(inserted_id: ObjectId or str) -> dict or None:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def get_album(album_id: ObjectId or str) -> dict or None:
+    """
+    Get an album by ID from the database.
+
+    :param album_id: The ID of the album to retrieve.
+    :return: The album document if found, None otherwise.
+    """
     album_id = to_object_id(album_id)
     if not album_id:
         return None
@@ -531,6 +677,13 @@ async def get_album(album_id: ObjectId or str) -> dict or None:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def rename_album(name: str, album_id: ObjectId or str) -> bool:
+    """
+    Rename an album in the database.
+
+    :param name: The new name for the album.
+    :param album_id: The ID of the album to rename.
+    :return: True if the album was renamed successfully, False otherwise.
+    """
     album_id = to_object_id(album_id)
     if not album_id:
         return False
@@ -553,6 +706,14 @@ async def rename_album(name: str, album_id: ObjectId or str) -> bool:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def add_names(inserted_id: ObjectId or str, anonymous_index: int, new_name: str) -> bool:
+    """
+    Add a name to an anonymous face in an image.
+
+    :param inserted_id: The ID of the image to which to add the name.
+    :param anonymous_index: The index of the anonymous face.
+    :param new_name: The name to add.
+    :return: True if the name was added successfully, False otherwise.
+    """
     try:
         inserted_id = to_object_id(inserted_id)
         if not inserted_id:

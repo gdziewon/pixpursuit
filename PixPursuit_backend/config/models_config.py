@@ -3,7 +3,6 @@ from torchvision.models import ResNet50_Weights
 from config.logging_config import setup_logging
 from facenet_pytorch import MTCNN, InceptionResnetV1
 import torch
-from utils.constants import FACE_DETECTION_THRESHOLD
 
 logger = setup_logging(__name__)
 
@@ -28,15 +27,14 @@ def activate_feature_models() -> tuple[models.ResNet, transforms.Compose]:
     return resnet, transform
 
 
-def activate_face_models(thresholds=FACE_DETECTION_THRESHOLD) -> tuple[torch.device, MTCNN, InceptionResnetV1]:
+def activate_face_models() -> tuple[torch.device, MTCNN, InceptionResnetV1]:
     """
     Activate and return the face detection and recognition models.
 
-    :param thresholds: Detection thresholds for the face detection model.
     :return: A tuple containing the device, MTCNN, and InceptionResnetV1 models.
     """
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    mtcnn = MTCNN(keep_all=True, thresholds=thresholds, device=device)
+    mtcnn = MTCNN(keep_all=True, device=device)
     resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
     logger.info("Activated pretrained FaceNet model")
     return device, mtcnn, resnet

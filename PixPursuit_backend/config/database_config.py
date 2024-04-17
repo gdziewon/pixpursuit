@@ -9,7 +9,7 @@ import motor.motor_asyncio
 import time
 from botocore.client import BaseClient
 from pymongo import MongoClient
-
+from botocore.config import Config
 from config.logging_config import setup_logging
 import boto3
 from utils.constants import (
@@ -91,12 +91,14 @@ def connect_to_space() -> BaseClient or None:
     :return: boto3 client instance for DigitalOcean Spaces or None if connection fails.
     """
     try:
+        config = Config(max_pool_connections=50)
         session = boto3.session.Session()
         client = session.client('s3',
                                 region_name=DO_REGION,
                                 endpoint_url=DO_SPACE_ENDPOINT,
                                 aws_access_key_id=DO_SPACE_ACCESS_KEY,
-                                aws_secret_access_key=DO_SPACE_SECRET_KEY)
+                                aws_secret_access_key=DO_SPACE_SECRET_KEY,
+                                config=config)
         return client
     except Exception as e:
         logger.error(f"Failed to connect to Digital Ocean Space: {e}")

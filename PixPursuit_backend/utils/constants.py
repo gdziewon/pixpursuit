@@ -59,6 +59,7 @@ BASE_URL = "http://www.galeria.pk.edu.pl"  # Base URL for the web scraper.
 
 # Similarity weights for image comparison
 WEIGHTS = {
+        'features': 0.5,
         'user_tags': 0.4,
         'user_faces': 0.3,
         'album_id': 0.1,
@@ -68,7 +69,7 @@ WEIGHTS = {
     }  # Weights for factors in image similarity scoring.
 
 # Face Detection
-FACE_DETECTION_THRESHOLD = [0.6, 0.7, 0.7]  # Confidence thresholds for face detection stages.
+MIN_FACE_SIZE = 3  # Minimum size for a detected face.
 FACE_SIZE_THRESHOLD = 4200  # Size threshold for considering a detected face.
 
 # Celery configuration
