@@ -1,9 +1,19 @@
 "use client"
 
-import React, { useState } from 'react';
+import React from 'react';
 import '@/styles/design_styles.css';
 
-
+/**
+ * Component for renaming an album.
+ *
+ * @param {Object} props - The props.
+ * @param {boolean} props.isOpen - Whether the modal is open.
+ * @param {Function} props.onSubmit - The function to call when the form is submitted.
+ * @param {Function} props.onCancel - The function to call when the cancel button is clicked.
+ * @param {Function} props.handleNameAlbumChange - The function to call when the album name is changed.
+ * @param {string} props.albumName - The current name of the album.
+ * @returns {JSX.Element|null} - The rendered JSX element, or null if the modal is not open.
+ */
 const RenameModal = ({ isOpen, onSubmit, onCancel, handleNameAlbumChange, albumName }) => {
 
     const onSubmitWithErrorHandling = async () => {

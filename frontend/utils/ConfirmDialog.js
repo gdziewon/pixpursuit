@@ -3,6 +3,15 @@
 import React, { useState } from 'react';
 import '@/styles/design_styles.css';
 
+/**
+ * Renders a confirmation dialog.
+ *
+ * @param {Object} props - The props.
+ * @param {boolean} props.isOpen - Whether the dialog is open.
+ * @param {Function} props.onConfirm - The function to call when the confirm button is clicked.
+ * @param {Function} props.onCancel - The function to call when the cancel button is clicked.
+ * @returns {JSX.Element|null} - The rendered JSX element, or null if the dialog is not open.
+ */
 const ConfirmDialog = ({ isOpen, onConfirm, onCancel }) => {
     const [error, setError] = useState(null);
 

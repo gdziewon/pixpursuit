@@ -3,6 +3,26 @@ import { useSession } from 'next-auth/react';
 import ConfirmDialog from "/utils/ConfirmDialog";
 import TagModal from "/utils/TagModal";
 
+/**
+ * Renders a dropdown menu with various actions.
+ *
+ * @param {Object} props - The props.
+ * @param {boolean} props.isActionsOpen - Whether the actions dropdown is open.
+ * @param {Function} props.handleActionsClick - The function to handle click on actions.
+ * @param {Function} props.handleAddTags - The function to handle adding tags.
+ * @param {Function} props.handleDownload - The function to handle download.
+ * @param {Function} props.handleTagSubmit - The function to handle tag submission.
+ * @param {Function} props.handleTagModalCancel - The function to handle tag modal cancellation.
+ * @param {Object} props.tagInput - The tag input object.
+ * @param {Function} props.handleTagInputChange - The function to handle tag input change.
+ * @param {number} props.downloadProgress - The download progress.
+ * @param {boolean} props.isConfirmDialogOpen - Whether the confirm dialog is open.
+ * @param {Function} props.setIsConfirmDialogOpen - The function to set whether the confirm dialog is open.
+ * @param {Function} props.handleDelete - The function to handle delete.
+ * @param {boolean} props.isTagModalOpen - Whether the tag modal is open.
+ * @param {Function} props.setIsTagModalOpen - The function to set whether the tag modal is open.
+ * @returns {JSX.Element|null} - The rendered JSX element, or null if the actions dropdown is not open.
+ */
 const DropdownMenu = ({ isActionsOpen, handleActionsClick, handleAddTags, handleDownload, handleTagSubmit, handleTagModalCancel, tagInput, handleTagInputChange, downloadProgress, isConfirmDialogOpen, setIsConfirmDialogOpen, handleDelete, isTagModalOpen, setIsTagModalOpen }) => {
     const { data: session } = useSession();
 

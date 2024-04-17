@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import '@/styles/design_styles.css';
 
+/**
+ * Renders an error window with a fade in and fade out effect.
+ *
+ * @param {Object} props - The props.
+ * @param {string} props.message - The error message to display.
+ * @param {Function} props.clearMessage - The function to clear the error message.
+ * @returns {JSX.Element|null} - The rendered JSX element, or null if there is no error message.
+ */
 const ErrorWindow = ({ message, clearMessage }) => {
     const [displayMessage, setDisplayMessage] = useState(message);
     const [fadeOut, setFadeOut] = useState(false);

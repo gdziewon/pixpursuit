@@ -3,6 +3,18 @@
 import React, { useState } from 'react';
 import '@/styles/design_styles.css';
 
+/**
+ * Component for adding tags to an item.
+ *
+ * @param {Object} props - The props.
+ * @param {boolean} props.isOpen - Whether the modal is open.
+ * @param {Function} props.onSubmit - The function to call when the form is submitted.
+ * @param {Function} props.onCancel - The function to call when the cancel button is clicked.
+ * @param {string} props.tagInput - The current input for the tag.
+ * @param {Function} props.handleTagInputChange - The function to call when the tag input is changed.
+ * @returns {JSX.Element|null} - The rendered JSX element, or null if the modal is not open.
+ * @throws {Error} - If there is an error rendering the component.
+ */
 const TagModal = ({ isOpen, onSubmit, onCancel, tagInput, handleTagInputChange }) => {
     const [error, setError] = useState(null);
 

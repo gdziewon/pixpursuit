@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import '@/styles/design_styles.css';
 
+/**
+ * Component for displaying a success message.
+ *
+ * @param {Object} props - The props.
+ * @param {string} props.message - The success message to display.
+ * @param {Function} props.clearMessage - The function to call to clear the success message.
+ * @returns {JSX.Element|null} - The rendered JSX element, or null if there is no message to display.
+ */
 const SuccessWindow = ({ message, clearMessage }) => {
     const [displayMessage, setDisplayMessage] = useState(message);
     const [fadeOut, setFadeOut] = useState(false);

@@ -11,13 +11,21 @@ import RenameModal from './RenameModal';
 import ErrorWindow from '@/utils/ErrorWindow';
 import SuccessWindow from "@/utils/SuccessWindow";
 
+/**
+ * Component for selecting an image or album.
+ *
+ * @param {Object} props - The props.
+ * @param {Object} props.item - The item (image or album) to be selected.
+ * @param {boolean} props.isAlbum - Whether the item is an album.
+ * @returns {JSX.Element} - The rendered JSX element.
+ */
 const ImageSelection = ({ item, isAlbum }) => {
     const [isSelected, setIsSelected] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const [isRenameButtonVisible, setIsRenameButtonVisible] = useState(false);
     const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
     const [albumName, setAlbumName] = useState(item.name);
-    const { selectedItems, selectItem, deselectItem } = useContext(SelectedItemsContext);
+    const { selectItem, deselectItem } = useContext(SelectedItemsContext);
     const { isAllItemsDeselected, setIsAllItemsDeselected } = useContext(SelectedItemsContext);
     const { data: session } = useSession();
     const [errorMessage, setErrorMessage] = useState(null);

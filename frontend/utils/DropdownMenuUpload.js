@@ -2,6 +2,15 @@ import React, { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
+/**
+ * Renders a dropdown menu for uploads.
+ *
+ * @param {Object} props - The props.
+ * @param {boolean} props.isUploadOpen - Whether the upload dropdown is open.
+ * @param {Function} props.handleUploadClick - The function to handle click on upload.
+ * @param {string} props.albumId - The ID of the album.
+ * @returns {JSX.Element} - The rendered JSX element.
+ */
 const DropdownMenuUpload = ({
     isUploadOpen,
     handleUploadClick,

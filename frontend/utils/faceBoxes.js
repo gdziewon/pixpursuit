@@ -7,6 +7,17 @@ import SuccessWindow from '@/utils/SuccessWindow';
 import ErrorWindow from '@/utils/ErrorWindow';
 import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 
+/**
+ * Renders a box overlay for an image with various interactive features.
+ *
+ * @param {Object} props - The props.
+ * @param {Object} props.image - The image object.
+ * @param {Array<Array<number>>} props.boxes - The boxes to overlay on the image.
+ * @param {Object} props.originalSize - The original size of the image.
+ * @param {Object} props.session - The session object.
+ * @param {boolean} props.showHeartOverlay - Whether to show a heart overlay.
+ * @returns {JSX.Element} - The rendered JSX element.
+ */
 export function BoxOverlay({ image, boxes, originalSize, session, showHeartOverlay }) {
     const displayWidth = 800;  // Adjust as needed
     const displayHeight = 800; // Adjust as needed
@@ -246,4 +257,4 @@ export function BoxOverlay({ image, boxes, originalSize, session, showHeartOverl
             )}
         </div>
     );
-};
+}

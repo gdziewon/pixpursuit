@@ -2,6 +2,12 @@ import { connectToDatabase } from "@/pages/api/connectMongo";
 
 let rootId = null;
 
+/**
+ * Fetches the root ID from the database.
+ *
+ * @returns {Promise<string>} - A promise that resolves to the root ID.
+ * @throws {Error} - If the root album is not found or if there is an error connecting to the database.
+ */
 export async function getRootId() {
     try {
         if (rootId) {

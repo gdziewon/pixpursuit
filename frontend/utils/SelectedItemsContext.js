@@ -2,6 +2,13 @@
 
 import React, { createContext, useState } from 'react';
 
+/**
+ * Provides the selected items' context.
+ *
+ * @param {Object} props - The props.
+ * @param {ReactNode} props.children - The children to be rendered within this context provider.
+ * @returns {JSX.Element} - The rendered JSX element.
+ */
 export const SelectedItemsContext = createContext();
 
 export const SelectedItemsProvider = ({ children }) => {
