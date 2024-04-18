@@ -71,11 +71,12 @@ class ImageSimilarity:
 
     async def find_similar_images(self, image_id: str, sample_size: int = 20) -> list[dict]:
         """
-        Processes the features of a list of images asynchronously.
+        Processes the features of a list of images asynchronously and returns a list of dictionaries
+        containing image IDs and thumbnail URLs of similar images.
 
         :param image_id: The ID of the image for which to find similar images.
         :param sample_size: The number of images to sample for comparison.
-        :return: A Dask array of the processed features.
+        :return: A list of dictionaries containing '_id' and 'thumbnail_url' of similar images.
         """
         try:
             image_document = await get_image_document(image_id)
@@ -87,25 +88,25 @@ class ImageSimilarity:
             if reference_features is None:
                 return []
 
-            # Get a sample of images to compare
             sample_images = await self._get_sample_images(image_id, sample_size)
             features_matrix = await self._process_image_features(sample_images)
             if features_matrix is None:
                 return []
 
-            # Calculate similarities between the reference features and the sample images
             similarities = self._calculate_similarities(da.asarray(reference_features), features_matrix)
 
-            # Find top similar images using a heap
+            # Using a heap to keep track of top images
             top_images = []
-            for score, img in zip(similarities, sample_images):
+            for index, (score, img) in enumerate(zip(similarities, sample_images)):
                 if score is not None:
-                    heapq.heappush(top_images, (score, str(img['_id']), img.get('thumbnail_url')))
-                if len(top_images) > sample_size:
-                    heapq.heappop(top_images)
+                    heapq.heappush(top_images,
+                                   (-score, index, {'_id': str(img['_id']), 'thumbnail_url': img.get('thumbnail_url')}))
+                    if len(top_images) > sample_size:
+                        heapq.heappop(top_images)
 
-            top_images.sort(reverse=True, key=lambda x: x[0])
-            return top_images
+            # Convert heap to a sorted list based on similarity score
+            top_images.sort(reverse=True, key=lambda x: x[0])  # Sort primarily by score
+            return [{'_id': img['_id'], 'thumbnail_url': img['thumbnail_url']} for _, _, img in top_images]
         except Exception as e:
             logger.error(f"Unhandled exception in find_similar_images: {e}")
             return []
@@ -128,11 +129,12 @@ class ImageSimilarity:
         if total_docs == 0:
             return []
 
-        size = max(limit, total_docs // 70)
+        # Sample 10% of the total documents or the specified limit
+        size = max(limit, total_docs // 10)
         pipeline = [
             {'$match': {'_id': {'$ne': oid}}},
             {'$sample': {'size': size}},
             {'$project': {'features': 1, 'thumbnail_url': 1}}
         ]
-        cursor = images_collection.aggregate(pipeline)
+        cursor = images_collection.aggregate(pipeline, allowDiskUse=True)
         return await cursor.to_list(length=size)
