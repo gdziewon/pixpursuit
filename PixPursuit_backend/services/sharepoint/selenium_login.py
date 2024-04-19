@@ -7,6 +7,7 @@ of session cookies for subsequent authenticated requests.
 """
 
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from config.logging_config import setup_logging
@@ -16,7 +17,7 @@ from utils.constants import (
     USER_AGENT_ARG, SP_AUTH_COOKIES, HEADLESS_ARG, DISABLE_GPU_ARG, LOGIN_FIELD,
     USERNAME_FIELD, PASSWORD_FIELD, SUBMIT_BUTTON_FIELD, ACCEPT_BUTTON_FIELD,
     NO_SANDBOX_ARG, DISABLE_DEV_SHM_USAGE_ARG, REMOTE_DEBUGGING_PORT_ARG,
-    DISABLE_SOFTWARE_RASTERIZER_ARG, DISABLE_EXTENSIONS_ARG, HUB_URL)
+    DISABLE_SOFTWARE_RASTERIZER_ARG, DISABLE_EXTENSIONS_ARG, HUB_URL, CHROMEDRIVER_PATH)
 
 logger = setup_logging(__name__)
 
@@ -36,11 +37,10 @@ def setup_driver() -> webdriver.Chrome:
     chrome_options.add_argument(REMOTE_DEBUGGING_PORT_ARG)
     chrome_options.add_argument(DISABLE_SOFTWARE_RASTERIZER_ARG)
     chrome_options.add_argument(DISABLE_EXTENSIONS_ARG)
+    service = Service(CHROMEDRIVER_PATH)
     try:
-        driver = webdriver.Remote(
-            command_executor=HUB_URL,
-            options=chrome_options
-        )
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        logger.info("ChromeDriver is set up successfully.")
         return driver
     except Exception as e:
         logger.error(f"Failed to set up ChromeDriver: {e}")
@@ -99,7 +99,6 @@ def selenium_login(sharepoint_url: str, username: str, password: str) -> list[di
             driver = setup_driver()
             perform_login(driver, sharepoint_url, username, password)
             cookies = extract_cookies(driver)
-            driver.quit()
             return cookies
         except Exception as e:
             logger.error(f"Error during login: {e}")

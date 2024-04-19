@@ -5,8 +5,7 @@ FROM python:3.9-slim-buster
 ARG CHROME_VERSION="114.0.5735.133-1"
 ARG CHROMEDRIVER_VERSION="114.0.5735.90"
 
-# Install build dependencies for Annoy along with other required libraries and build tools
-# Also, add the Google Chrome repository to the sources list
+# Install necessary libraries and tools, including dependencies for Google Chrome and ChromeDriver
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg2 \
@@ -29,16 +28,15 @@ RUN apt-get update && apt-get install -y \
     libgtk-3-0 \
     libgbm1 \
     libasound2 \
-    gnupg \
     gcc \
     g++ \
     make \
     && echo "deb http://deb.debian.org/debian buster main contrib non-free" > /etc/apt/sources.list \
     && echo "deb http://deb.debian.org/debian-security buster/updates main contrib non-free" >> /etc/apt/sources.list \
     && echo "deb http://deb.debian.org/debian buster-updates main contrib non-free" >> /etc/apt/sources.list \
-    && apt-get update
-
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+    && apt-get update \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Download and install a specific version of Google Chrome
 RUN wget --no-verbose -O /tmp/chrome.deb https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_${CHROME_VERSION}_amd64.deb \
@@ -64,7 +62,7 @@ COPY . /app
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Make port 8000 available to the world outside this container, this is the port that FastAPI will run on
+# Make port 8000 available to the world outside this container
 EXPOSE 8000
 
 # Set the environment variable for Python to run unbuffered

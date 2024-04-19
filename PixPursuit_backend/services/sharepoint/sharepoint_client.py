@@ -11,7 +11,7 @@ import os
 import httpx
 import urllib.parse
 from utils.dirs import get_tmp_dir_path
-from data.databases.mongodb.async_db.database_tools import create_album
+from data.databases.mongodb.async_db.database_tools import create_album, get_root_id
 from data.data_extraction.image_processing import process_images_from_directory
 from config.logging_config import setup_logging
 from services.sharepoint.selenium_login import get_cookies
@@ -108,14 +108,18 @@ class SharePointClient:
         :param folder_path: The server relative URL of the folder to fetch.
         :return: A dictionary containing the fetched folder data.
         """
-        api_url = await self._get_api_url(folder_path)
-        response = await self.client.get(api_url, headers=SHAREPOINT_FETCH_HEADERS,
-                                         cookies=self.cookies)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            logger.error(f"SharePoint fetch failed: HTTP {response.status_code}")
-            raise Exception(f"SharePoint fetch failed: HTTP {response.status_code}")
+        try:
+            api_url = await self._get_api_url(folder_path)
+            response = await self.client.get(api_url, headers=SHAREPOINT_FETCH_HEADERS,
+                                             cookies=self.cookies)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                logger.error(f"SharePoint fetch failed: HTTP {response.status_code}")
+                raise Exception(f"SharePoint fetch failed: HTTP {response.status_code}")
+        except Exception as e:
+            logger.error(f"Error fetching folder contents: {e}")
+            return {}
 
     async def process_sharepoint_album(self, user: str, folder_path: str = None, parent_id: str = None, album_name: str = None) -> None:
         """
@@ -127,6 +131,9 @@ class SharePointClient:
         :param album_name: The name of the album to create. If not provided, the name is derived from the URL.
         """
         try:
+            if parent_id is None or 'root':
+                parent_id = await get_root_id()
+
             folder_data = await self._fetch_folder_contents(folder_path)
             logger.info(f"Fetched folder contents for '{folder_path}'")
 
@@ -172,24 +179,27 @@ class SharePointClient:
         :param file: The file information dictionary.
         :param save_dir: The directory where the file should be saved.
         """
-        file_url = file['__metadata']['uri'] + "/$value"
-        filename = file_url.split('/')[-2][:-2]
-        if not is_allowed_file(filename):
-            logger.info(f"Skipping file {filename} as it is not an image")
-            return
+        try:
+            file_url = file['__metadata']['uri'] + "/$value"
+            filename = file_url.split('/')[-2][:-2]
+            if not is_allowed_file(filename):
+                logger.info(f"Skipping file {filename} as it is not an image")
+                return
 
-        img_response = await self.client.get(file_url, cookies=self.cookies)
-        if img_response.status_code == 200:
-            file_path = os.path.join(save_dir, filename)
-            try:
-                with open(file_path, 'wb') as f:
-                    f.write(img_response.content)
-            except Exception as e:
-                logger.error(f"Failed to write file {filename}. Error: {e}")
-        else:
-            logger.error(f"Failed to download file {filename}. Status code: {img_response.status_code}")
+            img_response = await self.client.get(file_url, cookies=self.cookies)
+            if img_response.status_code == 200:
+                file_path = os.path.join(save_dir, filename)
+                try:
+                    with open(file_path, 'wb') as f:
+                        f.write(img_response.content)
+                except Exception as e:
+                    logger.error(f"Failed to write file {filename}. Error: {e}")
+            else:
+                logger.error(f"Failed to download file {filename}. Status code: {img_response.status_code}")
+        except Exception as e:
+            logger.error(f"Error downloading image: {e}")
 
-    async def _download_images(self, files: list[dict], save_dir: str, max_concurrent_downloads: int = 10) -> None:
+    async def _download_images(self, files: list[dict], save_dir: str, max_concurrent_downloads: int = 5) -> None:
         """
         Downloads images from SharePoint and saves them locally.
 
@@ -226,10 +236,13 @@ def initiate_album_processing(sharepoint_url: str, sharepoint_username: str, sha
     :param parent_id: The parent album ID in the database.
     :param size: The size to which the images should be resized.
     """
-
-    client = SharePointClient(sharepoint_url, sharepoint_username, sharepoint_password, size)
-    loop = asyncio.get_event_loop() if asyncio.get_event_loop().is_running() else asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(client.process_sharepoint_album(user, parent_id=parent_id))
-    loop.run_until_complete(client.close())
-    loop.close()
+    try:
+        client = SharePointClient(sharepoint_url, sharepoint_username, sharepoint_password, size)
+        loop = asyncio.get_event_loop() if asyncio.get_event_loop().is_running() else asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(client.process_sharepoint_album(user, parent_id=parent_id))
+        loop.run_until_complete(client.close())
+        loop.close()
+    except Exception as e:
+        logger.error(f"Error processing SharePoint album: {e}")
+        raise e
