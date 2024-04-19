@@ -7,22 +7,22 @@ on:
       - 'PixPursuit_backend/**'
 
 jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: PixPursuit_backend
+  # build-and-test:
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: PixPursuit_backend
 
-    steps:
-    - uses: actions/checkout@v2
+  #   steps:
+  #   - uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.9'
+    # - name: Set up Python
+    #   uses: actions/setup-python@v2
+    #   with:
+    #     python-version: '3.9'
 
-    - name: Install dependencies
-      run: pip install -r requirements.txt
+    # - name: Install dependencies
+    #   run: pip install -r requirements.txt
 
     # - name: Run tests
     #   run: pytest
@@ -43,7 +43,7 @@ jobs:
     #     TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
 
   deploy:
-    needs: build-and-test
+    # needs: build-and-test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     defaults:

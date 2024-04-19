@@ -98,10 +98,14 @@ LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'  # Format fo
 # Metadata keys to extract from images
 METADATA_KEYS = ['ImageWidth', 'ImageLength', 'DateTime']  # Keys for metadata extraction.
 
-# Selenium configuration
+# Chromedriver settings for Selenium
 USER_AGENT_ARG = 'user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36'  # User agent for Selenium.
 HEADLESS_ARG = "--headless"  # Headless argument for Selenium.
 DISABLE_GPU_ARG = "--disable-gpu"  # Disable gpu argument for Selenium.
+NO_SANDBOX_ARG = "--no-sandbox"  # No sandbox argument for Selenium.
+DISABLE_DEV_SHM_USAGE_ARG = "--disable-dev-shm-usage"  # Disable dev shm usage argument for Selenium.
+REMOTE_DEBUGGING_PORT_ARG = "--remote-debugging-port=9222"  # Remote debugging port argument for Selenium.
+CHROMEDRIVER_PATH = '/usr/local/bin/chromedriver'  # Path to chromedriver.
 
 # Selenium fields for logging in.
 LOGIN_FIELD = "loginfmt"

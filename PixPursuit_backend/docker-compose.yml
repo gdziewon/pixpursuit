@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # web service
   web:
     image: gdziewon/pixpursuit:latest
     command: uvicorn app:app --host 0.0.0.0 --port 8000 --log-level debug
@@ -11,6 +12,7 @@ services:
     depends_on:
       - redis
 
+  # celery worker service
   worker_main:
     image: gdziewon/pixpursuit:latest
     command: celery -A app.celery worker --loglevel=info --queues=main_queue -P solo
@@ -19,6 +21,7 @@ services:
     depends_on:
       - redis
 
+  # celery worker for beat tasks
   worker_beat:
     image: gdziewon/pixpursuit:latest
     command: celery -A app.celery worker --loglevel=info --queues=beat_queue -P solo
@@ -27,6 +30,7 @@ services:
     depends_on:
       - redis
 
+  # celery beat service
   beat:
     image: gdziewon/pixpursuit:latest
     command: celery -A app.celery beat -l info
@@ -35,9 +39,11 @@ services:
     depends_on:
       - redis
 
+    # redis service
   redis:
     image: "redis:alpine"
 
+    # nginx service
   nginx:
     image: nginx:alpine
     ports:

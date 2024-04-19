@@ -8,13 +8,15 @@ of session cookies for subsequent authenticated requests.
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from config.logging_config import setup_logging
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from utils.constants import (
     USER_AGENT_ARG, SP_AUTH_COOKIES, HEADLESS_ARG, DISABLE_GPU_ARG, LOGIN_FIELD,
-    USERNAME_FIELD, PASSWORD_FIELD, SUBMIT_BUTTON_FIELD, ACCEPT_BUTTON_FIELD)
+    USERNAME_FIELD, PASSWORD_FIELD, SUBMIT_BUTTON_FIELD, ACCEPT_BUTTON_FIELD, CHROMEDRIVER_PATH,
+    NO_SANDBOX_ARG, DISABLE_DEV_SHM_USAGE_ARG, REMOTE_DEBUGGING_PORT_ARG)
 
 logger = setup_logging(__name__)
 
@@ -29,8 +31,17 @@ def setup_driver() -> webdriver.Chrome:
     chrome_options.add_argument(HEADLESS_ARG)
     chrome_options.add_argument(DISABLE_GPU_ARG)
     chrome_options.add_argument(USER_AGENT_ARG)
-
-    return webdriver.Chrome(options=chrome_options)
+    chrome_options.add_argument(NO_SANDBOX_ARG)
+    chrome_options.add_argument(DISABLE_DEV_SHM_USAGE_ARG)
+    chrome_options.add_argument(REMOTE_DEBUGGING_PORT_ARG)
+    service = Service(CHROMEDRIVER_PATH)
+    try:
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        logger.info("ChromeDriver is set up successfully.")
+        return driver
+    except Exception as e:
+        logger.error(f"Failed to set up ChromeDriver: {e}")
+        raise e
 
 
 def perform_login(driver: webdriver.Chrome, url: str, username: str, password: str):
