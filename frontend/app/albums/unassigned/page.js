@@ -1,24 +1,29 @@
 "use client";
 
+// Importing necessary libraries and components
 import React, { useState, useEffect, useContext } from "react";
 import ImageSelection from "/utils/ImageSelection";
 import axios from "axios";
-import { useSession } from "next-auth/react";
 import { SelectedItemsContext } from "/utils/SelectedItemsContext";
 import download from "downloadjs";
 import SuccessWindow from "@/utils/SuccessWindow";
 import ErrorWindow from "@/utils/ErrorWindow";
 
+/**
+ * UnassignedImagesPage component
+ * This component is responsible for displaying the images that are not assigned to any album.
+ * It also provides the functionality to download these unassigned images.
+ */
 export default function UnassignedImagesPage() {
-  const [unassignedImages, setUnassignedImages] = useState([]);
-  const { data: session } = useSession();
+  // State variables
+  const [unassignedImages, setUnassignedImages] = useState([]); // The unassigned images
   const { selectedImageIds, setSelectedImageIds, setIsAllItemsDeselected } =
-    useContext(SelectedItemsContext);
-  const [downloadProgress, setDownloadProgress] = useState(null);
-  const [errorMessage, setErrorMessage] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
+    useContext(SelectedItemsContext); // Context for selected images
+  const [downloadProgress, setDownloadProgress] = useState(null); // Progress of the download
+  const [errorMessage, setErrorMessage] = useState(null); // Error message
+  const [successMessage, setSuccessMessage] = useState(null); // Success message
 
-
+  // Fetching unassigned images on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -32,10 +37,17 @@ export default function UnassignedImagesPage() {
     fetchData();
   }, []);
 
+  // Mapping over unassigned images to create image items
   const imageItems = unassignedImages.map((image, idx) => {
     return <ImageSelection key={idx} item={image} isAlbum={false} />;
   });
 
+  /**
+   * handleDownload function
+   * This function is responsible for handling the download of unassigned images.
+   * It checks if only one image is selected, then downloads that image.
+   * If more than one image is selected, it downloads them as a zip file.
+   */
 
   const handleDownload = async () => {
     if (selectedImageIds.length === 1) {
@@ -110,7 +122,6 @@ export default function UnassignedImagesPage() {
     setSelectedImageIds([]);
     setIsAllItemsDeselected(true);
   };
-
 
   return (
     <div className="container">

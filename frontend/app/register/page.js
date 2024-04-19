@@ -3,29 +3,51 @@
 import { useState } from "react";
 import axios from "axios";
 
-
+/**
+ * Register component
+ * This component is responsible for handling user registration.
+ * It validates the user's input and sends a POST request to the server to create a new user.
+ */
 export default function Register() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [email, setEmail] = useState(""); // The user's email
+  const [password, setPassword] = useState(""); // The user's password
+  const [confirmPassword, setConfirmPassword] = useState(""); // The user's confirmed password
+  const [loading, setLoading] = useState(false); // Loading state
+  const [message, setMessage] = useState(""); // Message to display
 
-
+  /**
+   * validateEmail function
+   * This function validates the user's email using a regular expression.
+   *
+   * @param {string} email - The user's email.
+   * @returns {boolean} - Whether the email is valid.
+   */
   const validateEmail = (email) => {
     const emailRegex =
       /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
     return emailRegex.test(email);
   };
 
-
+  /**
+   * validatePassword function
+   * This function validates the user's password using a regular expression.
+   *
+   * @param {string} password - The user's password.
+   * @returns {boolean} - Whether the password is valid.
+   */
   const validatePassword = (password) => {
     const passwordRegex =
       /(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%\^&\*])(?=.{8,})/;
     return passwordRegex.test(password);
   };
 
-
+  /**
+   * handleSubmit function
+   * This function handles the form submission.
+   * It validates the user's input and sends a POST request to the server to create a new user.
+   *
+   * @param {Object} event - The form event.
+   */
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
@@ -76,6 +98,7 @@ export default function Register() {
     }
   };
 
+  // Render the registration form
   return (
     <div className="bg-gray-900 text-white w-full max-w-md mx-auto mt-8 rounded-lg p-4">
       <h1 className="text-3xl font-bold text-gray-200 text-center mb-8">
@@ -145,15 +168,6 @@ export default function Register() {
         </div>
       </form>
       {message && <p className="text-red-500 text-sm">{message}</p>}
-      <p className="text-sm mt-4 text-gray-500">
-        Already have an account?{" "}
-        <a
-          href="/login"
-          className="text-blue-500 hover:text-blue-700 font-medium"
-        >
-          Log in
-        </a>
-      </p>
     </div>
   );
 }

@@ -5,6 +5,8 @@ import ErrorWindow from "@/utils/ErrorWindow";
 
 /**
  * Searcher component.
+ * This component is responsible for providing a search functionality in the application.
+ * It fetches search suggestions based on the user's input and navigates to the search results page when a search is performed.
  *
  * @param {Object} props - The props.
  * @param {string} props.search - The initial search text.
@@ -12,11 +14,16 @@ import ErrorWindow from "@/utils/ErrorWindow";
  */
 export default function Searcher({ search }) {
   const router = useRouter();
-  const [text, setText] = useState(search);
-  const [suggestions, setSuggestions] = useState([]);
-  const [errorMessage, setErrorMessage] = useState(null);
+  const [text, setText] = useState(search); // The search text
+  const [suggestions, setSuggestions] = useState([]); // The search suggestions
+  const [errorMessage, setErrorMessage] = useState(null); // The error message
 
-
+  /**
+   * fetchSuggestions function
+   * This function fetches search suggestions based on the user's input.
+   *
+   * @param {string} input - The user's input.
+   */
   const fetchSuggestions = async (input) => {
     try {
       const response = await fetch(`/api/searchSuggestions?query=${input}`);
@@ -31,7 +38,13 @@ export default function Searcher({ search }) {
     }
   };
 
-
+  /**
+   * handleInput function
+   * This function handles the user's input.
+   * It fetches search suggestions based on the input and navigates to the search results page when the Enter key is pressed.
+   *
+   * @param {Object} e - The event object.
+   */
   const handleInput = (e) => {
     setText(e.target.value);
     fetchSuggestions(e.target.value);
@@ -48,7 +61,13 @@ export default function Searcher({ search }) {
     }
   };
 
-
+  /**
+   * handleSuggestionClick function
+   * This function handles the click event on a search suggestion.
+   * It sets the search text to the clicked suggestion and navigates to the search results page.
+   *
+   * @param {string} suggestion - The clicked suggestion.
+   */
   const handleSuggestionClick = (suggestion) => {
     setText(suggestion);
     setSuggestions([]);
@@ -59,7 +78,11 @@ export default function Searcher({ search }) {
     router.push(`/gallery?${params.toString()}`);
   };
 
-
+  /**
+   * handleInputBlur function
+   * This function handles the blur event on the search input.
+   * It clears the search suggestions after a delay to allow for a click event on a suggestion to be processed.
+   */
   const handleInputBlur = () => {
     setTimeout(() => {
       setSuggestions([]);

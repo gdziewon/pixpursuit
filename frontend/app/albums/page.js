@@ -8,14 +8,12 @@ import {
   FolderPlusIcon,
   HeartIcon,
   PhotoIcon,
-  Lo,
 } from "@heroicons/react/24/outline";
 import ImageSelection from "/utils/ImageSelection";
 import { SelectedItemsContext } from "/utils/SelectedItemsContext";
 import axios from "axios";
 import download from "downloadjs";
 import { useSession } from "next-auth/react";
-import Image from "next/image";
 import DropdownMenu from "@/utils/DropdownMenu";
 import DropdownMenuUpload from "@/utils/DropdownMenuUpload";
 import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
@@ -56,11 +54,9 @@ export default function AlbumsPage() {
   const [showLoadMoreButton, setShowLoadMoreButton] = useState(false); // flag to indicate if the load more button should be shown
   const [initialMount, setInitialMount] = useState(true); // flag to indicate if the component is mounted
 
-
   const loadMore = () => {
     setPage((prevPageNumber) => prevPageNumber + 1);
   };
-
 
   useEffect(() => {
     if (selectedImageIds.length === 0 && selectedAlbumIds.length === 0) {
@@ -114,7 +110,6 @@ export default function AlbumsPage() {
   const handleUploadClick = () => {
     setIsUploadOpen(!isUploadOpen);
   };
-
 
   const handleDownload = async () => {
     if (selectedImageIds.length === 1 && selectedAlbumIds.length === 0) {
@@ -192,7 +187,6 @@ export default function AlbumsPage() {
     setIsAllItemsDeselected(true);
   };
 
-
   const handleDelete = async () => {
     const image_ids = selectedImageIds;
     const album_ids = selectedAlbumIds;
@@ -257,7 +251,6 @@ export default function AlbumsPage() {
     setIsAllItemsDeselected(true);
   };
 
-
   const handleTagSubmit = async () => {
     if (!tagInput) {
       setErrorMessage("No tags entered");
@@ -300,17 +293,14 @@ export default function AlbumsPage() {
     setIsAllItemsDeselected(true);
   };
 
-
   const handleAddTags = () => {
     setIsTagModalOpen(true);
   };
-
 
   const handleTagModalCancel = () => {
     setTagInput("");
     setIsTagModalOpen(false);
   };
-
 
   const handleTagInputChange = (e) => {
     setTagInput(e.target.value);
@@ -323,7 +313,6 @@ export default function AlbumsPage() {
   if (!albumData || (!albumData.sons.length && !albumData.images.length)) {
     return <div>No albums or images found.</div>;
   }
-
 
   /**
    * Maps over the album data to create the album and image items.
