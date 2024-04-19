@@ -11,6 +11,7 @@ services:
       - .env
     depends_on:
       - redis
+      - selenium-chrome
 
   # celery worker service
   worker_main:
@@ -20,6 +21,7 @@ services:
       - .env
     depends_on:
       - redis
+      - selenium-chrome
 
   # celery worker for beat tasks
   worker_beat:
@@ -55,6 +57,15 @@ services:
       - /etc/letsencrypt/live/api.pixpursuit.rocks/privkey.pem:/etc/nginx/ssl/privkey.pem:ro
     depends_on:
       - web
+
+  selenium-chrome:
+    image: selenium/standalone-chrome
+    ports:
+      - "4444:4444"
+    privileged: true
+    shm_size: 2g
+    volumes:
+      - /dev/shm:/dev/shm
 
 volumes:
   redis-data:

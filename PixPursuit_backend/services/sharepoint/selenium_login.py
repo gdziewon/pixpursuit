@@ -8,15 +8,15 @@ of session cookies for subsequent authenticated requests.
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from config.logging_config import setup_logging
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from utils.constants import (
     USER_AGENT_ARG, SP_AUTH_COOKIES, HEADLESS_ARG, DISABLE_GPU_ARG, LOGIN_FIELD,
-    USERNAME_FIELD, PASSWORD_FIELD, SUBMIT_BUTTON_FIELD, ACCEPT_BUTTON_FIELD, CHROMEDRIVER_PATH,
-    NO_SANDBOX_ARG, DISABLE_DEV_SHM_USAGE_ARG, REMOTE_DEBUGGING_PORT_ARG)
+    USERNAME_FIELD, PASSWORD_FIELD, SUBMIT_BUTTON_FIELD, ACCEPT_BUTTON_FIELD,
+    NO_SANDBOX_ARG, DISABLE_DEV_SHM_USAGE_ARG, REMOTE_DEBUGGING_PORT_ARG,
+    DISABLE_SOFTWARE_RASTERIZER_ARG, DISABLE_EXTENSIONS_ARG, HUB_URL)
 
 logger = setup_logging(__name__)
 
@@ -34,10 +34,13 @@ def setup_driver() -> webdriver.Chrome:
     chrome_options.add_argument(NO_SANDBOX_ARG)
     chrome_options.add_argument(DISABLE_DEV_SHM_USAGE_ARG)
     chrome_options.add_argument(REMOTE_DEBUGGING_PORT_ARG)
-    service = Service(CHROMEDRIVER_PATH)
+    chrome_options.add_argument(DISABLE_SOFTWARE_RASTERIZER_ARG)
+    chrome_options.add_argument(DISABLE_EXTENSIONS_ARG)
     try:
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        logger.info("ChromeDriver is set up successfully.")
+        driver = webdriver.Remote(
+            command_executor=HUB_URL,
+            options=chrome_options
+        )
         return driver
     except Exception as e:
         logger.error(f"Failed to set up ChromeDriver: {e}")
