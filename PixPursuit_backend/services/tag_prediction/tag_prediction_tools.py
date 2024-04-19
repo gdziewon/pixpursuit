@@ -148,7 +148,7 @@ async def training_init(inserted_ids: list[str]) -> None:
         try:
             image_document = await get_image_document(inserted_id)
             if image_document:
-                features = image_document['features'][0]
+                features = image_document['features']
                 feedback_tags = image_document.get('feedback', {})
                 tags = image_document['user_tags']
                 update_unique_tags_cache()
@@ -255,7 +255,7 @@ def predict_and_update_tags(image_ids: list[str]) -> None:
                 logger.error(f"Model not found. Prediction aborted for image: {image_id}")
                 continue
 
-            features = image_document['features'][0]
+            features = image_document['features']
             features_tensor = torch.tensor(features, dtype=torch.float32)
             if features_tensor.ndim == 1:
                 features_tensor = features_tensor.unsqueeze(0)

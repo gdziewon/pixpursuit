@@ -27,12 +27,12 @@ def make_celery(app_name=__name__) -> Celery:
 
     # Schedule for periodic tasks
     celery_app.conf.beat_schedule = {
-        'update-auto-tags-every-15-min': {
-            'task': 'tag_prediction_tools.update_all_auto_tags.beat',
+        'update-auto-tags-every-30-min': {
+            'task': PREDICT_ALL_TAGS_TASK,
             'schedule': crontab(minute=UPDATE_AUTO_TAGS_SCHEDULE)
         },
-        'cluster-faces-every-5-min': {
-            'task': 'face_operations.group_faces.beat',
+        'cluster-faces-every-20-min': {
+            'task': GROUP_FACES_TASK,
             'schedule': crontab(minute=CLUSTER_FACES_SCHEDULE),
         },
     }

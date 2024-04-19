@@ -75,8 +75,8 @@ FACE_SIZE_THRESHOLD = 4200  # Size threshold for considering a detected face.
 # Celery configuration
 CELERY_BROKER_URL = 'redis://redis:6379/0'  # Broker URL for Celery.
 CELERY_RESULT_BACKEND = 'redis://redis:6379/0'  # Backend URL for Celery results.
-UPDATE_AUTO_TAGS_SCHEDULE = '*/15'  # Schedule for updating auto tags.
-CLUSTER_FACES_SCHEDULE = '*/5'  # Schedule for clustering faces.
+UPDATE_AUTO_TAGS_SCHEDULE = '*/30'  # Schedule for updating auto tags.
+CLUSTER_FACES_SCHEDULE = '*/20'  # Schedule for clustering faces.
 BEAT_SCHEDULE_FILE_PATH = os.path.join(get_generated_dir_path(), 'celerybeat-schedule')  # Path for Celery beat schedule file.
 
 # Celery tasks info

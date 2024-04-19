@@ -1,3 +1,11 @@
+"""
+image_similarity.py
+
+This module contains the ImageSimilarity class which is used to find images that are similar to a given image.
+The similarity is calculated based on the features of the images. The module uses Dask arrays for efficient computation on large datasets and
+ThreadPoolExecutor for parallel processing.
+"""
+
 import heapq
 import numpy as np
 import dask.array as da
@@ -129,8 +137,7 @@ class ImageSimilarity:
         if total_docs == 0:
             return []
 
-        # Sample 10% of the total documents or the specified limit
-        size = max(limit, total_docs // 10)
+        size = max(limit, total_docs // 20)  # Sample size is 5% of total documents or the limit, whichever is greater
         pipeline = [
             {'$match': {'_id': {'$ne': oid}}},
             {'$sample': {'size': size}},
