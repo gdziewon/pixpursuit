@@ -21,21 +21,26 @@ def make_celery(app_name=__name__) -> Celery:
     :param app_name: Name of the Celery application, default is __name__.
     :return: Configured Celery application instance.
     """
+
+    # Initialize Celery app with redis broker and backend
     celery_app = Celery(app_name,
                         broker=CELERY_BROKER_URL,
                         backend=CELERY_RESULT_BACKEND)
 
     # Schedule for periodic tasks
     celery_app.conf.beat_schedule = {
-        'update-auto-tags-every-30-min': {
+        'update-auto-tags-every-6-hours': {
             'task': PREDICT_ALL_TAGS_TASK,
-            'schedule': crontab(minute=UPDATE_AUTO_TAGS_SCHEDULE)
+            'schedule': crontab(minute='0', hour=UPDATE_AUTO_TAGS_SCHEDULE),
         },
-        'cluster-faces-every-20-min': {
+        'cluster-faces-every-3-hours': {
             'task': GROUP_FACES_TASK,
-            'schedule': crontab(minute=CLUSTER_FACES_SCHEDULE),
+            'schedule': crontab(minute='0', hour=CLUSTER_FACES_SCHEDULE),
         },
     }
+
+    # Save the schedule to a file
+    celery_app.conf.beat_schedule_filename = BEAT_SCHEDULE_FILE_PATH
 
     # Other Celery configurations
     celery_app.conf.timezone = 'CET'
@@ -44,7 +49,6 @@ def make_celery(app_name=__name__) -> Celery:
         '*.main': {'queue': 'main_queue'},
         '*.beat': {'queue': 'beat_queue'}
     }
-    celery_app.conf.beat_schedule_filename = BEAT_SCHEDULE_FILE_PATH
 
     return celery_app
 

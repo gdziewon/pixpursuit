@@ -8,11 +8,14 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 from utils.function_utils import to_object_id
 from pymongo import DeleteOne
 from sklearn.neighbors import BallTree
-from utils.constants import GROUP_FACES_TASK, DELETE_FACES_TASK, UPDATE_NAMES_TASK, MAIN_QUEUE, BEAT_QUEUE
+from utils.constants import (
+    GROUP_FACES_TASK, DELETE_FACES_TASK, UPDATE_NAMES_TASK, MAIN_QUEUE, BEAT_QUEUE,
+    DBSCAN_EPS, DBSCAN_MIN_SAMPLES, FACE_DELETE_THRESHOLD)
 
 logger = setup_logging(__name__)
 
 sync_images_collection, _, sync_faces_collection, _, _ = connect_to_mongodb(async_mode=False)
+dbscan = DBSCAN(eps=DBSCAN_EPS, min_samples=DBSCAN_MIN_SAMPLES)
 
 
 def cluster_embeddings(embeddings: list[np.ndarray]) -> np.ndarray or None:
@@ -24,7 +27,6 @@ def cluster_embeddings(embeddings: list[np.ndarray]) -> np.ndarray or None:
    """
     try:
         embeddings_array = np.array(embeddings)
-        dbscan = DBSCAN(eps=0.8, min_samples=3)
         clusters = dbscan.fit_predict(embeddings_array)
         return clusters
     except Exception as e:
@@ -62,7 +64,7 @@ def process_images(images: list[dict]) -> None:
             return
 
         embeddings_array = np.array(all_embeddings)
-        clustering = DBSCAN(eps=0.8, min_samples=3).fit(embeddings_array)
+        clustering = dbscan.fit(embeddings_array)
 
         label_idx = 0
         for image in images:
@@ -308,7 +310,6 @@ def delete_faces_associated_with_images(image_ids: list) -> bool:
     :param image_ids: The list of IDs of the images whose associated faces are to be deleted.
     :return: True if the deletion was successful, False otherwise.
     """
-    threshold = 0.01
     delete_operations = []
 
     image_embeddings = {}
@@ -325,10 +326,10 @@ def delete_faces_associated_with_images(image_ids: list) -> bool:
 
     for image_id, embeddings in image_embeddings.items():
         for emb in embeddings:
-            indices = tree.query_radius([emb], r=threshold)
+            indices = tree.query_radius([emb], r=FACE_DELETE_THRESHOLD)
 
             for index in indices[0]:
-                delete_operations.append(DeleteOne({'_id': face_docs[index]['_id']}))
+                delete_operations.append(DeleteOne({'_id': to_object_id(face_docs[index]['_id'])}))
 
     if delete_operations:
         try:
