@@ -32,6 +32,7 @@ export async function getAlbums(
   const subAlbums = await db
     .collection("albums")
     .find({ parent: album._id.toString() })
+    .sort({ _id: -1 }) // Sort by ObjectId in descending order
     .skip(skip)
     .limit(limit)
     .toArray();
@@ -47,7 +48,7 @@ export async function getAlbums(
 
   // Fetch images for the current album
   const imageIds = album.images
-    ? album.images.slice(0, thumbnailLimit).map((id) => new ObjectId(id))
+    ? album.images.map((id) => new ObjectId(id))
     : [];
   const images =
     imageIds.length > 0
