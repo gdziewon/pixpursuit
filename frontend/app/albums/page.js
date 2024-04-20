@@ -58,11 +58,12 @@ export default function AlbumsPage() {
     setPage((prevPageNumber) => prevPageNumber + 1);
   };
 
-  useEffect(() => {
+  () => {
     if (selectedImageIds.length === 0 && selectedAlbumIds.length === 0) {
       setIsActionsOpen(false);
     }
-  }, [selectedImageIds, selectedAlbumIds]);
+  },
+    [selectedImageIds, selectedAlbumIds];
   useEffect(() => {
     if (initialMount) {
       setInitialMount(false);
@@ -84,7 +85,7 @@ export default function AlbumsPage() {
                 ...data,
                 sons: [
                   ...(prevData && prevData.sons ? prevData.sons : []),
-                  ...data.sons.reverse(),
+                  ...data.sons,
                 ],
               };
             });
