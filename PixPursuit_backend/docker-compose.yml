@@ -1,3 +1,24 @@
+# This is the Docker Compose configuration file for the PixPursuit project.
+#
+# Services:
+# - web: The main web service running the PixPursuit application. It uses the gdziewon/pixpursuit:latest image and listens on port 8000.
+# - worker_main: A Celery worker service for handling main tasks. It uses the same image as the web service and connects to the same Redis instance.
+# - worker_beat: Another Celery worker service, this one specifically for handling beat tasks. It also uses the same image and connects to the same Redis instance.
+# - beat: The Celery beat service for periodic task scheduling. It uses the same image as the web service and connects to the same Redis instance.
+# - redis: The Redis service used as a message broker for the Celery workers. It uses the redis:alpine image.
+# - nginx: The Nginx service for handling HTTP(S) traffic. It uses the nginx:alpine image and listens on ports 80 and 443. It also mounts the SSL certificate and key files for HTTPS.
+#
+# Volumes:
+# - redis-data: A named volume for persisting Redis data.
+#
+# All services use the environment variables defined in the .env file. The web, worker_main, worker_beat, and beat services all depend on the Redis service being available. The Nginx service depends on the web service.
+#
+# The Nginx configuration file (nginx.conf) is mounted into the Nginx service container to configure the server block for the PixPursuit application.
+#
+# The SSL certificate and key files are mounted into the Nginx service container to enable HTTPS support for the PixPursuit application.
+#
+# The gdziewon/pixpursuit:latest image is used for all services, as it contains the necessary code and dependencies for the PixPursuit application, including the FastAPI web server, Celery workers, and Celery beat scheduler.
+
 version: '3.8'
 
 services:

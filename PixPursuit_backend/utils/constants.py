@@ -73,7 +73,7 @@ MIN_FACE_SIZE = 3  # Minimum size for a detected face.
 FACE_SIZE_THRESHOLD = 4200  # Size threshold for considering a detected face.
 FACE_DELETE_THRESHOLD = 0.1  # Threshold for deleting faces.
 DBSCAN_EPS = 0.8  # Epsilon value for DBSCAN clustering.
-DBSCAN_MIN_SAMPLES = 10  # Minimum samples for DBSCAN clustering.
+DBSCAN_MIN_SAMPLES = 5  # Minimum samples for DBSCAN clustering.
 
 # Celery configuration
 CELERY_BROKER_URL = 'redis://redis:6379/0'  # Broker URL for Celery.
