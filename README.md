@@ -4,7 +4,7 @@ Backend and fronted of application from image management and processing with AI 
 Made for [competition at Cracow University of Technology](https://konkursit.pk.edu.pl/)
 ## Frontend
 
-Built with Next.js.
+Built with Next.js and TailwindCSS.
 
 ## Project Structure
 
@@ -15,19 +15,36 @@ Built with Next.js.
     - **page.js:** Page for a specific album.
   - **add/[parentid]:**
     - **page.js:** Page for adding images to a specific album.
+  - **liked:**
+    - **page.js:** Page for showing liked by user images.
+  - **unassagined:**
+    - **page.js:** Page for showing images not assigned to any folder.
   - **page.js:** Default album page.
 - **components:** Reusable React components used throughout the app.
   - **Navbar.jsx:** Navbar component displayed on every page.
   - **NextAuthProvider.jsx:** Authentication provider.
-  - **Searcher.jsx:** Search input component for the app.
+  - **RandomImage.js:** Component for displaying a carousel of random images.
+  - **Searcher.jsx:** Component for searching within the app.
 - **gallery:** Directory containing pages related to the image gallery.
   - **[id]:**
     - **page.js:** Page for a specific image.
   - **upload:**
     - **[albumid]:**
-      - **page.js:** Page for adding images to a specific folder.
+      - **page.js:** Page for adding images to a specific album.
+    - **galeria_pk:**
+      - **[albumid]:**
+      - **page.js:** Page for adding images to a specific album.
+      - **page.js:** Page for adding images to a specific album.
+    - **sharepoint/[albumid]:**
+      - **page.js:** Page for adding images to a specific album.
+    - **zip:**
+      - **[albumid]**
+        - **page.js:** Page for adding images to a specific album.
+      - **page.js:** Page for adding images to a specific album.
     - **page.js:** Page for uploading images.
-  - **page.js:** Page for the image gallery.
+    - **page.js:** Page for the image gallery.
+- **register:**
+  - **page.js:** Page for registering new user.
 - **favicon.ico:** App favicon.
 - **globals.css:** Imports TailwindCSS styles.
 - **layout.js:** Defines the layout for the web app.
@@ -37,13 +54,20 @@ Built with Next.js.
 #### `pages`
 
 - **API:** Contains API routes for MongoDB connection and authentication.
+  - **albums:**
+    - **[albumid].js:** Handles requests related to a specific album.
   - **auth:**
     - **[...nextauth].js:** Authentication route.
+  - **liked:**
+    - **[user].js:** Handles requests related to a specific user.
   - **addUserTag.js** - Adds a tag from a user to an image.
   - **connectMongo.js** - Connects to MongoDB.
-  - **getSingleImage.js** - Gets a single image from MongoDB.
-  - **s3.js**
+  - **getImages.js** - Retrieves all images from MongoDB.
+  - **getSingleImage.js** - Retrieves a single image from MongoDB.
+  - **randomImages.js** - Retrieves a random selection of images from MongoDB.
   - **searchSuggestions.js** - Gets search suggestions from MongoDB.
+  - **verify-email:**
+    - **index.js:** Handles requests related to the verification of user emails.
 
 ### `public`
 
@@ -52,13 +76,24 @@ Built with Next.js.
 ### `styles`
 
 - **album_layout_styles.css:** Styles for the album page.
+- **design_style.css:** Styles for the design of the website.
 
 ### `utils` - Contains utility functions for the app.
 
-- **getAlbums.js** - Gets all albums from MongoDB.
-- **getImages.js** - Gets all images from MongoDB.
+- **AlbumButtons.js** - Implements buttons for interacting with albums in the application.
+- **ConfirmDialog.js** - Displays a dialog box for confirming an action.
+- **DropdownMenu.js** - Displays a dropdown menu with various options for interacting with the app.
+- **DropdownMenuUpload.js** - Implements a dropdown menu for uploading images in the application.
+- **ErrorWindow.js** - Handles error messages in the application.
+- **faceBoxes.js** - Responsible for handling face bounding boxes in the application.
+- **getImages.js** - Retrieves all images from MongoDB.
+- **getRootId.js** - Retrieves the root ID of the application.
 - **getSingleImage.js** - Gets a single image from MongoDB.
-- **isRootId.js:** - Checks if an album is the root album.
+- **ImageSelection.js** - Handles image selection in the application.
+- **RenameModal.js** - Handles renaming of images in the application.
+- **SelectedItemsContext.js** - Manages the context for selected items in the application.
+- **SuccessWindow.js** - Displays a success message in the application.
+- **TagModal.js** - Handles tagging of images in the application.
 
 ### `.env`
 
@@ -67,11 +102,14 @@ Built with Next.js.
 ### Config Files
 
 - Various configuration files for the project. like:
-    - 'jsconfig.json',
-    - 'tailwind.config.js',
-    - 'next.config.js',
-    - 'postcss.config.js',
-    - 'package.json'
+    - `jsconfig.json`,
+    - `tailwind.config.js`,
+    - `next.config.js`,
+    - `postcss.config.js`,
+    - `package.json`,
+    - `package-lock.json`
+
+- **middleware.js** - File containing middleware functions for handling requests and responses in the application.
 
 ## Installation
 
@@ -85,9 +123,7 @@ To set up the PixPursuit locally, you need to:
 ## Running the App
 
 To run the app locally, use the following command in the console:
-    ```bash
-    npm run dev
-
+    ```npm run dev```
 
 ## Backend
 
