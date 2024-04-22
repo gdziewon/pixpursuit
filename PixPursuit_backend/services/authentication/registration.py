@@ -58,7 +58,7 @@ def create_confirmation_token(user_id: str) -> str:
     :param user_id: The user ID to include in the token.
     :return: A JWT token for confirming the user's email address.
     """
-    payload = {"user_id": user_id}
+    payload = {"user_id": str(user_id)}  # Convert ObjectId to string
     token = jwt.encode(payload, SECRET_KEY_AUTH, algorithm=ALGORITHM)
     return token
 
@@ -80,7 +80,6 @@ def build_confirmation_message(email: str, confirmation_url: str) -> MessageSche
     )
 
 
-# Then in your send_confirmation_email function, you can use this helper function:
 async def send_confirmation_email(email: str, user_id: str) -> None:
     try:
         token = create_confirmation_token(user_id)

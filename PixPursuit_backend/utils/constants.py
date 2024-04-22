@@ -23,13 +23,32 @@ MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')  # Password for mail server.
 MAIL_APP_PASSWORD = os.getenv('MAIL_APP_PASSWORD')  # Application-specific password for mail server.
 MAIL_FROM = os.getenv('MAIL_USERNAME')  # Email sender address.
 MAIL_FROM_NAME = "PixPursuit"  # Name of the email sender.
-CONFIRMATION_URL = "http://localhost:3000/verify-email?token="  # URL for email confirmation.
+CONFIRMATION_URL = "https://www.pixpursuit.rocks/verify-email?token="  # URL for email confirmation.
 EMAIL_SUFFIX = '@pk.edu.pl'  # Suffix for email addresses.
 EMAIL_SUBJECT = "PixPursuit - Email Confirmation"  # Subject line for confirmation emails.
-EMAIL_BODY_TEMPLATE = (
-    "Please confirm your email by clicking on this link:\n\n{confirmation_url}\n\n"
-    "If you did not register to PixPursuit, please ignore this email."
-)  # Template for confirmation email body.
+EMAIL_BODY_TEMPLATE = """
+<html>
+<head>
+    <style>
+        p {{
+            font-size: 16px;
+            color: #333;
+        }}
+        a {{
+            color: #007BFF;
+            text-decoration: none;
+        }}
+        a:hover {{
+            text-decoration: underline;
+        }}
+    </style>
+</head>
+<body>
+    <p>Please confirm your email by clicking on the following <a href="{confirmation_url}">link</a>.</p>
+    <p>If you did not register to PixPursuit, please ignore this email.</p>
+</body>
+</html>
+"""  # Template for confirmation email body in HTML.
 EMAIL_SUBTYPE = "html"  # Subtype of the email content.
 
 # Tag Prediction

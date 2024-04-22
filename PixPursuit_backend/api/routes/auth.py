@@ -50,20 +50,20 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 @router.post("/register")
 async def register_user(user_registration: UserRegistration, background_tasks: BackgroundTasks):
     """
-        Register a new user and send a confirmation email.
+    Register a new user and send a confirmation email.
 
-        :param user_registration: The data needed for registering a new user.
-        :type user_registration: UserRegistration
-        :param background_tasks: Background tasks for sending confirmation email.
-        :type background_tasks: BackgroundTasks
-        :return: A message indicating successful registration.
-        :rtype: dict
+    :param user_registration: The data needed for registering a new user.
+    :type user_registration: UserRegistration
+    :param background_tasks: Background tasks for sending confirmation email.
+    :type background_tasks: BackgroundTasks
+    :return: A message indicating successful registration.
+    :rtype: dict
     """
     new_user = await create_user(user_registration.email, await hash_password(user_registration.password))
     if not new_user:
         raise create_user_exception
 
-    background_tasks.add_task(send_confirmation_email, user_registration.email, new_user.inserted_id)
+    background_tasks.add_task(send_confirmation_email, user_registration.email, str(new_user.inserted_id))
     return {"message": "User registered successfully. Please check your email to confirm registration."}
 
 
