@@ -1,3 +1,4 @@
+process.env.DO_SPACE_ENDPOINT
 import { connectToDatabase } from "./connectMongo";
 
 export default async function handler(req, res) {
@@ -91,7 +92,7 @@ export default async function handler(req, res) {
 
         pipeline.unshift({
           $search: {
-            index: "pixiep",
+            index: env.process.ATLAS_SEARCH_INDEX,
             compound: searchCompound,
           },
         });

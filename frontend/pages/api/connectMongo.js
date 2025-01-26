@@ -16,7 +16,6 @@ export async function connectToDatabase() {
   try {
     if (!client) {
       client = await MongoClient.connect(MONGODB_URI);
-      console.log("Connected to MongoDB");
     }
     db = client.db("pixpursuit_db");
     return db;
